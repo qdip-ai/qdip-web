@@ -6,26 +6,26 @@ import { ObservatoryPluginAdmin } from './observatory-plugin-admin'
 vi.mock('@/use-cases/registry', () => ({ DIP_USE_CASES: [] }))
 vi.mock('@/design-system', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-  Button: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button {...props}>{children}</button>
-  ),
+  Button: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props}>{children}</button>,
 }))
 
 const one = {
-  plugins: [{
-    name: 'remote-demo-secretary',
-    plugin_id: 'secretary',
-    source: 'remote',
-    description: 'Planning via QDIP',
-    version: '0.1.0',
-    enabled: true,
-    capabilities: ['secretary.plan'],
-    published: false,
-    published_version: null,
-    capability_id: 'secretary.plan',
-    revision: 0,
-    ui: { label: 'VHV — Decision Assistant', category: 'Productivity' },
-  }],
+  plugins: [
+    {
+      name: 'remote-demo-secretary',
+      plugin_id: 'secretary',
+      source: 'remote',
+      description: 'Planning via QDIP',
+      version: '0.1.0',
+      enabled: true,
+      capabilities: ['secretary.plan'],
+      published: false,
+      published_version: null,
+      capability_id: 'secretary.plan',
+      revision: 0,
+      ui: { label: 'VHV — Decision Assistant', category: 'Productivity' },
+    },
+  ],
 }
 
 function json(data: unknown, status = 200) {
@@ -46,7 +46,12 @@ beforeEach(() => {
 describe('Observatory registry refresh feedback', () => {
   it('shows loading, then a count and last-checked time even on the first successful load', async () => {
     let resolve!: (value: ReturnType<typeof json>) => void
-    const fetchMock = vi.fn(() => new Promise<ReturnType<typeof json>>((done) => { resolve = done }))
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<ReturnType<typeof json>>((done) => {
+          resolve = done
+        })
+    )
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
     await waitFor(() => expect(screen.getByRole('button', { name: 'Оновлення…' })).toBeDisabled())
@@ -59,9 +64,15 @@ describe('Observatory registry refresh feedback', () => {
 
   it('shows a spinner, blocks duplicate clicks and confirms no changes after refresh', async () => {
     let resolveRefresh!: (value: ReturnType<typeof json>) => void
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(json(one))
-      .mockImplementationOnce(() => new Promise<ReturnType<typeof json>>((done) => { resolveRefresh = done }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<ReturnType<typeof json>>((done) => {
+            resolveRefresh = done
+          })
+      )
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
     await tick()
@@ -76,8 +87,10 @@ describe('Observatory registry refresh feedback', () => {
   })
 
   it('reports an updated list when a capability appears', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(json(one))
-      .mockResolvedValueOnce(json({plugins: [...one.plugins, { ...one.plugins[0], name: 'second-plugin' }]}))
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json(one))
+      .mockResolvedValueOnce(json({ plugins: [...one.plugins, { ...one.plugins[0], name: 'second-plugin' }] }))
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
     await tick()
@@ -87,8 +100,10 @@ describe('Observatory registry refresh feedback', () => {
   })
 
   it('shows failure without removing the last known registry or claiming success', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(json(one))
-      .mockResolvedValueOnce(json({error:'Unavailable'},503))
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json(one))
+      .mockResolvedValueOnce(json({ error: 'Unavailable' }, 503))
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
     await tick()
@@ -100,7 +115,7 @@ describe('Observatory registry refresh feedback', () => {
   })
 
   it('renders localized progress and confirmation in English', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(json({plugins: []}))
+    const fetchMock = vi.fn().mockResolvedValue(json({ plugins: [] }))
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="en" />)
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Plugins: 0'))

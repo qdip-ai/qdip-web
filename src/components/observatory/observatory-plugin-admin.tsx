@@ -178,7 +178,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [refreshResult, setRefreshResult] = useState<{ checkedAt: Date; count: number; changed: boolean | null } | null>(null)
+  const [refreshResult, setRefreshResult] = useState<{
+    checkedAt: Date
+    count: number
+    changed: boolean | null
+  } | null>(null)
   const [refreshFailed, setRefreshFailed] = useState(false)
   const requestRef = useRef<AbortController | null>(null)
   const rowsRef = useRef<Row[] | null>(null)
@@ -205,8 +209,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         throw new Error('Invalid catalog response')
       if (controller.signal.aborted) return false
       const next = data.plugins as Row[]
-      const fingerprint = (entries: Row[]) =>
-        JSON.stringify([...entries].sort((a, b) => a.name.localeCompare(b.name)))
+      const fingerprint = (entries: Row[]) => JSON.stringify([...entries].sort((a, b) => a.name.localeCompare(b.name)))
       const previous = rowsRef.current
       const changed = previous === null ? null : fingerprint(previous) !== fingerprint(next)
       rowsRef.current = next
