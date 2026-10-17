@@ -9,6 +9,8 @@ import { DIP_USE_CASES } from '@/use-cases/registry'
 type Row = {
   name: string
   plugin_id?: string
+  slug?: string | null
+  slug_aliases?: string[]
   source?: 'embedded' | 'remote'
   description: string
   version: string
@@ -21,7 +23,13 @@ type Row = {
   ui: { label?: string; category?: string }
 }
 
-type FormFields = { display_name: string; description: string; category: string; capability_id: string }
+type FormFields = {
+  display_name: string
+  description: string
+  category: string
+  capability_id: string
+  slug: string
+}
 const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Other']
 const copy = {
   uk: {
@@ -44,6 +52,9 @@ const copy = {
     choose: 'Зареєстрований через SDK плагін',
     select: 'Виберіть плагін…',
     name: 'Назва',
+    slug: 'Коротка адреса (URL)',
+    slugHint: 'Латинські малі літери, цифри й дефіс. Внутрішній ID плагіна не зміниться.',
+    slugPreview: 'Публічна адреса',
     description: 'Опис',
     category: 'Категорія',
     capability: 'Можливість',
@@ -94,6 +105,9 @@ const copy = {
     choose: 'SDK-registered plugin',
     select: 'Select a plugin…',
     name: 'Display name',
+    slug: 'Short URL (slug)',
+    slugHint: 'Lowercase letters, numbers and hyphens. The SDK plugin ID does not change.',
+    slugPreview: 'Public URL',
     description: 'Description',
     category: 'Category',
     capability: 'Capability',
@@ -144,6 +158,9 @@ const copy = {
     choose: 'Wtyczka zarejestrowana przez SDK',
     select: 'Wybierz wtyczkę…',
     name: 'Nazwa wyświetlana',
+    slug: 'Krótki adres URL',
+    slugHint: 'Małe litery, cyfry i łączniki. Identyfikator wtyczki SDK nie zmienia się.',
+    slugPreview: 'Adres publiczny',
     description: 'Opis',
     category: 'Kategoria',
     capability: 'Funkcja',
@@ -192,6 +209,9 @@ function initialFields(row: Row): FormFields {
     description: row.description || '',
     category: row.ui?.category || 'Other',
     capability_id: row.capability_id || row.capabilities[0] || '',
+    slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '')
+      ? row.plugin_id || ''
+      : ''),
   }
 }
 
@@ -204,6 +224,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     description: '',
     category: 'Other',
     capability_id: '',
+    slug: '',
   })
   const [error, setError] = useState('')
   const [mutationError, setMutationError] = useState<{ name: string; message: string } | null>(null)
@@ -318,6 +339,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           published,
           expected_revision: row.revision,
           capability_id: presentation?.capability_id || row.capability_id || row.capabilities[0],
+          ...(presentation ? { slug: presentation.slug } : {}),
           ...(presentation
             ? {
                 display_name: presentation.display_name,
@@ -440,7 +462,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   <>
                     <a
                       className="text-sm font-semibold text-cyan-300"
-                      href={buildLocalePath(`/plugins/${row.name}`, locale)}
+                      href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}
                     >
                       {t.details} →
                     </a>
@@ -503,6 +525,29 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       />
                     </label>
                     <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                      {t.slug}
+                      <input
+                        className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100"
+                        value={fields.slug}
+                        type="text"
+                        placeholder="secretary"
+                        autoCapitalize="none"
+                        autoComplete="off"
+                        spellCheck={false}
+                        required
+                        minLength={2}
+                        maxLength={64}
+                        pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
+                        onChange={(event) => setFields((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))}
+                      />
+                      <span className="text-xs font-normal text-slate-400">{t.slugHint}</span>
+                      {fields.slug && (
+                        <span className="min-w-0 break-all text-xs font-normal text-slate-300">
+                          {t.slugPreview}: /{locale}/plugins/{fields.slug}
+                        </span>
+                      )}
+                    </label>
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
                       {t.description}
                       <textarea
                         className="min-h-28 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
@@ -542,7 +587,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     <div className="flex flex-wrap items-center gap-3">
                       <Button
                         type="submit"
-                        disabled={pending || !row.enabled || !fields.display_name.trim() || !fields.capability_id}
+                        disabled={pending || !row.enabled || !fields.display_name.trim() || !fields.capability_id ||
+                          !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
+                          fields.slug.includes('--') ||
+                          ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)}
                       >
                         {pending ? (
                           <>
