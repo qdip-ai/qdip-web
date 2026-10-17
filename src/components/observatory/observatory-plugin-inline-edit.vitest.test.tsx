@@ -88,8 +88,7 @@ describe('Observatory inline plugin editing', () => {
     fireEvent.change(card('VHV — Decision Assistant').getByRole('textbox', { name: 'Назва' }), {
       target: { value: 'Unsaved title' },
     })
-    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Скасувати' }).parentElement!
-      .querySelector('button:last-child')!)
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Скасувати' }))
     expect(screen.queryByRole('heading', { name: /Редагування плагіна:/ })).not.toBeInTheDocument()
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
