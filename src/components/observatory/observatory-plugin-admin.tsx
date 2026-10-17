@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { LoaderCircle, RefreshCw } from 'lucide-react'
 import { Badge, Button } from '@/design-system'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import { DIP_USE_CASES } from '@/use-cases/registry'
@@ -28,7 +29,14 @@ const copy = {
     subtitle:
       'Плагіни автоматично реєструються через QDIP SDK. Тут можна заповнити опис і керувати публікацією в каталозі.',
     refresh: 'Оновити список',
+    refreshing: 'Оновлення…',
     loading: 'Завантаження реєстру…',
+    refreshed: 'Перевірено',
+    changed: 'Список оновлено',
+    unchanged: 'Змін немає',
+    count: 'Плагінів',
+    refreshError: 'Оновлення не вдалося. Перевірте підключення до QDIP Core та повторіть.',
+
     empty: 'Через QDIP SDK ще не зареєстровано плагінів.',
     formTitle: 'Публікація плагіна',
     registered: 'Публікація в каталозі',
@@ -60,7 +68,14 @@ const copy = {
     title: 'Manage plugins',
     subtitle: 'Plugins register automatically through the QDIP SDK. Edit catalog metadata and publication here.',
     refresh: 'Refresh list',
+    refreshing: 'Refreshing…',
     loading: 'Loading registry…',
+    refreshed: 'Checked',
+    changed: 'List updated',
+    unchanged: 'No changes',
+    count: 'Plugins',
+    refreshError: 'Unable to refresh. Check the QDIP Core connection and retry.',
+
     empty: 'No plugins have registered through the QDIP SDK yet.',
     formTitle: 'Publish plugin',
     registered: 'Catalog publication',
@@ -92,7 +107,14 @@ const copy = {
     title: 'Zarządzanie wtyczkami',
     subtitle: 'Wtyczki rejestrują się automatycznie przez QDIP SDK. Tutaj edytujesz opis i publikację w katalogu.',
     refresh: 'Odśwież listę',
+    refreshing: 'Odświeżanie…',
     loading: 'Ładowanie rejestru…',
+    refreshed: 'Sprawdzono',
+    changed: 'Lista zaktualizowana',
+    unchanged: 'Bez zmian',
+    count: 'Wtyczki',
+    refreshError: 'Odświeżanie nie powiodło się. Sprawdź połączenie z QDIP Core i spróbuj ponownie.',
+
     empty: 'Nie zarejestrowano jeszcze wtyczek przez QDIP SDK.',
     formTitle: 'Publikacja wtyczki',
     registered: 'Publikacja w katalogu',
@@ -152,45 +174,59 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   })
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshResult, setRefreshResult] = useState<{ checkedAt: Date; count: number; changed: boolean } | null>(null)
+  const [refreshFailed, setRefreshFailed] = useState(false)
+  const requestRef = useRef<AbortController | null>(null)
+  const rowsRef = useRef<Row[] | null>(null)
   const installed = rows?.find((row) => row.name === selected)
   const sorted = [...(rows ?? [])].sort((a, b) => a.name.localeCompare(b.name))
 
-  const refresh = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const response = await fetch('/api/observatory/admin/plugins', { cache: 'no-store', signal })
-        if (!response.ok) throw new Error(String(response.status))
-        const data: unknown = await response.json()
-        if (!data || typeof data !== 'object' || !('plugins' in data) || !Array.isArray(data.plugins))
-          throw new Error('Invalid catalog response')
-        if (signal?.aborted) return
-        setRows(data.plugins as Row[])
-        setError('')
-      } catch {
-        if (!signal?.aborted) setError(t.error)
+  const refresh = useCallback(async () => {
+    // Cancel the previous request so older responses cannot overwrite newer data.
+    requestRef.current?.abort()
+    const controller = new AbortController()
+    requestRef.current = controller
+    setRefreshing(true)
+    setRefreshFailed(false)
+    setError('')
+    try {
+      const response = await fetch('/api/observatory/admin/plugins', {
+        cache: 'no-store',
+        credentials: 'same-origin',
+        signal: controller.signal,
+      })
+      if (!response.ok) throw new Error(String(response.status))
+      const data: unknown = await response.json()
+      if (!data || typeof data !== 'object' || !('plugins' in data) || !Array.isArray(data.plugins))
+        throw new Error('Invalid catalog response')
+      if (controller.signal.aborted) return false
+      const next = data.plugins as Row[]
+      const fingerprint = (entries: Row[]) =>
+        JSON.stringify([...entries].sort((a, b) => a.name.localeCompare(b.name)))
+      const previous = rowsRef.current
+      const changed = previous !== null && fingerprint(previous) !== fingerprint(next)
+      rowsRef.current = next
+      setRows(next)
+      setRefreshResult({ checkedAt: new Date(), count: next.length, changed })
+      setRefreshFailed(false)
+      return true
+    } catch {
+      if (!controller.signal.aborted) {
+        setError(t.refreshError)
+        setRefreshFailed(true)
       }
-    },
-    [t.error]
-  )
+      return false
+    } finally {
+      if (!controller.signal.aborted) setRefreshing(false)
+      if (requestRef.current === controller) requestRef.current = null
+    }
+  }, [t.refreshError])
 
   useEffect(() => {
-    const controller = new AbortController()
-    void fetch('/api/observatory/admin/plugins', { cache: 'no-store', signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(String(response.status))
-        return response.json() as Promise<{ plugins?: Row[] }>
-      })
-      .then((result) => {
-        if (controller.signal.aborted) return
-        if (!Array.isArray(result.plugins)) throw new Error('Invalid registry')
-        setRows(result.plugins)
-        setError('')
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setError(t.error)
-      })
-    return () => controller.abort()
-  }, [t.error])
+    void refresh()
+    return () => requestRef.current?.abort()
+  }, [refresh])
 
   function choose(name: string) {
     setSelected(name)
@@ -235,21 +271,40 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t.title}</h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{t.subtitle}</p>
         </div>
-        <Button type="button" variant="secondary" disabled={pending} onClick={() => void refresh()}>
-          {t.refresh}
-        </Button>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={pending || refreshing}
+            aria-busy={refreshing}
+            onClick={() => void refresh()}
+          >
+            {refreshing ? (
+              <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <RefreshCw className="mr-2 inline-block h-4 w-4" aria-hidden="true" />
+            )}
+            {refreshing ? t.refreshing : t.refresh}
+          </Button>
+          <div role="status" aria-live="polite" aria-atomic="true" className="text-sm text-slate-300">
+            {refreshing
+              ? t.loading
+              : refreshFailed
+                ? t.refreshError
+                : refreshResult
+                  ? `${refreshResult.changed ? t.changed : t.unchanged} · ${t.count}: ${refreshResult.count} · ${t.refreshed}: ${refreshResult.checkedAt.toLocaleTimeString(
+                      locale === 'uk' ? 'uk-UA' : locale === 'pl' ? 'pl-PL' : 'en-GB',
+                      { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+                    )}`
+                  : ''}
+          </div>
+        </div>
       </div>
       {error && (
         <p role="alert" className="mt-5 rounded-lg border border-rose-500/50 px-4 py-3 text-sm text-rose-300">
           {error}
         </p>
       )}
-      {!rows && !error && (
-        <p className="mt-5" role="status">
-          {t.loading}
-        </p>
-      )}
-
       <section
         className="mt-8 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-4 sm:p-6"
         aria-labelledby="register-plugin"
