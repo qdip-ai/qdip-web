@@ -36,6 +36,7 @@ const copy = {
     unchanged: 'Змін немає',
     count: 'Плагінів',
     refreshError: 'Оновлення не вдалося. Перевірте підключення до QDIP Core та повторіть.',
+    failed: 'Не вдалося оновити список',
 
     empty: 'Через QDIP SDK ще не зареєстровано плагінів.',
     formTitle: 'Публікація плагіна',
@@ -75,6 +76,7 @@ const copy = {
     unchanged: 'No changes',
     count: 'Plugins',
     refreshError: 'Unable to refresh. Check the QDIP Core connection and retry.',
+    failed: 'Refresh failed',
 
     empty: 'No plugins have registered through the QDIP SDK yet.',
     formTitle: 'Publish plugin',
@@ -114,6 +116,7 @@ const copy = {
     unchanged: 'Bez zmian',
     count: 'Wtyczki',
     refreshError: 'Odświeżanie nie powiodło się. Sprawdź połączenie z QDIP Core i spróbuj ponownie.',
+    failed: 'Nie udało się odświeżyć listy',
 
     empty: 'Nie zarejestrowano jeszcze wtyczek przez QDIP SDK.',
     formTitle: 'Publikacja wtyczki',
@@ -175,7 +178,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [refreshResult, setRefreshResult] = useState<{ checkedAt: Date; count: number; changed: boolean } | null>(null)
+  const [refreshResult, setRefreshResult] = useState<{ checkedAt: Date; count: number; changed: boolean | null } | null>(null)
   const [refreshFailed, setRefreshFailed] = useState(false)
   const requestRef = useRef<AbortController | null>(null)
   const rowsRef = useRef<Row[] | null>(null)
@@ -205,7 +208,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       const fingerprint = (entries: Row[]) =>
         JSON.stringify([...entries].sort((a, b) => a.name.localeCompare(b.name)))
       const previous = rowsRef.current
-      const changed = previous !== null && fingerprint(previous) !== fingerprint(next)
+      const changed = previous === null ? null : fingerprint(previous) !== fingerprint(next)
       rowsRef.current = next
       setRows(next)
       setRefreshResult({ checkedAt: new Date(), count: next.length, changed })
@@ -290,9 +293,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
             {refreshing
               ? t.loading
               : refreshFailed
-                ? t.refreshError
+                ? t.failed
                 : refreshResult
-                  ? `${refreshResult.changed ? t.changed : t.unchanged} · ${t.count}: ${refreshResult.count} · ${t.refreshed}: ${refreshResult.checkedAt.toLocaleTimeString(
+                  ? `${refreshResult.changed === null ? t.refreshed : refreshResult.changed ? t.changed : t.unchanged} · ${t.count}: ${refreshResult.count} · ${t.refreshed}: ${refreshResult.checkedAt.toLocaleTimeString(
                       locale === 'uk' ? 'uk-UA' : locale === 'pl' ? 'pl-PL' : 'en-GB',
                       { hour: '2-digit', minute: '2-digit', second: '2-digit' }
                     )}`
