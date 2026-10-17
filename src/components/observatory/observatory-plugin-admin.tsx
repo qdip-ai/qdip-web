@@ -55,6 +55,9 @@ const copy = {
     collapse: 'Згорнути',
     editing: 'Редагування плагіна',
     saved: 'Зміни збережено. Плагін опубліковано.',
+    savedChanges: 'Зміни збережено.',
+    verifying: 'Збережено. Перевіряю статус публікації…',
+    unverified: 'Збережено, але не вдалося підтвердити новий статус. Оновіть список.',
     hidden: 'Плагін приховано з каталогу.',
     offlinePublish: 'Публікація недоступна, поки Remote Worker не підключений.',
     published: 'Опубліковано',
@@ -102,6 +105,9 @@ const copy = {
     collapse: 'Collapse',
     editing: 'Edit plugin',
     saved: 'Changes saved. Plugin published.',
+    savedChanges: 'Changes saved.',
+    verifying: 'Saved. Checking publication status…',
+    unverified: 'Saved, but the new status could not be verified. Refresh the list.',
     hidden: 'Plugin unpublished from catalog.',
     offlinePublish: 'Publication is unavailable while the Remote Worker is offline.',
     published: 'Published',
@@ -149,6 +155,9 @@ const copy = {
     collapse: 'Zwiń',
     editing: 'Edytowanie wtyczki',
     saved: 'Zmiany zapisano. Wtyczka opublikowana.',
+    savedChanges: 'Zmiany zapisano.',
+    verifying: 'Zapisano. Sprawdzanie stanu publikacji…',
+    unverified: 'Zapisano, ale nie udało się potwierdzić nowego stanu. Odśwież listę.',
     hidden: 'Wtyczka ukryta w katalogu.',
     offlinePublish: 'Publikacja jest niedostępna, gdy zdalny Worker jest rozłączony.',
     published: 'Opublikowano',
@@ -201,6 +210,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [mutationSuccess, setMutationSuccess] = useState<{ name: string; message: string } | null>(null)
   const editorTitleRef = useRef<HTMLHeadingElement | null>(null)
   const editButtonRef = useRef<HTMLButtonElement | null>(null)
+  const confirmationRef = useRef<HTMLParagraphElement | null>(null)
   const [pending, setPending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshResult, setRefreshResult] = useState<{
@@ -273,6 +283,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     title?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
   }, [selected])
 
+  useEffect(() => {
+    // A successful action returns focus to the same card, not a distant header.
+    confirmationRef.current?.focus({ preventScroll: true })
+  }, [mutationSuccess])
+
   function choose(row: Row) {
     if (selected === row.name) {
       closeEditor()
@@ -313,15 +328,20 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         }),
       })
       if (!response.ok) throw new Error(response.status === 409 ? t.conflict : t.error)
+      // PUT has succeeded: close the editor immediately, independent of the
+      // follow-up GET. Keep feedback in this very card while verifying status.
+      if (presentation) setSelected('')
+      setMutationSuccess({ name: row.name, message: t.verifying })
       const refreshed = await refresh()
       if (!refreshed) {
-        setMutationError({ name: row.name, message: t.refreshError })
+        setMutationSuccess(null)
+        setMutationError({ name: row.name, message: t.unverified })
         return
       }
-      setMutationSuccess({ name: row.name, message: published ? t.saved : t.hidden })
-      if (presentation) {
-        setSelected('')
-      }
+      setMutationSuccess({
+        name: row.name,
+        message: published ? (isPublished(row) ? t.savedChanges : t.saved) : t.hidden,
+      })
     } catch (cause) {
       setMutationError({ name: row.name, message: cause instanceof Error ? cause.message : t.error })
     } finally {
@@ -436,7 +456,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                 )}
               </div>
               {mutationSuccess?.name === row.name && (
-                <p role="status" className="mt-4 text-sm text-emerald-300">
+                <p
+                  ref={confirmationRef}
+                  role="status"
+                  tabIndex={-1}
+                  className="mt-4 text-sm text-emerald-300 outline-none"
+                >
                   {mutationSuccess.message}
                 </p>
               )}
