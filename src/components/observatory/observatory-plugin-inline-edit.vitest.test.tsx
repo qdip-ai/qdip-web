@@ -126,6 +126,47 @@ describe('Observatory inline plugin editing', () => {
     expect(card('VHV — Decision Assistant').getByText('Опубліковано')).toBeInTheDocument()
   })
 
+  it('closes the editor as soon as PUT succeeds and confirms status in the card while refreshing', async () => {
+    let resolveRefresh!: (value: ReturnType<typeof reply>) => void
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(reply({ plugins: [secretary] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockImplementationOnce(() => new Promise<ReturnType<typeof reply>>((done) => { resolveRefresh = done }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
+    await waitFor(() =>
+      expect(card('VHV — Decision Assistant').getByRole('status')).toHaveTextContent('Перевіряю статус')
+    )
+    expect(card('VHV — Decision Assistant').queryByRole('heading', { name: /Редагування плагіна/ }))
+      .not.toBeInTheDocument()
+    expect(card('VHV — Decision Assistant').getByRole('status')).toHaveFocus()
+    resolveRefresh(reply({ plugins: [{ ...secretary, published: true, published_version: '0.1.0' }] }))
+    await waitFor(() =>
+      expect(card('VHV — Decision Assistant').getByRole('status')).toHaveTextContent('Плагін опубліковано')
+    )
+  })
+
+  it('keeps the editor closed but shows a local warning when verification fails after a successful save', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(reply({ plugins: [secretary] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockResolvedValueOnce(reply({ error: 'Core unavailable' }, 503))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
+    await waitFor(() =>
+      expect(card('VHV — Decision Assistant').getByRole('alert')).toHaveTextContent('Збережено, але не вдалося')
+    )
+    expect(card('VHV — Decision Assistant').queryByRole('heading', { name: /Редагування плагіна/ }))
+      .not.toBeInTheDocument()
+    expect(card('VHV — Decision Assistant').queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('keeps editor and previously loaded data visible after rejected publication', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(reply({ plugins: [secretary] }))
