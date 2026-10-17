@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { ObservatoryPluginAdmin } from './observatory-plugin-admin'
 
 vi.mock('@/use-cases/registry', () => ({ DIP_USE_CASES: [] }))
 vi.mock('@/design-system', () => ({
-  Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-  Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+  Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  Button: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button {...props}>{children}</button>
   ),
 }))
@@ -48,7 +49,7 @@ describe('Observatory registry refresh feedback', () => {
     const fetchMock = vi.fn(() => new Promise<ReturnType<typeof json>>((done) => { resolve = done }))
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
-    expect(screen.getByRole('button', { name: 'Оновлення…' })).toBeDisabled()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Оновлення…' })).toBeDisabled())
     expect(screen.getByRole('status')).toHaveTextContent('Завантаження реєстру…')
     resolve(json(one))
     await tick()
@@ -94,7 +95,7 @@ describe('Observatory registry refresh feedback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Оновити список' }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Оновлення не вдалося'))
     expect(screen.getByRole('status')).toHaveTextContent('Не вдалося оновити список')
-    expect(screen.getByText('VHV — Decision Assistant')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'VHV — Decision Assistant' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Оновити список' })).toBeEnabled()
   })
 
