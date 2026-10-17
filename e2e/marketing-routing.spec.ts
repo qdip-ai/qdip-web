@@ -255,18 +255,9 @@ test.describe('current marketing routing', () => {
 
     await expect(workbench).toHaveCSS('background-color', 'rgb(255, 255, 255)')
     await expect(workbench).toHaveCSS('color', 'rgb(27, 32, 41)')
-    await expect(workbench.locator('[class*="pathbar"] li').first()).toHaveCSS(
-      'color',
-      'rgb(61, 72, 88)'
-    )
-    await expect(workbench.locator('[class*="codeBlock"]').first()).toHaveCSS(
-      'background-color',
-      'rgb(241, 243, 246)'
-    )
-    await expect(page.locator('header [data-qdip-auth="signed-out"] img')).toHaveCSS(
-      'filter',
-      'brightness(0)'
-    )
+    await expect(workbench.locator('[class*="pathbar"] li').first()).toHaveCSS('color', 'rgb(61, 72, 88)')
+    await expect(workbench.locator('[class*="codeBlock"]').first()).toHaveCSS('background-color', 'rgb(241, 243, 246)')
+    await expect(page.locator('header [data-qdip-auth="signed-out"] img')).toHaveCSS('filter', 'brightness(0)')
     const secondaryCta = page.locator('a[class*="secondaryButton"]').first()
     await secondaryCta.hover()
     await expect(secondaryCta).toHaveCSS('color', 'rgb(27, 32, 41)')
@@ -345,10 +336,7 @@ test.describe('current marketing routing', () => {
     const toggle = page.locator('[data-testid="marketing-theme-toggle"]:visible')
     await expect(toggle).toHaveAttribute('aria-pressed', 'false')
     await toggle.click()
-    await expect(page.locator('header button[aria-controls="mobile-navigation"]')).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    )
+    await expect(page.locator('header button[aria-controls="mobile-navigation"]')).toHaveAttribute('aria-expanded', 'false')
     await expect(page.locator('#mobile-navigation')).toHaveCount(0)
     await expect(page.locator('[data-marketing-appearance="light"]')).toHaveCSS(
       'background-color',
