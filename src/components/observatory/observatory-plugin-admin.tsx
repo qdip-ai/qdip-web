@@ -52,6 +52,7 @@ const copy = {
     saveChanges: 'Зберегти зміни',
     edit: 'Редагувати',
     cancel: 'Скасувати',
+    collapse: 'Згорнути',
     editing: 'Редагування плагіна',
     saved: 'Зміни збережено. Плагін опубліковано.',
     hidden: 'Плагін приховано з каталогу.',
@@ -98,6 +99,7 @@ const copy = {
     saveChanges: 'Save changes',
     edit: 'Edit',
     cancel: 'Cancel',
+    collapse: 'Collapse',
     editing: 'Edit plugin',
     saved: 'Changes saved. Plugin published.',
     hidden: 'Plugin unpublished from catalog.',
@@ -144,6 +146,7 @@ const copy = {
     saveChanges: 'Zapisz zmiany',
     edit: 'Edytuj',
     cancel: 'Anuluj',
+    collapse: 'Zwiń',
     editing: 'Edytowanie wtyczki',
     saved: 'Zmiany zapisano. Wtyczka opublikowana.',
     hidden: 'Wtyczka ukryta w katalogu.',
@@ -411,7 +414,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   aria-controls={`editor-${row.name}`}
                   onClick={() => choose(row)}
                 >
-                  {selected === row.name ? t.cancel : t.edit}
+                  {selected === row.name ? t.collapse : t.edit}
                 </Button>
                 {published && (
                   <>
