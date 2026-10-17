@@ -69,9 +69,24 @@ test('Deep Burgundy identity is isolated to marketing and uses exact brand token
   assert.match(deepBurgundy, /\.theme\.theme\.theme/)
   assert.match(homepageMarkup, /mode="dark"/)
   assert.doesNotMatch(deepConsole, /#0c131d|#293442|#9de2cf|#82d5c4/)
-  assert.match(deepConsole, /background:\s*#20232a;/)
+  assert.match(deepConsole, /--wb-bg:\s*var\(--qdip-surface\);/)
+  assert.match(deepConsole, /:global\(\[data-marketing-appearance='light'\]\) \.console/)
+  assert.match(deepConsole, /--wb-inset:\s*#f1f3f6;/)
   assert.match(deepBurgundy, /data-marketing-appearance='light'/)
   assert.match(deepBurgundy, /--qdip-button:\s*#7a1838/)
+})
+
+test('light appearance does not retain dark-only footer, CTA hover or mobile-menu styles', () => {
+  const toggle = readFileSync('src/components/marketing/marketing-theme-toggle.tsx', 'utf8')
+  const menu = readFileSync('src/components/marketing/mobile-menu.tsx', 'utf8')
+  const footer = readFileSync('src/components/product/qdip-footer.module.css', 'utf8')
+  const authStyles = readFileSync('src/components/auth/qdip-auth-control.module.css', 'utf8')
+  assert.match(toggle, /onChange\?\.\(\)/)
+  assert.match(menu, /onChange=\{\(\) => setOpen\(false\)\}/)
+  assert.match(hero, /\.engineeredHero \.secondaryButton:hover\s*\{\s*color:\s*var\(--qdip-text\);/)
+  assert.match(deepBurgundy, /--qdip-footer-text:\s*#1b2029;/)
+  assert.match(footer, /--qdip-footer-logo-filter/)
+  assert.match(authStyles, /data-marketing-appearance='light'/)
 })
 
 test('EvidenceStrip uses 64px hand-built engineering illustrations, not tiny library symbols', () => {

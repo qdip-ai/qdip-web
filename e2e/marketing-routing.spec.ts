@@ -234,6 +234,46 @@ test.describe('current marketing routing', () => {
     await expect(budget).toHaveAttribute('aria-pressed', 'true')
   })
 
+  test('mobile appearance switch closes navigation and keeps the workbench readable', async ({ page }) => {
+    await page.route('**/api/auth/session', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ configured: true, authenticated: false, studio: false, operator: false }),
+      })
+    )
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('http://qdip.localhost:3000/en')
+
+    const menu = page.locator('header button[aria-controls="mobile-navigation"]')
+    const workbench = page.getByTestId('decision-workbench')
+    await menu.click()
+    await expect(menu).toHaveAttribute('aria-expanded', 'true')
+    await page.locator('[data-testid="marketing-theme-toggle"]:visible').click()
+    await expect(menu).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.locator('#mobile-navigation')).toHaveCount(0)
+
+    await expect(workbench).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+    await expect(workbench).toHaveCSS('color', 'rgb(27, 32, 41)')
+    await expect(workbench.locator('[class*="pathbar"] li').first()).toHaveCSS('color', 'rgb(61, 72, 88)')
+    await expect(workbench.locator('[class*="codeBlock"]').first()).toHaveCSS('background-color', 'rgb(241, 243, 246)')
+    await expect(page.locator('header [data-qdip-auth="signed-out"] img')).toHaveCSS('filter', 'brightness(0)')
+    const secondaryCta = page.locator('a[class*="secondaryButton"]').first()
+    await secondaryCta.hover()
+    await expect(secondaryCta).toHaveCSS('color', 'rgb(27, 32, 41)')
+    const selectedBudget = workbench.getByRole('button', { name: '€40k' })
+    await expect(selectedBudget).toHaveCSS('color', 'rgb(255, 255, 255)')
+    await expect(selectedBudget).toHaveCSS('background-color', 'rgb(122, 24, 56)')
+
+    // Repeated switching must not leave either appearance or the menu stale.
+    await menu.click()
+    await page.locator('[data-testid="marketing-theme-toggle"]:visible').click()
+    await expect(menu).toHaveAttribute('aria-expanded', 'false')
+    await expect(page.locator('#mobile-navigation')).toHaveCount(0)
+    await expect(workbench).toHaveCSS('background-color', 'rgb(32, 35, 42)')
+    await expect(workbench).toHaveCSS('color', 'rgb(240, 242, 245)')
+  })
+
   test('homepage uses a readable technical workbench at desktop and mobile widths', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     for (const viewport of [
@@ -296,7 +336,11 @@ test.describe('current marketing routing', () => {
     const toggle = page.locator('[data-testid="marketing-theme-toggle"]:visible')
     await expect(toggle).toHaveAttribute('aria-pressed', 'false')
     await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('header button[aria-controls="mobile-navigation"]')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    )
+    await expect(page.locator('#mobile-navigation')).toHaveCount(0)
     await expect(page.locator('[data-marketing-appearance="light"]')).toHaveCSS(
       'background-color',
       'rgb(245, 246, 248)'
@@ -309,28 +353,28 @@ test.describe('current marketing routing', () => {
     const cta = page.locator('section[class*="finalCta"]')
     await expect(cta).toHaveCSS('background-color', 'rgb(245, 246, 248)')
     await expect(cta.getByRole('heading', { level: 2 })).toHaveCSS('color', 'rgb(27, 32, 41)')
-    // The pre-redesign marketing footer remains dark in both appearances.
+    // The marketing footer follows the chosen appearance, including its logo and links.
     const footer = page.locator('footer[data-variant="marketing"]')
-    await expect(footer).toHaveCSS('background-color', 'rgb(24, 11, 17)')
-    await expect(footer).toHaveCSS('color', 'rgb(255, 255, 255)')
-    await expect(footer.locator('img').first()).toHaveCSS('filter', 'brightness(0) invert(1)')
-    await expect(footer.locator('nav a').first()).toHaveCSS('color', 'rgb(229, 217, 221)')
+    await expect(footer).toHaveCSS('background-color', 'rgb(245, 246, 248)')
+    await expect(footer).toHaveCSS('color', 'rgb(27, 32, 41)')
+    await expect(footer.locator('img').first()).toHaveCSS('filter', 'none')
+    await expect(footer.locator('nav a').first()).toHaveCSS('color', 'rgb(82, 92, 106)')
     await page.reload()
     await expect(page.locator('[data-marketing-appearance="light"]')).toBeVisible()
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
     expect(overflow).toBeLessThanOrEqual(1)
   })
 
-  test('light-theme custom footer matches original dark footer on public pages', async ({ page }) => {
+  test('light-theme footer follows appearance on public pages', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('http://qdip.localhost:3000/en')
     await page.locator('button[class*="menuButton"]').click()
     await page.locator('[data-testid="marketing-theme-toggle"]:visible').click()
     await page.goto('http://qdip.localhost:3000/en/decision')
     const footer = page.locator('footer[class*="footer"]').last()
-    await expect(footer).toHaveCSS('background-color', 'rgb(24, 11, 17)')
-    await expect(footer).toHaveCSS('color', 'rgb(255, 255, 255)')
-    await expect(footer.locator('nav a').first()).toHaveCSS('color', 'rgb(229, 217, 221)')
+    await expect(footer).toHaveCSS('background-color', 'rgb(245, 246, 248)')
+    await expect(footer).toHaveCSS('color', 'rgb(27, 32, 41)')
+    await expect(footer.locator('nav a').first()).toHaveCSS('color', 'rgb(82, 92, 106)')
   })
 
   test('workbench budget changes recommendation and respects reduced motion', async ({ page }) => {

@@ -44,7 +44,7 @@ export function MobileMenu({ items, locale }: { items: readonly Item[]; locale: 
             </Link>
           ))}
           <div className={styles.mobileThemeRow}>
-            <MarketingThemeToggle locale={locale} />
+            <MarketingThemeToggle locale={locale} onChange={() => setOpen(false)} />
           </div>
         </nav>
       )}

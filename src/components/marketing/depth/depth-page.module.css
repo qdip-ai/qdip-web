@@ -279,8 +279,8 @@
   align-items: center;
   gap: var(--ds-space-10);
   padding: var(--ds-space-8) max(var(--ds-space-6), calc((100vw - 1320px) / 2));
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border-top: 1px solid var(--qdip-border);
+  color: var(--qdip-text);
   background: var(--qdip-background);
 }
 .footer > a {
@@ -302,7 +302,7 @@
   text-decoration: none;
 }
 .footer nav a:hover {
-  color: #fff;
+  color: var(--qdip-text);
 }
 .footer > span {
   color: var(--qdip-muted);

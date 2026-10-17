@@ -41,7 +41,7 @@ function applyAppearance(appearance: Appearance) {
   }
 }
 
-export function MarketingThemeToggle({ locale }: { locale: MarketingLocale }) {
+export function MarketingThemeToggle({ locale, onChange }: { locale: MarketingLocale; onChange?: () => void }) {
   const appearance = useSyncExternalStore(subscribeAppearance, currentAppearance, (): Appearance => 'dark')
   useEffect(() => applyAppearance(appearance), [appearance])
 
@@ -55,6 +55,7 @@ export function MarketingThemeToggle({ locale }: { locale: MarketingLocale }) {
       // Keep the in-page switch usable when storage is blocked.
     }
     window.dispatchEvent(new Event(eventName))
+    onChange?.()
   }
 
   const l = labels[locale]

@@ -83,6 +83,10 @@
   display: block;
   flex-shrink: 0;
 }
+/* The sign-in SVG has white strokes baked in; ensure it remains visible on light headers. */
+:global([data-marketing-appearance='light']) .iconOnly img {
+  filter: brightness(0);
+}
 
 /* Observatory account menu reuses the shared DS color, border and spacing tokens. */
 .authControl:has(.profileToggle) {
