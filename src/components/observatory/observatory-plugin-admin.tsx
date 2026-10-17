@@ -49,6 +49,7 @@ const copy = {
     capability: 'Можливість',
     version: 'Версія',
     publish: 'Зберегти й опублікувати',
+    saveChanges: 'Зберегти зміни',
     edit: 'Редагувати',
     cancel: 'Скасувати',
     editing: 'Редагування плагіна',
@@ -94,6 +95,7 @@ const copy = {
     capability: 'Capability',
     version: 'Version',
     publish: 'Save and publish',
+    saveChanges: 'Save changes',
     edit: 'Edit',
     cancel: 'Cancel',
     editing: 'Edit plugin',
@@ -139,6 +141,7 @@ const copy = {
     capability: 'Funkcja',
     version: 'Wersja',
     publish: 'Zapisz i opublikuj',
+    saveChanges: 'Zapisz zmiany',
     edit: 'Edytuj',
     cancel: 'Anuluj',
     editing: 'Edytowanie wtyczki',
@@ -518,7 +521,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                             <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
                             {t.busy}
                           </>
-                        ) : t.publish}
+                        ) : published ? t.saveChanges : t.publish}
                       </Button>
                       <Button type="button" variant="secondary" disabled={pending} onClick={closeEditor}>
                         {t.cancel}
