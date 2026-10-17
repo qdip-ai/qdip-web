@@ -56,7 +56,7 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
           {plugins.map((plugin) => (
             <a
               key={plugin.name}
-              href={buildLocalePath(`/plugins/${plugin.name}`, locale)}
+              href={buildLocalePath(`/plugins/${plugin.slug || plugin.name}`, locale)}
               className="block min-w-0 rounded-xl border border-white/15 bg-slate-900 p-5 hover:border-cyan-300/50"
             >
               <h3 className="break-words text-lg font-semibold text-white">{plugin.ui?.label || plugin.name}</h3>
