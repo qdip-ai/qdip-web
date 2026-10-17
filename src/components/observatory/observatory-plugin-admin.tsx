@@ -227,8 +227,15 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   }, [t.refreshError])
 
   useEffect(() => {
-    void refresh()
-    return () => requestRef.current?.abort()
+    let active = true
+    // Start the external request in a microtask, not a synchronous effect state update.
+    void Promise.resolve().then(() => {
+      if (active) void refresh()
+    })
+    return () => {
+      active = false
+      requestRef.current?.abort()
+    }
   }, [refresh])
 
   function choose(name: string) {
