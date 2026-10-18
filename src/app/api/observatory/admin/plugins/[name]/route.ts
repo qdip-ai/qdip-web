@@ -41,7 +41,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     return NextResponse.json({ error: 'Invalid publication request' }, { status: 422 })
 
   try {
-    const installed = (await readCorePublications()).find((item) => item.name === name)
+    const catalog = await readCorePublications()
+    const installed = catalog.find((item) => item.name === name)
     if (!installed) return NextResponse.json({ error: 'Plugin not installed' }, { status: 404 })
     // Runtime registration belongs to QDIP Core. Observatory registers only
     // a catalog entry for a plugin/capability already installed and verified.
@@ -76,7 +77,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
       return NextResponse.json({ error: 'Invalid URL slug' }, { status: 422 })
     const conflicting =
       typeof slug === 'string' &&
-      (await readCorePublications()).some(
+      catalog.some(
         (other) =>
           other.name !== name && (other.name === slug || other.slug === slug || other.slug_aliases?.includes(slug))
       )
