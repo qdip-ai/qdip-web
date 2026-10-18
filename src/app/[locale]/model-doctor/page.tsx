@@ -66,9 +66,7 @@ export default async function ModelDoctorPage({ params }: { params: Promise<{ lo
       <main className="mx-auto max-w-5xl px-4 pb-20 pt-8 text-slate-100 md:px-8 md:pt-12">
         <p className="text-xs font-medium tracking-[.16em] text-cyan-300">{t.eyebrow}</p>
         <h1 className="mt-4 text-3xl font-medium tracking-tight md:text-5xl">{t.title}</h1>
-        <p className="mt-6 max-w-3xl text-base leading-8 text-slate-300 md:text-lg">
-          {t.description}
-        </p>
+        <p className="mt-6 max-w-3xl text-base leading-8 text-slate-300 md:text-lg">{t.description}</p>
         <a
           href={modelDoctorHref(locale)}
           target="_blank"
