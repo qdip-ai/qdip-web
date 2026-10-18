@@ -43,7 +43,13 @@ describe('public plugin application links', () => {
     expect(launchLinkForPlugin({ ...vhv, published_version: '0.0.9' })).toBeNull()
     expect(launchLinkForPlugin({ ...vhv, capability_id: 'other.capability' })).toBeNull()
     expect(launchLinkForPlugin({ ...vhv, capabilities: [] })).toBeNull()
-    expect(launchLinkForPlugin({ ...vhv, application_url: null })).toBeNull()
+    // Transitional VHV link remains available until its admin record is migrated.
+    expect(launchLinkForPlugin({ ...vhv, application_url: null })).toEqual({
+      href: 'https://vhv.qdip.ai', host: 'vhv.qdip.ai',
+    })
+    expect(launchLinkForPlugin({
+      ...vhv, name: 'remote-third-party', application_url: null,
+    })).toBeNull()
   })
 
   it.each([
