@@ -97,7 +97,9 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
                             {t.offline}
                           </span>
                         )}
-                        {plugin.ui?.category && <span className={styles.pill}>{pluginCategoryLabel(plugin.ui.category, locale)}</span>}
+                        {plugin.ui?.category && (
+                          <span className={styles.pill}>{pluginCategoryLabel(plugin.ui.category, locale)}</span>
+                        )}
                       </div>
                       <h3 className={styles.cardTitle} style={{ marginTop: '1rem' }}>
                         {plugin.ui?.label || plugin.name}
