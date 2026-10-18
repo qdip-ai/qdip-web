@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle, RefreshCw } from 'lucide-react'
 import { Badge, Button } from '@/design-system'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
+import { validPublicApplicationUrl } from '@/lib/observatory-plugin-launch'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
 type Row = {
@@ -11,6 +12,7 @@ type Row = {
   plugin_id?: string
   slug?: string | null
   slug_aliases?: string[]
+  application_url?: string | null
   source?: 'embedded' | 'remote'
   description: string
   version: string
@@ -29,6 +31,7 @@ type FormFields = {
   category: string
   capability_id: string
   slug: string
+  application_url: string
 }
 const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Other']
 const copy = {
@@ -55,6 +58,10 @@ const copy = {
     slug: 'Коротка адреса (URL)',
     slugHint: 'Латинські малі літери, цифри й дефіс. Внутрішній ID плагіна не зміниться.',
     slugPreview: 'Публічна адреса',
+    applicationUrl: 'Адреса застосунку (HTTPS)',
+    applicationUrlHint: 'Не API та не адреса Worker. Якщо у плагіна є вебзастосунок, користувачі відкриватимуть його за цим посиланням. Поле необов’язкове.',
+    applicationUrlInvalid: 'Використайте публічну HTTPS-адресу без ключів, параметрів і фрагментів.',
+    applicationUrlPreview: 'Перехід на сайт розробника', 
     description: 'Опис',
     category: 'Категорія',
     capability: 'Можливість',
@@ -108,6 +115,10 @@ const copy = {
     slug: 'Short URL (slug)',
     slugHint: 'Lowercase letters, numbers and hyphens. The SDK plugin ID does not change.',
     slugPreview: 'Public URL',
+    applicationUrl: 'Application URL (HTTPS)',
+    applicationUrlHint: 'Not an API endpoint or Worker URL. If this plugin has a web app, users can open it here. Optional.',
+    applicationUrlInvalid: 'Use a public HTTPS URL without credentials, query parameters or fragments.',
+    applicationUrlPreview: 'Open developer application',
     description: 'Description',
     category: 'Category',
     capability: 'Capability',
@@ -161,6 +172,10 @@ const copy = {
     slug: 'Krótki adres URL',
     slugHint: 'Małe litery, cyfry i łączniki. Identyfikator wtyczki SDK nie zmienia się.',
     slugPreview: 'Adres publiczny',
+    applicationUrl: 'Adres aplikacji (HTTPS)',
+    applicationUrlHint: 'Nie adres API ani Workera. Jeśli wtyczka ma aplikację internetową, użytkownicy mogą ją stąd otwierać. Opcjonalne.',
+    applicationUrlInvalid: 'Podaj publiczny adres HTTPS bez kluczy, parametrów i fragmentów.',
+    applicationUrlPreview: 'Otwórz aplikację dewelopera',
     description: 'Opis',
     category: 'Kategoria',
     capability: 'Funkcja',
@@ -210,6 +225,7 @@ function initialFields(row: Row): FormFields {
     category: row.ui?.category || 'Other',
     capability_id: row.capability_id || row.capabilities[0] || '',
     slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
+    application_url: row.application_url || '',
   }
 }
 
@@ -223,6 +239,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     category: 'Other',
     capability_id: '',
     slug: '',
+    application_url: '',
   })
   const [error, setError] = useState('')
   const [mutationError, setMutationError] = useState<{ name: string; message: string } | null>(null)
@@ -337,7 +354,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           published,
           expected_revision: row.revision,
           capability_id: presentation?.capability_id || row.capability_id || row.capabilities[0],
-          ...(presentation ? { slug: presentation.slug } : {}),
+          ...(presentation ? { slug: presentation.slug, application_url: presentation.application_url.trim() } : {}),
           ...(presentation
             ? {
                 display_name: presentation.display_name,
@@ -547,6 +564,31 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       )}
                     </label>
                     <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                      {t.applicationUrl}
+                      <input
+                        aria-label={t.applicationUrl}
+                        className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100"
+                        type="url"
+                        inputMode="url"
+                        value={fields.application_url}
+                        maxLength={512}
+                        placeholder="https://app.example.com"
+                        autoCapitalize="none"
+                        autoComplete="url"
+                        spellCheck={false}
+                        aria-invalid={!!fields.application_url && !validPublicApplicationUrl(fields.application_url)}
+                        onChange={(event) => setFields((prev) => ({ ...prev, application_url: event.target.value }))}
+                      />
+                      <span className="text-xs font-normal leading-5 text-slate-400">{t.applicationUrlHint}</span>
+                      {fields.application_url && (
+                        <span className={`min-w-0 break-all text-xs font-normal ${validPublicApplicationUrl(fields.application_url) ? 'text-emerald-200' : 'text-rose-300'}`}>
+                          {validPublicApplicationUrl(fields.application_url)
+                            ? `${t.applicationUrlPreview}: ${fields.application_url}`
+                            : t.applicationUrlInvalid}
+                        </span>
+                      )}
+                    </label>
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
                       {t.description}
                       <textarea
                         className="min-h-28 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
@@ -595,7 +637,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           !fields.capability_id ||
                           !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
                           fields.slug.includes('--') ||
-                          ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)
+                          ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug) ||
+                          (fields.application_url !== '' && !validPublicApplicationUrl(fields.application_url))
                         }
                       >
                         {pending ? (
