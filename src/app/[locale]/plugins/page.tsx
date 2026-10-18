@@ -137,9 +137,7 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
                         >
                           {t.details} <span aria-hidden="true">→</span>
                         </a>
-                        {launch && (
-                          <PluginLaunchLink href={launch.href} label={`${t.launch} ${launch.application}`} />
-                        )}
+                        {launch && <PluginLaunchLink href={launch.href} label={`${t.launch} ${launch.application}`} />}
                       </div>
                     </article>
                   )
