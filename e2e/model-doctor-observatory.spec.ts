@@ -19,10 +19,8 @@ for (const locale of ['en', 'uk', 'pl'] as const) {
     await expect(launch).toHaveAttribute('href', `https://doctor.qdip.ai/${locale}`)
     await expect(launch).toHaveAttribute('target', '_blank')
     await expect(launch).toHaveAttribute('rel', /noopener.*noreferrer/)
-    await expect(page.getByRole('link', { name: 'Model Doctor', exact: true }).first()).toHaveAttribute(
-      'aria-current',
-      'page'
-    )
+    const currentNavigation = page.getByRole('link', { name: 'Model Doctor', exact: true }).first()
+    await expect(currentNavigation).toHaveAttribute('aria-current', 'page')
     expect(errors).toEqual([])
 
     await page.goto(`http://observatory.localhost:3000/${locale}`)
@@ -36,8 +34,6 @@ test('Doctor locale switch keeps the Observatory landing route', async ({ page }
   await page.goto('http://observatory.localhost:3000/en/model-doctor')
   await page.locator('a[data-locale="uk"]').click()
   await expect(page).toHaveURL(/\/uk\/model-doctor$/)
-  await expect(page.getByRole('link', { name: 'Відкрити Doctor' })).toHaveAttribute(
-    'href',
-    'https://doctor.qdip.ai/uk'
-  )
+  const doctorLink = page.getByRole('link', { name: 'Відкрити Doctor' })
+  await expect(doctorLink).toHaveAttribute('href', 'https://doctor.qdip.ai/uk')
 })
