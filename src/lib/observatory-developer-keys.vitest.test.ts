@@ -184,7 +184,8 @@ describe('Route Optimizer keys through the existing Observatory interface', () =
         return Response.json(record, { status: 201 })
       }
       if (method === 'GET' && path.endsWith('/keys')) {
-        const { key: _secret, ...stored } = record
+        const stored = { ...record }
+        delete (stored as { key?: string }).key
         return Response.json([stored])
       }
       throw Error('Unexpected request')
