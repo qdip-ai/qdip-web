@@ -84,9 +84,9 @@ test('Doctor works inside Observatory using a pre-existing Doctor session', asyn
   })
   await page.getByRole('button', { name: 'Виконати в Doctor' }).click()
   const output = page.locator('[data-testid="doctor-result"]')
-  await expect(output.getByText('INFEASIBLE')).toBeVisible()
-  await expect(output.getByText('VERIFIED_SUFFICIENT_ASSUMPTION_CORE')).toBeVisible()
-  await expect(output.getByText('a'.repeat(64))).toBeVisible()
+  await expect(output.getByText('INFEASIBLE', { exact: true })).toBeVisible()
+  await expect(output.getByText('VERIFIED_SUFFICIENT_ASSUMPTION_CORE', { exact: true })).toBeVisible()
+  await expect(output.getByText('a'.repeat(64), { exact: true })).toBeVisible()
 })
 
 test('Doctor adapter rejects oversized files before upload', async ({ page }) => {
@@ -98,6 +98,6 @@ test('Doctor adapter rejects oversized files before upload', async ({ page }) =>
     mimeType: 'application/octet-stream',
     buffer: Buffer.alloc(262145, 1),
   })
-  await expect(page.getByRole('alert')).toContainText('256 KB')
+  await expect(page.getByRole('alert').filter({ hasText: '256 KB' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Run in Doctor' })).toBeDisabled()
 })
