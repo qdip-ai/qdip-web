@@ -393,72 +393,67 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
               <dl className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="text-slate-400">{t.execution}</dt>
-                  <dd>{safeLabel(report.execution_status)}</dd>
+                  <dd>{safeLabel(report.executionStatus)}</dd>
                 </div>
                 <div>
                   <dt className="text-slate-400">{t.solver}</dt>
-                  <dd>{safeLabel(report.solver_status)}</dd>
+                  <dd>{safeLabel(report.solverStatus)}</dd>
                 </div>
               </dl>
-              {report.validation_error && <p className="break-words text-rose-300">{report.validation_error}</p>}
-              {report.error_code && <p className="break-words text-rose-300">{report.error_code}</p>}
-              {typeof report.objective_value === 'number' && (
+              {report.validationError && <p className="break-words text-rose-300">{report.validationError}</p>}
+              {report.errorCode && <p className="break-words text-rose-300">{report.errorCode}</p>}
+              {typeof report.objective === 'number' && (
                 <p>
-                  {t.objective}: {report.objective_value}
+                  {t.objective}: {report.objective}
                 </p>
               )}
               <div>
                 <h4 className="font-medium">{t.diagnosis}</h4>
-                <p className="mt-2 break-words text-slate-300">{safeLabel(diagnosis?.kind)}</p>
-                {assumptionCore.length > 0 && (
+                <p className="mt-2 break-words text-slate-300">{report.invalidProof ? t.badProof : safeLabel(report.diagnosisKind)}</p>
+                {report.assumptions.length > 0 && (
                   <ol className="mt-2 list-inside list-decimal space-y-1 text-slate-300">
-                    {assumptionCore.map((item, index) => {
-                      const record = objectOf(item)
-                      return (
-                        <li key={index} className="break-words">
-                          {safeLabel(record?.name ?? record?.literal ?? record?.variable_index)}
-                        </li>
-                      )
-                    })}
+                    {report.assumptions.map((item) => (
+                      <li key={item.literal} className="break-words">
+                        {item.name || `#${item.variableIndex}`} ({item.literal})
+                      </li>
+                    ))}
                   </ol>
                 )}
               </div>
-              {repair && (
+              {report.hardConstraints.length > 0 && (
+                <ol className="list-inside list-decimal space-y-1 text-slate-300">
+                  {report.hardConstraints.map((item) => (
+                    <li key={item.index}>{item.name || `#${item.index}`}</li>
+                  ))}
+                </ol>
+              )}
+              {report.repairs.length > 0 && (
                 <div>
                   <h4 className="font-medium">{t.repair}</h4>
-                  <p className="mt-2 break-words text-slate-300">{safeLabel(repair.kind)}</p>
-                  {proposals.map((item, index) => {
-                    const candidate = objectOf(item)
-                    const assumption = objectOf(candidate?.assumption)
-                    return (
-                      <div key={index} className="mt-3 rounded-lg border border-white/10 p-3 text-slate-300">
-                        <p>
-                          {index + 1}. {safeLabel(assumption?.name ?? assumption?.literal)}
-                        </p>
-                        <p>
-                          {safeLabel(candidate?.candidate_solver_status)} · {safeLabel(candidate?.verified_by)}
-                        </p>
-                        <p className="break-all text-xs">{safeLabel(candidate?.candidate_wire_sha256)}</p>
-                      </div>
-                    )
-                  })}
-                  {proposals.length > 0 && <p className="mt-3 text-xs text-slate-400">{t.approval}</p>}
+                  {report.repairs.map((candidate, index) => (
+                    <div key={candidate.candidateHash} className="mt-3 rounded-lg border border-white/10 p-3 text-slate-300">
+                      <p>{index + 1}. {candidate.label} ({candidate.literal})</p>
+                      <p>{candidate.solverStatus} · INDEPENDENT_CP_SAT_SOLVE</p>
+                      <p className="break-all text-xs">{candidate.candidateHash}</p>
+                    </div>
+                  ))}
+                  <p className="mt-3 text-xs text-slate-400">{t.approval}</p>
                 </div>
               )}
-              {solution.length > 0 && (
+              {report.solution.length > 0 && (
                 <div>
                   <h4 className="font-medium">{t.solution}</h4>
-                  <p className="mt-2 break-words font-mono text-xs">{JSON.stringify(solution)}</p>
+                  <p className="mt-2 break-words font-mono text-xs">{JSON.stringify(report.solution)}</p>
                 </div>
               )}
               <div>
                 <p className="text-slate-400">{t.hash}</p>
-                <p className="mt-1 break-all font-mono text-xs">{safeLabel(report.model_wire_sha256)}</p>
+                <p className="mt-1 break-all font-mono text-xs">{safeLabel(report.modelHash)}</p>
               </div>
               <details>
                 <summary className="cursor-pointer text-cyan-200">{t.evidence}</summary>
                 <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-all text-xs">
-                  {JSON.stringify(report, null, 2)}
+                  {JSON.stringify(report.raw, null, 2)}
                 </pre>
               </details>
             </div>
