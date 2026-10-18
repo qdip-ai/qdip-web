@@ -148,20 +148,27 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
   const fileInput = useRef<HTMLInputElement | null>(null)
   const revision = useRef(0)
 
-  const refresh = useCallback(async () => {
+  // The Doctor session is independent from the Observatory login. Re-check it
+  // when the tab is revisited or left open, without destroying a valid upload.
+  const refresh = useCallback(async (reset = false) => {
     sessionRequest.current?.abort()
-    executionRequest.current?.abort()
-    revision.current += 1
     const controller = new AbortController()
     sessionRequest.current = controller
-    setReport(null)
-    setError('')
-    setRunning(false)
-    setModel('')
-    setModelHash('')
-    setFileLabel('')
-    if (fileInput.current) fileInput.current.value = ''
-    setSession('checking')
+    const clearPrivateData = () => {
+      revision.current += 1
+      executionRequest.current?.abort()
+      setReport(null)
+      setError('')
+      setRunning(false)
+      setModel('')
+      setModelHash('')
+      setFileLabel('')
+      if (fileInput.current) fileInput.current.value = ''
+    }
+    if (reset) {
+      clearPrivateData()
+      setSession('checking')
+    }
     try {
       const response = await fetch(MODEL_DOCTOR_BRIDGE.session, {
         method: 'GET',
@@ -175,19 +182,38 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
       const info: unknown = await response.json()
       if (controller.signal.aborted) return
       const payload = asObject(info)
-      setSession(payload?.authenticated === true ? 'authenticated' : 'signed-out')
+      if (payload?.authenticated === true) {
+        setSession('authenticated')
+      } else {
+        clearPrivateData()
+        setSession('signed-out')
+      }
     } catch {
-      if (!controller.signal.aborted) setSession('unavailable')
+      if (!controller.signal.aborted) {
+        clearPrivateData()
+        setSession('unavailable')
+      }
     }
   }, [])
 
   useEffect(() => {
     let mounted = true
     queueMicrotask(() => {
-      if (mounted) void refresh()
+      if (mounted) void refresh(true)
     })
+    const revalidate = () => {
+      if (document.visibilityState === 'visible') void refresh(false)
+    }
+    window.addEventListener('focus', revalidate)
+    window.addEventListener('pageshow', revalidate)
+    document.addEventListener('visibilitychange', revalidate)
+    const interval = window.setInterval(revalidate, 60_000)
     return () => {
       mounted = false
+      window.clearInterval(interval)
+      window.removeEventListener('focus', revalidate)
+      window.removeEventListener('pageshow', revalidate)
+      document.removeEventListener('visibilitychange', revalidate)
       sessionRequest.current?.abort()
       executionRequest.current?.abort()
     }
@@ -272,8 +298,8 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
       const data: unknown = JSON.parse(raw)
       if (controller.signal.aborted || snapshot !== revision.current) return
       const evidence = parseDoctorEvidence(data, operation, modelHash)
-      if (!evidence) {
-        setError(t.badReply)
+      if (!evidence || evidence.invalidProof) {
+        setError(evidence?.invalidProof ? t.badProof : t.badReply)
         return
       }
       setReport(evidence)

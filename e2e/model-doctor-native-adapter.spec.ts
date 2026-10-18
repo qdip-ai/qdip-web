@@ -158,3 +158,73 @@ test('Doctor workspace remains usable on a narrow mobile viewport', async ({ pag
   const width = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
   expect(width).toBeLessThanOrEqual(1)
 })
+
+test('Doctor session loss in another tab automatically clears evidence on refocus', async ({ page }) => {
+  await mockDoctor(page, true)
+  await page.goto(origin + '/uk/model-doctor')
+  await expect(page.getByText('Сесія Doctor активна')).toBeVisible()
+  await page.locator('[data-testid="doctor-file"]').setInputFiles({
+    name: 'native.cpmodel',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from([1, 2, 3]),
+  })
+  await page.getByRole('button', { name: 'Виконати в Doctor' }).click()
+  await expect(page.locator('[data-testid="doctor-result"]').getByText('INFEASIBLE', { exact: true })).toBeVisible()
+
+  await page.route('https://doctor.qdip.ai/api/observatory/session', async (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: cors,
+      body: JSON.stringify({ authenticated: false, web_auth_configured: true }),
+    })
+  )
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect(page.getByText('Увійдіть у Doctor через Zitadel')).toBeVisible()
+  await expect(page.locator('[data-testid="doctor-result"]').getByText('INFEASIBLE', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Виконати в Doctor' })).toBeDisabled()
+  await expect(page.locator('[data-testid="doctor-file"]')).toHaveValue('')
+})
+
+test('forged repair/core proof cannot be opened as technical raw evidence', async ({ page }) => {
+  await mockDoctor(page, true)
+  await page.route('https://doctor.qdip.ai/api/observatory/doctor', async (route) => {
+    const hash = createHash('sha256')
+      .update(Buffer.from([1, 2, 3]))
+      .digest('hex')
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: cors,
+      body: JSON.stringify({
+        contract_version: 'doctor.native-cpsat.v0.1',
+        operation: 'diagnose',
+        model_wire_sha256: hash,
+        execution_status: 'COMPLETED',
+        solver_status: 'INFEASIBLE',
+        error_code: null,
+        validation_error: null,
+        objective_value: null,
+        solution: null,
+        diagnosis: {
+          kind: 'VERIFIED_SUFFICIENT_ASSUMPTION_CORE',
+          verification_status: 'INFEASIBLE',
+          minimal: true,
+          assumption_core: [{ literal: 1, variable_index: 1, variable_name: 'unverified', negated: false }],
+        },
+        repair: { kind: 'NOT_APPLICABLE', proposals: [] },
+      }),
+    })
+  })
+  await page.goto(origin + '/en/model-doctor')
+  await expect(page.getByText('Doctor session is active')).toBeVisible()
+  await page.locator('[data-testid="doctor-file"]').setInputFiles({
+    name: 'native.cpmodel',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from([1, 2, 3]),
+  })
+  await page.getByRole('button', { name: 'Run in Doctor' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'Evidence validation failed' })).toBeVisible()
+  await expect(page.locator('[data-testid="doctor-result"]').getByText('INFEASIBLE', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Doctor technical response')).toHaveCount(0)
+})
