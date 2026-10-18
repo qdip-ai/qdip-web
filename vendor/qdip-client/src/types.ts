@@ -103,6 +103,7 @@ export interface PluginCatalogEntry {
   slug?: string | null;
   /** Historical URL slugs kept for backward-compatible redirects. */
   slug_aliases?: string[];
+  security?: PluginSecurityState;
 }
 
 export interface PluginCatalogUpdate {
@@ -119,4 +120,42 @@ export interface PluginCatalogUpdate {
   actor: string;
   deadlineMs?: number;
   signal?: AbortSignal;
+}
+
+/** Registry-level quarantine survives worker reconnect and version changes. */
+export interface PluginSecurityState {
+  state: 'active' | 'quarantined';
+  reason?: string | null;
+  last_scan?: {
+    source_sha256: string;
+    source_kind: 'reviewer_supplied_unverified';
+    language: string;
+    findings: Array<{ id: string; severity: 'critical' | 'review'; line: number }>;
+    result: 'critical' | 'review' | 'no_signatures';
+    coverage: string;
+  } | null;
+}
+export interface PluginSecurityResult {
+  name: string;
+  revision: number;
+  security: PluginSecurityState;
+  published: boolean;
+}
+export interface PluginSourceScanInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  sourceCode: string;
+  language: 'python' | 'javascript' | 'typescript' | 'shell';
+  signal?: AbortSignal;
+  deadlineMs?: number;
+}
+export interface PluginQuarantineInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  quarantined: boolean;
+  reason: string;
+  signal?: AbortSignal;
+  deadlineMs?: number;
 }
