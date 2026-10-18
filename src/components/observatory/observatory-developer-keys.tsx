@@ -146,7 +146,12 @@ async function send<T>(method: 'GET' | 'POST' | 'DELETE', body?: object): Promis
     headers: { ...(body ? { 'Content-Type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   })
-  const data: unknown = await response.json()
+  let data: unknown
+  try {
+    data = await response.json()
+  } catch {
+    throw new Error(response.ok ? 'Invalid server response' : `Server responded HTTP ${response.status}`)
+  }
   if (!response.ok) {
     const reason =
       data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
@@ -189,8 +194,8 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
           setSelectedCapabilities(result.available[0].capabilities)
         }
       })
-      .catch(() => {
-        if (active) setError(t.error)
+      .catch((cause: unknown) => {
+        if (active) setError(cause instanceof Error ? cause.message : t.error)
       })
       .finally(() => {
         if (active) setLoading(false)
