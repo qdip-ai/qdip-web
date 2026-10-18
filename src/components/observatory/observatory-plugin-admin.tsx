@@ -428,6 +428,96 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   </>
                 )}
               </div>
+              {mutationSuccess?.name === row.name && (
+                <p role="status" className="mt-4 text-sm text-emerald-300">
+                  {mutationSuccess.message}
+                </p>
+              )}
+              {mutationError?.name === row.name && (
+                <p role="alert" className="mt-4 text-sm text-rose-300">
+                  {mutationError.message}
+                </p>
+              )}
+              {selected === row.name && (
+                <section
+                  id={`plugin-editor-${encodeURIComponent(row.name)}`}
+                  className="mt-5 min-w-0 border-t border-white/15 pt-5"
+                  aria-label={`${t.editing}: ${row.ui?.label || row.name}`}
+                >
+                  <h4 className="text-base font-semibold">
+                    {t.editing}: {row.ui?.label || row.name}
+                  </h4>
+                  <form
+                    className="mt-5 grid gap-4"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (row.enabled && fields.capability_id) void update(row, true, fields)
+                    }}
+                  >
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                      {t.name}
+                      <input
+                        ref={editorInputRef}
+                        className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                        value={fields.display_name}
+                        required
+                        minLength={2}
+                        maxLength={120}
+                        onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
+                      />
+                    </label>
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                      {t.description}
+                      <textarea
+                        className="w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                        value={fields.description}
+                        rows={4}
+                        maxLength={2000}
+                        onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
+                      />
+                    </label>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                        {t.category}
+                        <select
+                          className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                          value={fields.category}
+                          onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
+                        >
+                          {categories.map((category) => (
+                            <option key={category}>{category}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                        {t.capability}
+                        <select
+                          className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                          value={fields.capability_id}
+                          onChange={(event) => setFields((prev) => ({ ...prev, capability_id: event.target.value }))}
+                        >
+                          {row.capabilities.map((capability) => (
+                            <option key={capability}>{capability}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        type="submit"
+                        aria-busy={pending}
+                        disabled={pending || !row.enabled || !fields.display_name.trim() || !fields.capability_id}
+                      >
+                        {pending && <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />}
+                        {pending ? t.busy : t.publish}
+                      </Button>
+                      <Button type="button" variant="secondary" disabled={pending} onClick={closeEditor}>
+                        {t.cancel}
+                      </Button>
+                    </div>
+                  </form>
+                </section>
+              )}
             </article>
           )
         })}
