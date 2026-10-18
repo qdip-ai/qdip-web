@@ -248,7 +248,6 @@ describe('Observatory inline plugin editing', () => {
   })
 })
 
-
 it('never allows publishing a remote Worker without a security approval', async () => {
   const unapproved = { ...secretary, security: { state: 'pending_review' } }
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply({ plugins: [unapproved] })))

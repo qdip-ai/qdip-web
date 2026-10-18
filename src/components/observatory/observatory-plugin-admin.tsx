@@ -81,7 +81,8 @@ const copy = {
     securityRevoke: 'Відкликати назавжди',
     securityRevokeConfirm: 'Введіть повний внутрішній ID плагіна для підтвердження відкликання',
     securityRevoked: 'ВІДКЛИКАНО — відновлення неможливе',
-    securityCriticalBlocked: 'Виявлено критичну сигнатуру. Новий snapshot не скасовує блокування; потрібна перевірена процедура усунення загрози.',
+    securityCriticalBlocked:
+      'Виявлено критичну сигнатуру. Новий snapshot не скасовує блокування; потрібна перевірена процедура усунення загрози.',
     sourceCode: 'Вихідний код для перевірки',
     securityCaveat:
       'Перевіряється тільки наданий snapshot, а не фактичний код запущеного Worker. Відсутність збігів не означає, що плагін безпечний.',
@@ -163,7 +164,8 @@ const copy = {
     securityRevoke: 'Permanently revoke',
     securityRevokeConfirm: 'Enter the full internal plugin ID to confirm revocation',
     securityRevoked: 'REVOKED — cannot be restored',
-    securityCriticalBlocked: 'A critical finding remains unresolved. A new snapshot cannot clear the block; verified remediation is required.',
+    securityCriticalBlocked:
+      'A critical finding remains unresolved. A new snapshot cannot clear the block; verified remediation is required.',
     sourceCode: 'Source snapshot to review',
     securityCaveat:
       'Only the submitted snapshot is checked, not the running Worker. No matches do not prove that the plugin is safe.',
@@ -245,7 +247,8 @@ const copy = {
     securityRevoke: 'Trwale cofnij dostęp',
     securityRevokeConfirm: 'Wpisz pełny wewnętrzny identyfikator wtyczki, aby potwierdzić',
     securityRevoked: 'COFNIĘTO — nieodwracalne',
-    securityCriticalBlocked: 'Krytyczne ustalenie nadal blokuje dostęp. Nowy fragment kodu nie usuwa blokady; wymagane jest potwierdzone rozwiązanie problemu.',
+    securityCriticalBlocked:
+      'Krytyczne ustalenie nadal blokuje dostęp. Nowy fragment kodu nie usuwa blokady; wymagane jest potwierdzone rozwiązanie problemu.',
     sourceCode: 'Kod źródłowy do sprawdzenia',
     securityCaveat:
       'Sprawdzany jest wyłącznie przekazany fragment, nie kod działającego Workera. Brak trafień nie potwierdza bezpieczeństwa.',
@@ -902,11 +905,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         <Button
                           type="button"
                           variant="secondary"
-                          disabled={
-                            pending ||
-                            securityReason.trim().length < 20 ||
-                            revokeConfirmation !== row.name
-                          }
+                          disabled={pending || securityReason.trim().length < 20 || revokeConfirmation !== row.name}
                           onClick={() => void reviewSecurity(row, 'revoke')}
                         >
                           {t.securityRevoke}

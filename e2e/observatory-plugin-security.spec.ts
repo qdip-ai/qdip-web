@@ -138,7 +138,6 @@ test('unreviewed Worker cannot publish until the administrator explicitly accept
   await expect(card.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeEnabled()
 })
 
-
 test('terminal revocation requires typed plugin identity and disables further mutations', async ({ page }) => {
   await page.context().clearCookies()
   await page.context().addCookies(oidcTestCookies(['observatory_admin']))
@@ -185,9 +184,9 @@ test('terminal revocation requires typed plugin identity and disables further mu
   await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
   const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Trusted Worker' }) })
   await card.getByRole('button', { name: 'Перевірка безпеки' }).click()
-  await card.getByLabel('Причина рішення (не менше 12 символів').fill(
-    'Confirmed credential compromise requires permanent revocation'
-  )
+  await card
+    .getByLabel('Причина рішення (не менше 12 символів')
+    .fill('Confirmed credential compromise requires permanent revocation')
   const revoke = card.getByRole('button', { name: 'Відкликати назавжди' })
   await expect(revoke).toBeDisabled()
   await card.getByLabel('Введіть повний внутрішній ID плагіна').fill('wrong-identity')
