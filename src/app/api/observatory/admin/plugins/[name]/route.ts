@@ -23,6 +23,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     display_name?: unknown
     description?: unknown
     category?: unknown
+    slug?: unknown
   }
   try {
     const raw = await request.text()
@@ -40,7 +41,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     return NextResponse.json({ error: 'Invalid publication request' }, { status: 422 })
 
   try {
-    const installed = (await readCorePublications()).find((item) => item.name === name)
+    const catalog = await readCorePublications()
+    const installed = catalog.find((item) => item.name === name)
     if (!installed) return NextResponse.json({ error: 'Plugin not installed' }, { status: 404 })
     // Runtime registration belongs to QDIP Core. Observatory registers only
     // a catalog entry for a plugin/capability already installed and verified.
@@ -55,6 +57,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     const displayName = update.display_name
     const description = update.description
     const category = update.category
+    const slug = update.slug
     if (
       displayName !== undefined &&
       (typeof displayName !== 'string' || displayName.trim().length < 2 || displayName.length > 120)
@@ -64,6 +67,21 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
       return NextResponse.json({ error: 'Invalid description' }, { status: 422 })
     if (category !== undefined && (typeof category !== 'string' || !/^[A-Za-z0-9 _.-]{1,64}$/.test(category)))
       return NextResponse.json({ error: 'Invalid category' }, { status: 422 })
+    if (
+      slug !== undefined &&
+      (typeof slug !== 'string' ||
+        !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(slug) ||
+        slug.includes('--') ||
+        ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(slug))
+    )
+      return NextResponse.json({ error: 'Invalid URL slug' }, { status: 422 })
+    const conflicting =
+      typeof slug === 'string' &&
+      catalog.some(
+        (other) =>
+          other.name !== name && (other.name === slug || other.slug === slug || other.slug_aliases?.includes(slug))
+      )
+    if (conflicting) return NextResponse.json({ error: 'Public URL already in use' }, { status: 409 })
     const updated = await coreCatalogClient().catalog.publish(name, {
       published: update.published,
       expectedRevision: update.expected_revision,
@@ -73,6 +91,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
       ...(displayName !== undefined ? { displayName: (displayName as string).trim() } : {}),
       ...(description !== undefined ? { description: (description as string).trim() } : {}),
       ...(category !== undefined ? { category: (category as string).trim() } : {}),
+      ...(slug !== undefined ? { slug: slug as string } : {}),
     })
     return NextResponse.json(updated, {
       headers: { 'Cache-Control': 'no-store' },

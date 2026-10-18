@@ -9,6 +9,8 @@ import { DIP_USE_CASES } from '@/use-cases/registry'
 type Row = {
   name: string
   plugin_id?: string
+  slug?: string | null
+  slug_aliases?: string[]
   source?: 'embedded' | 'remote'
   description: string
   version: string
@@ -21,7 +23,13 @@ type Row = {
   ui: { label?: string; category?: string }
 }
 
-type FormFields = { display_name: string; description: string; category: string; capability_id: string }
+type FormFields = {
+  display_name: string
+  description: string
+  category: string
+  capability_id: string
+  slug: string
+}
 const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Other']
 const copy = {
   uk: {
@@ -44,12 +52,25 @@ const copy = {
     choose: 'Зареєстрований через SDK плагін',
     select: 'Виберіть плагін…',
     name: 'Назва',
+    slug: 'Коротка адреса (URL)',
+    slugHint: 'Латинські малі літери, цифри й дефіс. Внутрішній ID плагіна не зміниться.',
+    slugPreview: 'Публічна адреса',
     description: 'Опис',
     category: 'Категорія',
     capability: 'Можливість',
     version: 'Версія',
     publish: 'Зберегти й опублікувати',
+    saveChanges: 'Зберегти зміни',
     edit: 'Редагувати',
+    cancel: 'Скасувати',
+    collapse: 'Згорнути',
+    editing: 'Редагування плагіна',
+    saved: 'Зміни збережено. Плагін опубліковано.',
+    savedChanges: 'Зміни збережено.',
+    verifying: 'Збережено. Перевіряю статус публікації…',
+    unverified: 'Збережено, але не вдалося підтвердити новий статус. Оновіть список.',
+    hidden: 'Плагін приховано з каталогу.',
+    offlinePublish: 'Публікація недоступна, поки Remote Worker не підключений.',
     published: 'Опубліковано',
     unpublished: 'Не опубліковано',
     disabled: 'Вимкнено в Core',
@@ -84,12 +105,25 @@ const copy = {
     choose: 'SDK-registered plugin',
     select: 'Select a plugin…',
     name: 'Display name',
+    slug: 'Short URL (slug)',
+    slugHint: 'Lowercase letters, numbers and hyphens. The SDK plugin ID does not change.',
+    slugPreview: 'Public URL',
     description: 'Description',
     category: 'Category',
     capability: 'Capability',
     version: 'Version',
     publish: 'Save and publish',
+    saveChanges: 'Save changes',
     edit: 'Edit',
+    cancel: 'Cancel',
+    collapse: 'Collapse',
+    editing: 'Edit plugin',
+    saved: 'Changes saved. Plugin published.',
+    savedChanges: 'Changes saved.',
+    verifying: 'Saved. Checking publication status…',
+    unverified: 'Saved, but the new status could not be verified. Refresh the list.',
+    hidden: 'Plugin unpublished from catalog.',
+    offlinePublish: 'Publication is unavailable while the Remote Worker is offline.',
     published: 'Published',
     unpublished: 'Unpublished',
     disabled: 'Disabled in Core',
@@ -124,12 +158,25 @@ const copy = {
     choose: 'Wtyczka zarejestrowana przez SDK',
     select: 'Wybierz wtyczkę…',
     name: 'Nazwa wyświetlana',
+    slug: 'Krótki adres URL',
+    slugHint: 'Małe litery, cyfry i łączniki. Identyfikator wtyczki SDK nie zmienia się.',
+    slugPreview: 'Adres publiczny',
     description: 'Opis',
     category: 'Kategoria',
     capability: 'Funkcja',
     version: 'Wersja',
     publish: 'Zapisz i opublikuj',
+    saveChanges: 'Zapisz zmiany',
     edit: 'Edytuj',
+    cancel: 'Anuluj',
+    collapse: 'Zwiń',
+    editing: 'Edytowanie wtyczki',
+    saved: 'Zmiany zapisano. Wtyczka opublikowana.',
+    savedChanges: 'Zmiany zapisano.',
+    verifying: 'Zapisano. Sprawdzanie stanu publikacji…',
+    unverified: 'Zapisano, ale nie udało się potwierdzić nowego stanu. Odśwież listę.',
+    hidden: 'Wtyczka ukryta w katalogu.',
+    offlinePublish: 'Publikacja jest niedostępna, gdy zdalny Worker jest rozłączony.',
     published: 'Opublikowano',
     unpublished: 'Nieopublikowano',
     disabled: 'Wyłączona w Core',
@@ -162,6 +209,7 @@ function initialFields(row: Row): FormFields {
     description: row.description || '',
     category: row.ui?.category || 'Other',
     capability_id: row.capability_id || row.capabilities[0] || '',
+    slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
   }
 }
 
@@ -174,8 +222,14 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     description: '',
     category: 'Other',
     capability_id: '',
+    slug: '',
   })
   const [error, setError] = useState('')
+  const [mutationError, setMutationError] = useState<{ name: string; message: string } | null>(null)
+  const [mutationSuccess, setMutationSuccess] = useState<{ name: string; message: string } | null>(null)
+  const editorTitleRef = useRef<HTMLHeadingElement | null>(null)
+  const editButtonRef = useRef<HTMLButtonElement | null>(null)
+  const confirmationRef = useRef<HTMLParagraphElement | null>(null)
   const [pending, setPending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshResult, setRefreshResult] = useState<{
@@ -186,7 +240,6 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [refreshFailed, setRefreshFailed] = useState(false)
   const requestRef = useRef<AbortController | null>(null)
   const rowsRef = useRef<Row[] | null>(null)
-  const installed = rows?.find((row) => row.name === selected)
   const sorted = [...(rows ?? [])].sort((a, b) => a.name.localeCompare(b.name))
 
   const refresh = useCallback(async () => {
@@ -241,23 +294,50 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     }
   }, [refresh])
 
-  function choose(name: string) {
-    setSelected(name)
-    const row = rows?.find((entry) => entry.name === name)
-    if (row) setFields(initialFields(row))
+  // The editor lives in the card that was clicked, never in a form above the viewport.
+  useEffect(() => {
+    if (!selected) return
+    const title = editorTitleRef.current
+    title?.focus({ preventScroll: true })
+    title?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' })
+  }, [selected])
+
+  useEffect(() => {
+    // A successful action returns focus to the same card, not a distant header.
+    confirmationRef.current?.focus({ preventScroll: true })
+  }, [mutationSuccess])
+
+  function choose(row: Row) {
+    if (selected === row.name) {
+      closeEditor()
+      return
+    }
+    setMutationError(null)
+    setMutationSuccess(null)
+    setFields(initialFields(row))
+    setSelected(row.name)
+  }
+
+  function closeEditor() {
+    setSelected('')
+    setMutationError(null)
+    editButtonRef.current?.focus()
   }
 
   async function update(row: Row, published: boolean, presentation?: FormFields) {
     setPending(true)
-    setError('')
+    setMutationError(null)
+    setMutationSuccess(null)
     try {
       const response = await fetch('/api/observatory/admin/plugins/' + encodeURIComponent(row.name), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           published,
           expected_revision: row.revision,
           capability_id: presentation?.capability_id || row.capability_id || row.capabilities[0],
+          ...(presentation ? { slug: presentation.slug } : {}),
           ...(presentation
             ? {
                 display_name: presentation.display_name,
@@ -268,9 +348,22 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         }),
       })
       if (!response.ok) throw new Error(response.status === 409 ? t.conflict : t.error)
-      await refresh()
+      // PUT has succeeded: close the editor immediately, independent of the
+      // follow-up GET. Keep feedback in this very card while verifying status.
+      if (presentation) setSelected('')
+      setMutationSuccess({ name: row.name, message: t.verifying })
+      const refreshed = await refresh()
+      if (!refreshed) {
+        setMutationSuccess(null)
+        setMutationError({ name: row.name, message: t.unverified })
+        return
+      }
+      setMutationSuccess({
+        name: row.name,
+        message: published ? (isPublished(row) ? t.savedChanges : t.saved) : t.hidden,
+      })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t.error)
+      setMutationError({ name: row.name, message: cause instanceof Error ? cause.message : t.error })
     } finally {
       setPending(false)
     }
@@ -318,96 +411,6 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           {error}
         </p>
       )}
-      <section
-        className="mt-8 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-4 sm:p-6"
-        aria-labelledby="register-plugin"
-      >
-        <h2 id="register-plugin" className="text-xl font-semibold">
-          {t.formTitle}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-slate-400">{t.hint}</p>
-        <form
-          className="mt-5 grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (installed && installed.enabled && fields.capability_id) void update(installed, true, fields)
-          }}
-        >
-          <label className="grid min-w-0 gap-2 text-sm font-semibold">
-            {t.choose}
-            <select
-              className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-              value={selected}
-              onChange={(event) => choose(event.target.value)}
-              required
-            >
-              <option value="">{t.select}</option>
-              {sorted.map((row) => (
-                <option key={row.name} value={row.name}>
-                  {row.ui?.label || row.plugin_id || row.name} ({row.version})
-                </option>
-              ))}
-            </select>
-          </label>
-          {installed && (
-            <>
-              <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                {t.name}
-                <input
-                  className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                  value={fields.display_name}
-                  required
-                  minLength={2}
-                  maxLength={120}
-                  onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
-                />
-              </label>
-              <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                {t.description}
-                <textarea
-                  className="w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                  value={fields.description}
-                  rows={4}
-                  maxLength={2000}
-                  onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
-                />
-              </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                  {t.category}
-                  <select
-                    className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                    value={fields.category}
-                    onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
-                  >
-                    {categories.map((category) => (
-                      <option key={category}>{category}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                  {t.capability}
-                  <select
-                    className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                    value={fields.capability_id}
-                    onChange={(event) => setFields((prev) => ({ ...prev, capability_id: event.target.value }))}
-                  >
-                    {installed.capabilities.map((capability) => (
-                      <option key={capability}>{capability}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <Button
-                type="submit"
-                disabled={pending || !installed.enabled || !fields.display_name.trim() || !fields.capability_id}
-              >
-                {pending ? t.busy : t.publish}
-              </Button>
-            </>
-          )}
-        </form>
-      </section>
 
       {rows?.length === 0 && <p className="mt-6 text-sm text-slate-400">{t.empty}</p>}
       <section className="mt-8 grid gap-4" aria-label={t.registered}>
@@ -442,14 +445,22 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                 {t.version}: {row.version} · {demo ? t.demo : t.generic}
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-3">
-                <Button type="button" variant="secondary" disabled={pending} onClick={() => choose(row.name)}>
-                  {t.edit}
+                <Button
+                  ref={selected === row.name ? editButtonRef : undefined}
+                  type="button"
+                  variant="secondary"
+                  disabled={pending}
+                  aria-expanded={selected === row.name}
+                  aria-controls={`editor-${row.name}`}
+                  onClick={() => choose(row)}
+                >
+                  {selected === row.name ? t.collapse : t.edit}
                 </Button>
                 {published && (
                   <>
                     <a
                       className="text-sm font-semibold text-cyan-300"
-                      href={buildLocalePath(`/plugins/${row.name}`, locale)}
+                      href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}
                     >
                       {t.details} →
                     </a>
@@ -464,6 +475,147 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   </>
                 )}
               </div>
+              {mutationSuccess?.name === row.name && (
+                <p
+                  ref={confirmationRef}
+                  role="status"
+                  tabIndex={-1}
+                  className="mt-4 text-sm text-emerald-300 outline-none"
+                >
+                  {mutationSuccess.message}
+                </p>
+              )}
+              {mutationError?.name === row.name && (
+                <p role="alert" className="mt-4 text-sm text-rose-300">
+                  {mutationError.message}
+                </p>
+              )}
+              {selected === row.name && (
+                <section
+                  id={`editor-${row.name}`}
+                  className="mt-5 min-w-0 border-t border-white/15 pt-5"
+                  aria-labelledby={`editor-title-${row.name}`}
+                >
+                  <h4
+                    ref={editorTitleRef}
+                    tabIndex={-1}
+                    id={`editor-title-${row.name}`}
+                    className="mb-4 text-base font-semibold outline-none"
+                  >
+                    {t.editing}: {row.ui?.label || row.plugin_id || row.name}
+                  </h4>
+                  <form
+                    className="grid gap-4"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (row.enabled && fields.capability_id) void update(row, true, fields)
+                    }}
+                  >
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                      {t.name}
+                      <input
+                        className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                        value={fields.display_name}
+                        required
+                        minLength={2}
+                        maxLength={120}
+                        onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
+                      />
+                    </label>
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                      {t.slug}
+                      <input
+                        aria-label={t.slug}
+                        className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100"
+                        value={fields.slug}
+                        type="text"
+                        placeholder="secretary"
+                        autoCapitalize="none"
+                        autoComplete="off"
+                        spellCheck={false}
+                        required
+                        minLength={2}
+                        maxLength={64}
+                        pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
+                        onChange={(event) => setFields((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))}
+                      />
+                      <span className="text-xs font-normal text-slate-400">{t.slugHint}</span>
+                      {fields.slug && (
+                        <span className="min-w-0 break-all text-xs font-normal text-slate-300">
+                          {t.slugPreview}: /{locale}/plugins/{fields.slug}
+                        </span>
+                      )}
+                    </label>
+                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                      {t.description}
+                      <textarea
+                        className="min-h-28 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                        value={fields.description}
+                        rows={3}
+                        maxLength={2000}
+                        onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
+                      />
+                    </label>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                        {t.category}
+                        <select
+                          className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                          value={fields.category}
+                          onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
+                        >
+                          {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
+                            (category) => (
+                              <option key={category}>{category}</option>
+                            )
+                          )}
+                        </select>
+                      </label>
+                      <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                        {t.capability}
+                        <select
+                          className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
+                          value={fields.capability_id}
+                          onChange={(event) => setFields((prev) => ({ ...prev, capability_id: event.target.value }))}
+                        >
+                          {row.capabilities.map((capability) => (
+                            <option key={capability}>{capability}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    {!row.enabled && <p className="text-sm text-amber-300">{t.offlinePublish}</p>}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Button
+                        type="submit"
+                        disabled={
+                          pending ||
+                          !row.enabled ||
+                          !fields.display_name.trim() ||
+                          !fields.capability_id ||
+                          !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
+                          fields.slug.includes('--') ||
+                          ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)
+                        }
+                      >
+                        {pending ? (
+                          <>
+                            <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
+                            {t.busy}
+                          </>
+                        ) : published ? (
+                          t.saveChanges
+                        ) : (
+                          t.publish
+                        )}
+                      </Button>
+                      <Button type="button" variant="secondary" disabled={pending} onClick={closeEditor}>
+                        {t.cancel}
+                      </Button>
+                    </div>
+                  </form>
+                </section>
+              )}
             </article>
           )
         })}

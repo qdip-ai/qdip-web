@@ -174,7 +174,9 @@ export class QdipClient {
         !/^[A-Za-z0-9@._:-]{1,256}$/.test(update.actor) ||
         (update.displayName !== undefined && (update.displayName.trim().length < 2 || update.displayName.length > 120)) ||
         (update.description !== undefined && update.description.length > 2000) ||
-        (update.category !== undefined && !/^[A-Za-z0-9 _.-]{1,64}$/.test(update.category))) {
+        (update.category !== undefined && !/^[A-Za-z0-9 _.-]{1,64}$/.test(update.category)) ||
+        (update.slug !== undefined && (!/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(update.slug) ||
+        update.slug.includes('--') || ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(update.slug)))) {
       throw new QdipError('CONFIGURATION_ERROR');
     }
     const payload = serializeInput({
@@ -185,6 +187,7 @@ export class QdipClient {
       ...(update.displayName !== undefined ? { display_name: update.displayName } : {}),
       ...(update.description !== undefined ? { description: update.description } : {}),
       ...(update.category !== undefined ? { category: update.category } : {}),
+      ...(update.slug !== undefined ? { slug: update.slug } : {}),
     });
     return this.request('plugin-publications/' + encodeURIComponent(name), this.adminApiKey,
       'PUT', update.deadlineMs ?? DISCOVERY_DEADLINE_MS, update.signal, payload,

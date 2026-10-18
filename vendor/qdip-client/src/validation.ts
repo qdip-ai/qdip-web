@@ -130,6 +130,11 @@ export function parsePluginCatalogEntry(input: unknown): PluginCatalogEntry {
       typeof v.description !== 'string' || v.description.length > 2000) return fail();
   if (v.plugin_id !== undefined && typeof v.plugin_id !== 'string') return fail();
   if (v.source !== undefined && v.source !== 'embedded' && v.source !== 'remote') return fail();
+  if (v.slug !== undefined && v.slug !== null && (typeof v.slug !== 'string' ||
+      !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(v.slug))) return fail();
+  if (v.slug_aliases !== undefined && (!Array.isArray(v.slug_aliases) ||
+      v.slug_aliases.length > 256 || v.slug_aliases.some((slug: unknown) => typeof slug !== 'string' ||
+        !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(slug)))) return fail();
   const versions = obj(v.capability_versions);
   if (ui.label != null && typeof ui.label !== 'string') return fail();
   if (ui.category != null && typeof ui.category !== 'string') return fail();
@@ -147,7 +152,9 @@ export function parsePluginCatalogEntry(input: unknown): PluginCatalogEntry {
     ui: { ...(typeof ui.label === 'string' ? { label: ui.label } : {}),
       ...(typeof ui.category === 'string' ? { category: ui.category } : {}) },
     published: v.published, revision: v.revision as number,
-    capability_id: v.capability_id, published_version: v.published_version
+    capability_id: v.capability_id, published_version: v.published_version,
+    ...(v.slug !== undefined ? { slug: v.slug as string | null } : {}),
+    ...(v.slug_aliases !== undefined ? { slug_aliases: v.slug_aliases as string[] } : {})
   };
 }
 
