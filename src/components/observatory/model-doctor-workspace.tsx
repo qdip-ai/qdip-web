@@ -145,6 +145,7 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
   const [report, setReport] = useState<DoctorEvidence | null>(null)
   const sessionRequest = useRef<AbortController | null>(null)
   const executionRequest = useRef<AbortController | null>(null)
+  const fileInput = useRef<HTMLInputElement | null>(null)
   const revision = useRef(0)
 
   const refresh = useCallback(async () => {
@@ -159,6 +160,7 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
     setModel('')
     setModelHash('')
     setFileLabel('')
+    if (fileInput.current) fileInput.current.value = ''
     setSession('checking')
     try {
       const response = await fetch(MODEL_DOCTOR_BRIDGE.session, {
@@ -254,6 +256,7 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
         setModel('')
         setModelHash('')
         setFileLabel('')
+        if (fileInput.current) fileInput.current.value = ''
         setError(t.disconnected)
         setRunning(false)
         return
@@ -324,6 +327,7 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
             <FileUp size={24} aria-hidden />
             <span className="min-w-0 break-words">{fileLabel || t.choose}</span>
             <input
+              ref={fileInput}
               data-testid="doctor-file"
               type="file"
               accept=".cpmodel,.bin,application/octet-stream"
