@@ -61,7 +61,13 @@ describe('Generic developer plugin keys', () => {
       'fetch',
       vi.fn(async (input: string) => {
         const path = new URL(input).pathname
-        if (path.endsWith('/plugin-publications')) return Response.json([vhv, plugin])
+        if (path.endsWith('/plugin-publications'))
+          return Response.json([
+            vhv,
+            { name: 'GTM Lab', plugin_id: 'GTM Lab', enabled: true,
+              capabilities: ['gtm-lab.demo'], ui: { label: 'GTM Lab' } },
+            plugin,
+          ])
         if (path.endsWith('/organizations')) return Response.json([vhvOrg])
         if (path.endsWith('/keys')) return Response.json([record])
         throw Error('Unexpected Core path: ' + path)
