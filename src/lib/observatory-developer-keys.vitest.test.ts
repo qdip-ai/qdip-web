@@ -73,7 +73,11 @@ describe('Generic developer plugin keys', () => {
             },
             plugin,
           ])
-        if (path.endsWith('/organizations')) return Response.json([vhvOrg])
+        if (path.endsWith('/organizations'))
+          return Response.json([
+            vhvOrg,
+            { id: 'sdk-gate-test-tenant-not-a-uuid', name: 'SDK qualification tenant' },
+          ])
         if (path.endsWith('/keys')) return Response.json([record])
         throw Error('Unexpected Core path: ' + path)
       })
