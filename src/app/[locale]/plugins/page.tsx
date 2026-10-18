@@ -62,7 +62,8 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
   const t = copy[locale]
   const [plugins, visibleIds] = await Promise.all([publishedPlugins(), visiblePluginUseCaseIds()])
   const demos = DIP_USE_CASES.filter(
-    (item) => visibleIds.includes(item.id) &&
+    (item) =>
+      visibleIds.includes(item.id) &&
       !plugins.some((plugin) => plugin.name === item.plugin.id && plugin.capability_id === item.plugin.capability)
   )
   return (
@@ -75,33 +76,47 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
             <p className={styles.lead}>{t.intro}</p>
           </header>
           <section aria-labelledby="published-plugins">
-            <h2 id="published-plugins" className={styles.sectionTitle}>{t.installed}</h2>
-            {plugins.length === 0 ? <p className={styles.empty}>{t.none}</p> : (
+            <h2 id="published-plugins" className={styles.sectionTitle}>
+              {t.installed}
+            </h2>
+            {plugins.length === 0 ? (
+              <p className={styles.empty}>{t.none}</p>
+            ) : (
               <div className={styles.grid}>
                 {plugins.map((plugin) => {
                   const launch = launchLinkForPlugin(plugin)
                   return (
                     <article key={plugin.name} className={`${styles.card} ${styles.publicCard}`}>
                       <div className={styles.meta}>
-                        <span className={styles.pill} data-kind="published">{t.published}</span>
+                        <span className={styles.pill} data-kind="published">
+                          {t.published}
+                        </span>
                         {!plugin.enabled && plugin.source === 'remote' && (
-                          <span className={styles.pill} data-kind="offline">{t.offline}</span>
+                          <span className={styles.pill} data-kind="offline">
+                            {t.offline}
+                          </span>
                         )}
                         {plugin.ui?.category && <span className={styles.pill}>{plugin.ui.category}</span>}
                       </div>
                       <h3 className={styles.cardTitle} style={{ marginTop: '1rem' }}>
                         {plugin.ui?.label || plugin.name}
                       </h3>
-                      <p className={styles.description}>
-                        {plugin.description || t.noDescription}
-                      </p>
+                      <p className={styles.description}>{plugin.description || t.noDescription}</p>
                       <div className={styles.actionRow}>
-                        <a className={styles.link} href={buildLocalePath(`/plugins/${plugin.slug || plugin.name}`, locale)}>
+                        <a
+                          className={styles.link}
+                          href={buildLocalePath(`/plugins/${plugin.slug || plugin.name}`, locale)}
+                        >
                           {t.details} <span aria-hidden="true">→</span>
                         </a>
                         {launch && (
-                          <a className={styles.primaryLink} href={launch.href} target="_blank" rel="noopener noreferrer"
-                            aria-label={`${t.launch} ${launch.application}`}>
+                          <a
+                            className={styles.primaryLink}
+                            href={launch.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`${t.launch} ${launch.application}`}
+                          >
                             {t.launch} {launch.application} <span aria-hidden="true">↗</span>
                           </a>
                         )}
@@ -114,12 +129,17 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
           </section>
           {demos.length > 0 && (
             <section className={styles.secondarySection} aria-labelledby="plugin-demonstrations">
-              <h2 className={styles.sectionTitle} id="plugin-demonstrations">{t.demos}</h2>
+              <h2 className={styles.sectionTitle} id="plugin-demonstrations">
+                {t.demos}
+              </h2>
               <p className={styles.note}>{t.demosHint}</p>
               <div className={styles.grid} style={{ marginTop: '1.25rem' }}>
                 {demos.map((demo) => (
-                  <a key={demo.id} className={`${styles.card} ${styles.cardLink}`}
-                    href={buildLocalePath(demo.route, locale)}>
+                  <a
+                    key={demo.id}
+                    className={`${styles.card} ${styles.cardLink}`}
+                    href={buildLocalePath(demo.route, locale)}
+                  >
                     <h3 className={styles.cardTitle}>{demo.id}</h3>
                     <span className={`${styles.link} ${styles.cardFooter}`}>
                       {t.demo} <span aria-hidden="true">→</span>
