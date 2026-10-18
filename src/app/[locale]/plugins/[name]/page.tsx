@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { PrototypeShell } from '@/features/observatory'
 import { publishedPlugins } from '@/lib/observatory-plugin-catalog'
+import { launchLinkForPlugin } from '@/lib/observatory-plugin-launch'
 import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
@@ -13,6 +14,8 @@ const copy = {
     capability: 'Можливість',
     category: 'Категорія',
     demo: 'Відкрити демонстрацію',
+    launch: 'Відкрити застосунок',
+    launchNote: 'Відкриється у новій вкладці. Може знадобитися авторизація.',
     note: 'Публікація в каталозі не надає доступу до виконання плагіна.',
   },
   en: {
@@ -21,6 +24,8 @@ const copy = {
     capability: 'Capability',
     category: 'Category',
     demo: 'Open demo',
+    launch: 'Open application',
+    launchNote: 'Opens in a new tab. Sign-in may be required.',
     note: 'Catalog publication does not grant plugin execution permissions.',
   },
   pl: {
@@ -29,6 +34,8 @@ const copy = {
     capability: 'Funkcja',
     category: 'Kategoria',
     demo: 'Otwórz demo',
+    launch: 'Otwórz aplikację',
+    launchNote: 'Otwiera się w nowej karcie. Może być wymagane logowanie.',
     note: 'Publikacja w katalogu nie nadaje uprawnień do wykonania wtyczki.',
   },
 } as const
@@ -45,6 +52,7 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
   const canonicalName = plugin.slug || plugin.name
   if (name !== canonicalName) redirect(buildLocalePath(`/plugins/${canonicalName}`, locale))
   const t = copy[locale]
+  const launch = launchLinkForPlugin(plugin)
   const demo = DIP_USE_CASES.find((item) => item.plugin.id === name && item.plugin.capability === plugin.capability_id)
   return (
     <PrototypeShell locale={locale as Locale} activeRoute="/plugins">
@@ -54,6 +62,19 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
         </a>
         <h1 className="mt-6 break-words text-3xl font-semibold">{plugin.ui?.label || plugin.name}</h1>
         <p className="mt-5 whitespace-pre-line break-words text-base leading-7 text-slate-300">{plugin.description}</p>
+        {launch && (
+          <div className="mt-7 flex flex-col items-start gap-2">
+            <a
+              href={launch.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-rose-500/60 bg-rose-950 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-rose-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300"
+            >
+              {t.launch} {launch.application} ↗
+            </a>
+            <p className="text-xs text-slate-400">{t.launchNote}</p>
+          </div>
+        )}
         <dl className="mt-8 grid gap-4 rounded-xl border border-white/15 bg-slate-900 p-5 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-slate-400">{t.version}</dt>
