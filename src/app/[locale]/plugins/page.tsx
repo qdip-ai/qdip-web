@@ -1,6 +1,7 @@
 import { PrototypeShell } from '@/features/observatory'
 import { publishedPlugins, visiblePluginUseCaseIds } from '@/lib/observatory-plugin-catalog'
 import { launchLinkForPlugin } from '@/lib/observatory-plugin-launch'
+import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
 import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 import { notFound } from 'next/navigation'
@@ -96,7 +97,7 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
                             {t.offline}
                           </span>
                         )}
-                        {plugin.ui?.category && <span className={styles.pill}>{plugin.ui.category}</span>}
+                        {plugin.ui?.category && <span className={styles.pill}>{pluginCategoryLabel(plugin.ui.category, locale)}</span>}
                       </div>
                       <h3 className={styles.cardTitle} style={{ marginTop: '1rem' }}>
                         {plugin.ui?.label || plugin.name}
