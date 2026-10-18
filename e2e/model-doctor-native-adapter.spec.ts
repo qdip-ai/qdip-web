@@ -189,7 +189,9 @@ test('Doctor session loss in another tab automatically clears evidence on refocu
 test('forged repair/core proof cannot be opened as technical raw evidence', async ({ page }) => {
   await mockDoctor(page, true)
   await page.route('https://doctor.qdip.ai/api/observatory/doctor', async (route) => {
-    const hash = createHash('sha256').update(Buffer.from([1, 2, 3])).digest('hex')
+    const hash = createHash('sha256')
+      .update(Buffer.from([1, 2, 3]))
+      .digest('hex')
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
