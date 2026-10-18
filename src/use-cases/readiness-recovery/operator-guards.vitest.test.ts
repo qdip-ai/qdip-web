@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { OperatorRequestGuard, classifyOperatorHttpStatus, parsedExecutionIds } from './operator-guards'
+import { OperatorRequestGuard, classifyOperatorHttpStatus, parsedExecutionIds, recoverableRRSubmission } from './operator-guards'
 
 describe('Kernel operator authority and race controls', () => {
   it('invalidates old result completion after another request or logout', () => {
@@ -30,5 +30,41 @@ describe('Kernel operator authority and race controls', () => {
         result: { workflow: { execution_id: '../../bad', ingestion: { payload: { decision_id: 42 } } } },
       })
     ).toEqual({ executionId: '', decisionId: '' })
+  })
+})
+
+describe('lost RR acknowledgement identity', () => {
+  const preflight = {
+    execution_id: 'run-10',
+    decision_id: 'workshop',
+    payload_digest: 'a'.repeat(64),
+    source_snapshot_id: 'snapshot-10',
+  }
+
+  it('requires the exact server preflight-bound create ID', () => {
+    expect(recoverableRRSubmission('create', '{"execution_id":"run-10"}', { preflight })).toMatchObject({
+      executionId: 'run-10',
+      decisionId: 'workshop',
+      payloadDigest: 'a'.repeat(64),
+    })
+    expect(recoverableRRSubmission('create', '{"execution_id":"other"}', { preflight })).toBeNull()
+    expect(recoverableRRSubmission('create', '{"execution_id":"../bad"}', { preflight })).toBeNull()
+    expect(recoverableRRSubmission('create', '{"execution_id":"run-10"}', {})).toBeNull()
+  })
+
+  it('supports both replan formats and refuses ambiguous or unsafe IDs', () => {
+    const opts = { predecessorExecutionId: 'run-10', decisionId: 'workshop' }
+    expect(recoverableRRSubmission('replan', '{"execution_id":"run-11"}', opts)).toMatchObject({
+      executionId: 'run-11',
+      predecessorExecutionId: 'run-10',
+    })
+    const normalized = JSON.stringify({
+      format_version: 'readiness-recovery.normalized-replan.v1',
+      import_document: { execution_id: 'run-12' },
+    })
+    expect(recoverableRRSubmission('replan', normalized, opts)?.executionId).toBe('run-12')
+    expect(recoverableRRSubmission('replan', '{"execution_id":"run-10"}', opts)).toBeNull()
+    expect(recoverableRRSubmission('replan', '{"execution_id":"run-11"}', {})).toBeNull()
+    expect(recoverableRRSubmission('replan', '{', opts)).toBeNull()
   })
 })
