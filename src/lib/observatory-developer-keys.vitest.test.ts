@@ -3,257 +3,148 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 vi.mock('@/lib/observatory-plugin-catalog', () => ({
   corePluginConnection: () => ({
-    base: 'https://core.qdip.test',
-    key: 'PRIVATE-PLATFORM-ADMIN',
+    base: 'https://core.qdip.test', key: 'PRIVATE-PLATFORM-ADMIN',
   }),
 }))
-import { createDeveloperCredentials, DeveloperKeyError } from './observatory-developer-keys'
+import {
+  DeveloperKeyError, issuePluginCredential, listPluginCredentials, revokePluginCredential,
+} from './observatory-developer-keys'
 
 const ORG = '12345678-1234-4234-8234-123456789abc'
-const APP = '12345678-1234-4234-8234-123456789abd'
-const WORKER = '12345678-1234-4234-8234-123456789abe'
-const appRaw = 'dip-' + 'a'.repeat(32)
-const workerRaw = 'dip-' + 'b'.repeat(32)
+const KEY_ID = '12345678-1234-4234-8234-123456789abd'
+const SECRET = 'dip-' + 'a'.repeat(32)
+const CAPS = ['sample.plan', 'sample.validate']
 const expires = () => new Date(Date.now() + 30 * 86_400_000).toISOString()
-
-function key(id: string, role: 'app' | 'worker', allowlist: string[] | null = ['secretary.plan']) {
-  return {
-    id,
-    key: role === 'app' ? appRaw : workerRaw,
-    org_id: ORG,
-    name: '',
-    environment: 'production',
-    scopes: role === 'app' ? ['plugins:read', 'plugins:execute'] : ['plugins:register'],
-    allowed_capabilities: allowlist,
-    expires_at: expires(),
-    revoked_at: null,
-  }
+const plugin = {
+  name: 'sample', plugin_id: 'sample', enabled: true,
+  capabilities: CAPS, ui: { label: 'Sample Planner' },
 }
+const org = { id: ORG, name: 'qdip-sdk-plugin:sample' }
 
-afterEach(() => {
-  vi.unstubAllGlobals()
+const key = () => ({
+  id: KEY_ID, key: SECRET, org_id: ORG,
+  name: 'access/sample/' + KEY_ID, environment: 'production',
+  scopes: ['plugins:read', 'plugins:execute'],
+  allowed_capabilities: CAPS, expires_at: expires(), revoked_at: null,
 })
 
-describe('Observatory developer keys: audited app+Worker bootstrap', () => {
-  it('issues separate app/Worker keys and verifies exact persisted policy before display', async () => {
-    const calls: Array<{
-      method: string
-      path: string
-      scopes?: string[]
-      allowlist?: string[]
-    }> = []
-    const issued = [] as ReturnType<typeof key>[]
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string, options: RequestInit) => {
-        const path = new URL(input).pathname
-        const method = options.method || 'GET'
-        const body = options.body ? JSON.parse(String(options.body)) : null
-        calls.push({
-          method,
-          path,
-          scopes: body?.scopes,
-          allowlist: body?.allowed_capabilities,
-        })
-        expect(options.redirect).toBe('error')
-        expect((options.headers as Record<string, string>)['x-api-key']).toBe('PRIVATE-PLATFORM-ADMIN')
-        if (method === 'GET' && path.endsWith('/organizations')) return Response.json([])
-        if (method === 'POST' && path.endsWith('/organizations'))
-          return Response.json({ id: ORG, name: body.name }, { status: 201 })
-        if (method === 'POST' && path.endsWith('/keys')) {
-          const issuedKey = key(issued.length === 0 ? APP : WORKER, issued.length === 0 ? 'app' : 'worker')
-          issuedKey.name = body.name
-          issued.push(issuedKey)
-          return Response.json(issuedKey, { status: 201 })
-        }
-        if (method === 'GET' && path.endsWith('/keys'))
-          return Response.json(
-            issued.map((row) => Object.fromEntries(Object.entries(row).filter(([field]) => field !== 'key')))
-          )
-        throw Error('Unexpected QDIP call')
-      })
-    )
-    const response = await createDeveloperCredentials('VHV', 'secretary.plan')
-    expect(response.app.key).toBe(appRaw)
-    expect(response.worker.key).toBe(workerRaw)
-    expect(response).not.toHaveProperty('organizationId')
-    expect(calls.filter((c) => c.method === 'POST' && c.path.endsWith('/keys')).map((c) => c.scopes)).toEqual([
-      ['plugins:read', 'plugins:execute'],
-      ['plugins:register'],
-    ])
-    expect(calls.filter((c) => c.method === 'POST' && c.path.endsWith('/keys')).map((c) => c.allowlist)).toEqual([
-      ['secretary.plan'],
-      ['secretary.plan'],
-    ])
-  })
+afterEach(() => vi.unstubAllGlobals())
 
-  it('refuses missing capability allowlist and revokes every newly issued key', async () => {
-    const issued = [] as ReturnType<typeof key>[]
-    let revokeCount = 0
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string, options: RequestInit) => {
-        const path = new URL(input).pathname,
-          method = options.method || 'GET'
-        if (method === 'GET' && path.endsWith('/organizations'))
-          return Response.json([{ id: ORG, name: 'qdip-sdk-app:vhv' }])
-        if (method === 'POST' && path.endsWith('/keys')) {
-          const body = JSON.parse(String(options.body))
-          const record = key(issued.length === 0 ? APP : WORKER, issued.length === 0 ? 'app' : 'worker', null)
-          record.name = body.name
-          issued.push(record)
-          return Response.json(record, { status: 201 })
-        }
-        if (method === 'GET' && path.endsWith('/keys'))
-          return Response.json(
-            issued.map((row) => Object.fromEntries(Object.entries(row).filter(([field]) => field !== 'key')))
-          )
-        if (method === 'POST' && path.endsWith('/revoke')) {
-          revokeCount++
-          return Response.json({})
-        }
-        throw Error('Unexpected request')
-      })
-    )
-    await expect(createDeveloperCredentials('VHV', 'secretary.plan')).rejects.toMatchObject({ status: 503 })
-    expect(revokeCount).toBe(2)
-  })
-
-  it('revokes both known credentials when the Worker raw key is malformed', async () => {
-    const issued = [] as ReturnType<typeof key>[]
-    const revoked: string[] = []
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string, options: RequestInit) => {
-        const path = new URL(input).pathname,
-          method = options.method || 'GET'
-        if (method === 'GET' && path.endsWith('/organizations'))
-          return Response.json([{ id: ORG, name: 'qdip-sdk-app:vhv' }])
-        if (method === 'POST' && path.endsWith('/keys')) {
-          const body = JSON.parse(String(options.body))
-          const record = key(issued.length === 0 ? APP : WORKER, issued.length === 0 ? 'app' : 'worker')
-          record.name = body.name
-          if (issued.length === 1) record.key = 'invalid-raw-key'
-          issued.push(record)
-          return Response.json(record, { status: 201 })
-        }
-        if (method === 'POST' && path.endsWith('/revoke')) {
-          revoked.push(path)
-          return Response.json({})
-        }
-        throw Error('Unexpected request')
-      })
-    )
-    await expect(createDeveloperCredentials('VHV', 'secretary.plan')).rejects.toMatchObject({ status: 503 })
-    expect(revoked).toHaveLength(2)
-  })
-
-  it('rejects invalid application input without contacting QDIP', async () => {
-    const fetchStub = vi.fn()
-    vi.stubGlobal('fetch', fetchStub)
-    await expect(createDeveloperCredentials('VHV/../../root', 'secretary.plan')).rejects.toBeInstanceOf(
-      DeveloperKeyError
-    )
-    await expect(createDeveloperCredentials('VHV', '*')).rejects.toBeInstanceOf(DeveloperKeyError)
-    expect(fetchStub).not.toHaveBeenCalled()
-  })
-})
-
-describe('Route Optimizer keys through the existing Observatory interface', () => {
-  it('issues just one org-scoped execute key for both RO capabilities and verifies persisted policy', async () => {
-    const captured: Array<{ name: string; scopes: string[]; allowed_capabilities: string[] }> = []
+describe('Generic developer plugin keys', () => {
+  it('lists installed plugins dynamically and moves already keyed VHV out of available', async () => {
+    const vhv = {
+      name: 'remote-vhv-secretary', plugin_id: 'secretary', enabled: true,
+      capabilities: ['secretary.plan'], ui: { label: 'VHV' },
+    }
+    const vhvOrg = { id: ORG, name: 'qdip-sdk-app:vhv' }
     const record = {
-      id: APP,
-      key: appRaw,
-      org_id: ORG,
-      name: '',
-      environment: 'production',
-      scopes: ['plugins:execute'],
-      allowed_capabilities: ['route-optimizer.customer-coordinate-vrp.v1', 'route-optimizer.customer-address-vrp.v1'],
-      expires_at: expires(),
-      revoked_at: null,
+      ...key(), name: 'app/VHV/previous-operation',
+      allowed_capabilities: ['secretary.plan'],
     }
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string, options: RequestInit) => {
-        const path = new URL(input).pathname
-        const method = options.method ?? 'GET'
-        if (method === 'GET' && path.endsWith('/organizations'))
-          return Response.json([{ id: ORG, name: 'qdip-sdk-app:ro' }])
-        if (method === 'POST' && path.endsWith('/keys')) {
-          const body = JSON.parse(String(options.body))
-          captured.push(body)
-          record.name = body.name
-          return Response.json(record, { status: 201 })
-        }
-        if (method === 'GET' && path.endsWith('/keys')) {
-          const stored = { ...record }
-          delete (stored as { key?: string }).key
-          return Response.json([stored])
-        }
-        throw Error('Unexpected request')
-      })
-    )
-    const result = await createDeveloperCredentials('RO', 'route-optimizer.customer-address-vrp.v1')
-    expect(result.application).toBe('RO')
-    expect(result.worker).toBeNull()
-    expect(result.app.key).toBe(appRaw)
-    expect(result.capabilities).toEqual([
-      'route-optimizer.customer-coordinate-vrp.v1',
-      'route-optimizer.customer-address-vrp.v1',
-    ])
-    expect(captured).toHaveLength(1)
-    expect(captured[0].scopes).toEqual(['plugins:execute'])
-    expect(captured[0].allowed_capabilities).toEqual(result.capabilities)
-    expect(captured[0].name.startsWith('app/RO/')).toBe(true)
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      const path = new URL(input).pathname
+      if (path.endsWith('/plugin-publications')) return Response.json([vhv, plugin])
+      if (path.endsWith('/organizations')) return Response.json([vhvOrg])
+      if (path.endsWith('/keys')) return Response.json([record])
+      throw Error('Unexpected Core path: ' + path)
+    }))
+    const inventory = await listPluginCredentials()
+    expect(inventory.connected.map(p => p.label)).toEqual(['VHV'])
+    expect(inventory.available.map(p => p.label)).toEqual(['Sample Planner'])
+    expect(inventory.connected[0].keys).toHaveLength(1)
+    expect(JSON.stringify(inventory)).not.toContain(SECRET)
   })
 
-  it('refuses and revokes a RO key if Core drops either capability', async () => {
-    const issued = {
-      id: APP,
-      key: appRaw,
-      org_id: ORG,
-      name: '',
-      environment: 'production',
-      scopes: ['plugins:execute'],
-      allowed_capabilities: ['route-optimizer.customer-coordinate-vrp.v1'],
-      expires_at: expires(),
-      revoked_at: null,
-    }
-    let revoked = 0
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string, options: RequestInit) => {
-        const path = new URL(input).pathname
-        const method = options.method ?? 'GET'
-        if (method === 'GET' && path.endsWith('/organizations'))
-          return Response.json([{ id: ORG, name: 'qdip-sdk-app:ro' }])
-        if (method === 'POST' && path.endsWith('/keys')) {
-          issued.name = JSON.parse(String(options.body)).name
-          return Response.json(issued, { status: 201 })
-        }
-        if (method === 'GET' && path.endsWith('/keys')) return Response.json([issued])
-        if (method === 'POST' && path.endsWith('/revoke')) {
-          revoked++
-          return Response.json({})
-        }
-        throw Error('Unexpected request')
-      })
-    )
-    await expect(createDeveloperCredentials('RO', 'route-optimizer.customer-address-vrp.v1')).rejects.toMatchObject({
-      status: 503,
-    })
-    expect(revoked).toBe(1)
+  it('issues one key for arbitrary registered plugin with only selected capabilities', async () => {
+    const calls: Array<Record<string, unknown>> = []
+    const created = { ...key(), allowed_capabilities: ['sample.plan'] }
+    vi.stubGlobal('fetch', vi.fn(async (input: string, options: RequestInit) => {
+      const url = new URL(input).pathname
+      const method = options.method || 'GET'
+      expect(options.redirect).toBe('error')
+      expect((options.headers as Record<string, string>)['x-api-key']).toBe('PRIVATE-PLATFORM-ADMIN')
+      if (url.endsWith('/plugin-publications')) return Response.json([plugin])
+      if (method === 'GET' && url.endsWith('/organizations')) return Response.json([org])
+      if (method === 'GET' && url.endsWith('/keys')) {
+        const { key: _ignored, ...rest } = created
+        return Response.json(calls.length ? [rest] : [])
+      }
+      if (method === 'POST' && url.endsWith('/keys')) {
+        const body = JSON.parse(String(options.body))
+        calls.push(body)
+        created.name = body.name
+        return Response.json(created, { status: 201 })
+      }
+      throw Error('Unexpected Core path: ' + url)
+    }))
+    const response = await issuePluginCredential('sample', ['sample.plan'])
+    expect(response.key).toBe(SECRET)
+    expect(response.capabilities).toEqual(['sample.plan'])
+    expect(calls).toHaveLength(1)
+    expect(calls[0].scopes).toEqual(['plugins:read', 'plugins:execute'])
+    expect(calls[0].allowed_capabilities).toEqual(['sample.plan'])
   })
 
-  it('blocks arbitrary application/capability combinations before Core is contacted', async () => {
+  it('refuses unknown capability and forbids duplicate active keys', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      const url = new URL(input).pathname
+      if (url.endsWith('/plugin-publications')) return Response.json([plugin])
+      if (url.endsWith('/organizations')) return Response.json([org])
+      if (url.endsWith('/keys')) return Response.json([key()])
+      throw Error('Unexpected Core path: ' + url)
+    }))
+    await expect(issuePluginCredential('sample', ['other.execute'])).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('sample', CAPS)).rejects.toMatchObject({ status: 409 })
+  })
+
+  it('supports pre-registration bootstrap for arbitrary new SDK plugin', async () => {
+    const issued = { ...key(), name: '', allowed_capabilities: ['new-plugin.run'] }
+    const newOrg = { ...org, name: 'qdip-sdk-plugin:new-plugin' }
+    vi.stubGlobal('fetch', vi.fn(async (input: string, options: RequestInit) => {
+      const url = new URL(input).pathname
+      const method = options.method || 'GET'
+      if (url.endsWith('/plugin-publications')) return Response.json([plugin])
+      if (method === 'GET' && url.endsWith('/organizations')) return Response.json([])
+      if (method === 'POST' && url.endsWith('/organizations')) return Response.json(newOrg)
+      if (method === 'POST' && url.endsWith('/keys')) {
+        issued.name = JSON.parse(String(options.body)).name
+        issued.scopes = ['plugins:register']
+        return Response.json(issued, { status: 201 })
+      }
+      if (method === 'GET' && url.endsWith('/keys')) return Response.json([issued])
+      throw Error('Unexpected Core path: ' + url)
+    }))
+    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', false))
+      .rejects.toBeInstanceOf(DeveloperKeyError)
+    const result = await issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', true)
+    expect(result.role).toBe('worker')
+    expect(result.capabilities).toEqual(['new-plugin.run'])
+  })
+
+  it('rejects invalid capabilities without network calls', async () => {
     const fetchStub = vi.fn()
     vi.stubGlobal('fetch', fetchStub)
-    await expect(createDeveloperCredentials('RO', 'secretary.plan')).rejects.toMatchObject({ status: 422 })
-    await expect(createDeveloperCredentials('VHV', 'route-optimizer.customer-address-vrp.v1')).rejects.toMatchObject({
-      status: 422,
-    })
-    await expect(createDeveloperCredentials('SomeOtherApp', 'secretary.plan')).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('../invalid', ['sample.plan'])).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('sample', ['*'])).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('sample', ['sample.plan', 'sample.plan']))
+      .rejects.toMatchObject({ status: 422 })
     expect(fetchStub).not.toHaveBeenCalled()
+  })
+
+  it('revokes only keys in managed plugin organizations', async () => {
+    let count = 0
+    vi.stubGlobal('fetch', vi.fn(async (input: string, options: RequestInit) => {
+      const path = new URL(input).pathname
+      if (path.endsWith('/plugin-publications')) return Response.json([plugin])
+      if (path.endsWith('/organizations')) return Response.json([org])
+      if (path.endsWith('/keys')) return Response.json([key()])
+      if (path.endsWith('/revoke') && options.method === 'POST') {
+        count++
+        return Response.json({ ...key(), revoked_at: new Date().toISOString() })
+      }
+      throw Error('Unexpected Core path: ' + path)
+    }))
+    await revokePluginCredential(ORG, KEY_ID)
+    expect(count).toBe(1)
   })
 })
