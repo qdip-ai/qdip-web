@@ -12,7 +12,7 @@ type Row = {
   slug?: string | null
   slug_aliases?: string[]
   security?: {
-    state: 'active' | 'quarantined'
+    state: 'pending_review' | 'approved' | 'quarantined' | 'revoked'
     reason?: string | null
     last_scan?: {
       result: 'critical' | 'review' | 'no_signatures'
@@ -85,6 +85,13 @@ const copy = {
     securityCritical: 'Знайдено критичну сигнатуру. Плагін заблоковано в Core.',
     securityError: 'Не вдалося виконати перевірку. Повторіть після оновлення.',
     securityChanged: 'Стан безпеки оновлено.',
+    securityPending: 'Очікує перевірки',
+    securityApproved: 'Ручний допуск',
+    securityApprove: 'Надати ручний допуск',
+    securityReference: 'Посилання на звіт перевірки (мін. 8 символів)',
+    securityRisk: 'Підтверджую відповідальне прийняття ризику: фактичний код Worker не засвідчений.',
+    securityRiskWarning: 'Поки плагін не допущений адміністратором, виклики через QDIP заблоковані.',
+    securityReleaseHint: 'Зняття карантину переводить плагін у стан очікування перевірки, а не відкриває доступ.',
     cancel: 'Скасувати',
     collapse: 'Згорнути',
     editing: 'Редагування плагіна',
@@ -152,6 +159,13 @@ const copy = {
     securityCritical: 'Critical signature found. The Core has quarantined the plugin.',
     securityError: 'Security action failed. Refresh and retry.',
     securityChanged: 'Security status updated.',
+    securityPending: 'Pending review',
+    securityApproved: 'Manually authorized',
+    securityApprove: 'Accept risk and authorize',
+    securityReference: 'Review evidence reference (min. 8 characters)',
+    securityRisk: 'I accept the residual risk: actual Worker source code is not attested.',
+    securityRiskWarning: 'Core blocks this plugin until an administrator explicitly authorizes this Worker manifest.',
+    securityReleaseHint: 'Releasing quarantine returns to pending review, never grants execution.',
     cancel: 'Cancel',
     collapse: 'Collapse',
     editing: 'Edit plugin',
@@ -219,6 +233,13 @@ const copy = {
     securityCritical: 'Krytyczna sygnatura. Wtyczka została zablokowana w Core.',
     securityError: 'Kontrola nie powiodła się. Odśwież i spróbuj ponownie.',
     securityChanged: 'Zaktualizowano status bezpieczeństwa.',
+    securityPending: 'Oczekuje na weryfikację',
+    securityApproved: 'Dopuszczono ręcznie',
+    securityApprove: 'Zaakceptuj ryzyko i dopuść',
+    securityReference: 'Odnośnik do przeglądu (min. 8 znaków)',
+    securityRisk: 'Akceptuję ryzyko: rzeczywisty kod Workera nie został poświadczony.',
+    securityRiskWarning: 'Core blokuje wywołania, dopóki administrator nie dopuści manifestu Workera.',
+    securityReleaseHint: 'Zdjęcie kwarantanny przywraca oczekiwanie na ocenę, bez zgody na wykonywanie.',
     cancel: 'Anuluj',
     collapse: 'Zwiń',
     editing: 'Edytowanie wtyczki',
@@ -248,6 +269,7 @@ const copy = {
 function isPublished(row: Row) {
   return (
     row.enabled &&
+    (row.source !== 'remote' || row.security?.state === 'approved') &&
     row.published === true &&
     row.published_version === row.version &&
     typeof row.capability_id === 'string' &&
@@ -272,6 +294,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [sourceCode, setSourceCode] = useState('')
   const [sourceLanguage, setSourceLanguage] = useState<'python' | 'javascript' | 'typescript' | 'shell'>('python')
   const [securityReason, setSecurityReason] = useState('')
+  const [securityReference, setSecurityReference] = useState('')
+  const [riskAcknowledged, setRiskAcknowledged] = useState(false)
   const [securityFeedback, setSecurityFeedback] = useState<{
     name: string
     message: string
@@ -429,7 +453,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     }
   }
 
-  async function reviewSecurity(row: Row, action: 'scan' | 'quarantine', quarantined?: boolean) {
+  async function reviewSecurity(row: Row, action: 'scan' | 'quarantine' | 'approve', quarantined?: boolean) {
     setPending(true)
     setSecurityFeedback(null)
     try {
@@ -442,7 +466,13 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           expected_revision: row.revision,
           ...(action === 'scan'
             ? { source_code: sourceCode, language: sourceLanguage }
-            : { quarantined, reason: securityReason.trim() }),
+            : action === 'approve'
+              ? {
+                  reason: securityReason.trim(),
+                  review_reference: securityReference.trim(),
+                  risk_acknowledged: riskAcknowledged,
+                }
+              : { quarantined, reason: securityReason.trim() }),
         }),
       })
       if (!response.ok) throw new Error(t.securityError)
@@ -460,6 +490,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           : t.securityChanged
       setSecurityFeedback({ name: row.name, message, failed: false })
       if (action === 'scan') setSourceCode('')
+      if (action === 'approve') setRiskAcknowledged(false)
       await refresh()
     } catch {
       setSecurityFeedback({ name: row.name, message: t.securityError, failed: true })
@@ -531,9 +562,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   )}
                 </div>
                 <Badge variant={published ? 'emerald' : 'neutral'}>
-                  {row.security?.state === 'quarantined'
+                  {row.security?.state === 'quarantined' || row.security?.state === 'revoked'
                     ? t.securityQuarantined
-                    : published
+                    : row.source === 'remote' && row.security?.state !== 'approved'
+                      ? t.securityPending
+                      : published
                       ? t.published
                     : row.enabled
                       ? t.unpublished
@@ -568,12 +601,14 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       setSecurityFeedback(null)
                       setSourceCode('')
                       setSecurityReason('')
+                      setSecurityReference('')
+                      setRiskAcknowledged(false)
                     }}
                   >
                     {securityOpen === row.name ? t.securityClose : t.securityReview}
                   </Button>
                 )}
-                {published && row.security?.state !== 'quarantined' && (
+                {published && (
                   <>
                     <a
                       className="text-sm font-semibold text-cyan-300"
@@ -708,7 +743,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         disabled={
                           pending ||
                           !row.enabled ||
-                          row.security?.state === 'quarantined' ||
+                          (row.source === 'remote' && row.security?.state !== 'approved') ||
                           !fields.display_name.trim() ||
                           !fields.capability_id ||
                           !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
@@ -738,6 +773,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                 <section className="mt-5 min-w-0 border-t border-white/15 pt-5" aria-label={t.securityReview}>
                   <h4 className="text-base font-semibold">{t.securityReview}</h4>
                   <p className="mt-2 text-sm leading-6 text-slate-400">{t.securityCaveat}</p>
+                  {row.security?.state !== 'approved' && (
+                    <p className="mt-2 text-sm text-amber-300">{t.securityRiskWarning}</p>
+                  )}
+                  {row.security?.state === 'approved' && (
+                    <p className="mt-2 text-sm text-emerald-300">{t.securityApproved}</p>
+                  )}
                   {row.security?.reason && (
                     <p className="mt-3 break-words text-sm text-rose-300">{row.security.reason}</p>
                   )}
@@ -792,16 +833,57 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         onChange={(event) => setSecurityReason(event.target.value)}
                       />
                     </label>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={pending || securityReason.trim().length < 12}
-                      onClick={() =>
-                        void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')
-                      }
-                    >
-                      {row.security?.state === 'quarantined' ? t.release : t.quarantine}
-                    </Button>
+                    {row.security?.state !== 'revoked' && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={pending || securityReason.trim().length < 12}
+                        onClick={() =>
+                          void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')
+                        }
+                      >
+                        {row.security?.state === 'quarantined' ? t.release : t.quarantine}
+                      </Button>
+                    )}
+                    {row.security?.state === 'quarantined' && (
+                      <p className="text-sm text-slate-400">{t.securityReleaseHint}</p>
+                    )}
+                    {row.security?.state !== 'approved' &&
+                      row.security?.state !== 'quarantined' &&
+                      row.security?.state !== 'revoked' && (
+                        <>
+                          <label className="grid gap-2 text-sm">
+                            {t.securityReference}
+                            <input
+                              className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2"
+                              value={securityReference}
+                              maxLength={256}
+                              onChange={(event) => setSecurityReference(event.target.value)}
+                            />
+                          </label>
+                          <label className="flex items-start gap-3 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={riskAcknowledged}
+                              onChange={(event) => setRiskAcknowledged(event.target.checked)}
+                            />
+                            {t.securityRisk}
+                          </label>
+                          <Button
+                            type="button"
+                            disabled={
+                              pending ||
+                              !riskAcknowledged ||
+                              securityReason.trim().length < 20 ||
+                              securityReference.trim().length < 8 ||
+                              row.security?.last_scan?.result === 'critical'
+                            }
+                            onClick={() => void reviewSecurity(row, 'approve')}
+                          >
+                            {t.securityApprove}
+                          </Button>
+                        </>
+                      )}
                   </div>
                   {securityFeedback?.name === row.name && (
                     <p
