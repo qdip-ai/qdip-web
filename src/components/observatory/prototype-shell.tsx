@@ -29,7 +29,15 @@ import styles from './prototype-shell.module.css'
 
 export type PrototypeTheme = UseCaseTheme
 export type ObservatoryRoute =
-  '/' | '/challenges' | '/decision-intake' | '/model-doctor' | '/decisions' | '/plugins' | '/admin/plugins' | '/admin/apps' | UseCaseRoute
+  | '/'
+  | '/challenges'
+  | '/decision-intake'
+  | '/model-doctor'
+  | '/decisions'
+  | '/plugins'
+  | '/admin/plugins'
+  | '/admin/apps'
+  | UseCaseRoute
 
 type PrototypeShellProps = {
   locale: Locale
