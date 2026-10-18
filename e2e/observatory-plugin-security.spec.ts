@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test'
 import { oidcTestCookies } from './oidc-test-session'
 
+type ScanSecurity = {
+  state: string
+  reason: string | null
+  last_scan: {
+    result: string
+    source_sha256: string
+    findings: { id: string; severity: string; line: number }[]
+  } | null
+}
+
 test('Observatory admin scans remote code and quarantines through its own SDK proxy', async ({ page }) => {
   await page.context().clearCookies()
   await page.context().addCookies(oidcTestCookies(['observatory_admin']))
@@ -18,7 +28,7 @@ test('Observatory admin scans remote code and quarantines through its own SDK pr
     published_version: '1.0.0',
     capability_id: 'worker.plan',
     revision: 2,
-    security: { state: 'pending_review', reason: null, last_scan: null },
+    security: { state: 'pending_review', reason: null, last_scan: null } as ScanSecurity,
   }
   await page.route('**/api/observatory/admin/plugins', async (route) => {
     await route.fulfill({
@@ -38,7 +48,7 @@ test('Observatory admin scans remote code and quarantines through its own SDK pr
         source_sha256: 'a'.repeat(64),
         findings: [{ id: 'remote-shell', severity: 'critical', line: 1 }],
       },
-    } as typeof plugin.security
+    }
     plugin.published = false
     plugin.revision = 3
     await route.fulfill({
