@@ -94,6 +94,21 @@ describe('Doctor native evidence anti-forgery presentation gate', () => {
     expect(parseDoctorEvidence(other, 'propose_repair', HASH)?.invalidProof).toBe(true)
   })
 
+  it('shows a rejected malformed binary only as an error, without a fabricated digest or proof', () => {
+    const result = {
+      ...base(),
+      execution_status: 'INPUT_REJECTED',
+      solver_status: null,
+      model_wire_sha256: null,
+      error_code: 'INVALID_PROTOBUF',
+      diagnosis: { kind: 'NOT_APPLICABLE', assumption_core: [] },
+    }
+    const evidence = parseDoctorEvidence(result, 'propose_repair', HASH)
+    expect(evidence?.errorCode).toBe('INVALID_PROTOBUF')
+    expect(evidence?.repairs).toEqual([])
+    expect(parseDoctorEvidence({ ...result, model_wire_sha256: NEXT }, 'propose_repair', HASH)).toBeNull()
+  })
+
   it('keeps solver output limited and never labels failures as proof', () => {
     const data = base('solve')
     data.solver_status = 'OPTIMAL'
