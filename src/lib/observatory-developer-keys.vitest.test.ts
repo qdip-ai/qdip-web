@@ -52,6 +52,8 @@ describe('Generic developer plugin keys', () => {
       ui: { label: 'VHV' },
     }
     const vhvOrg = { id: ORG, name: 'qdip-sdk-app:vhv' }
+    const legacyPlugin = { ...plugin, name: 'GTM Lab' }
+    const unrelatedOrg = { id: 'sdk-gate-test-tenant', name: 'SDK qualification tenant' }
     const record = {
       ...key(),
       name: 'app/VHV/previous-operation',
@@ -61,8 +63,8 @@ describe('Generic developer plugin keys', () => {
       'fetch',
       vi.fn(async (input: string) => {
         const path = new URL(input).pathname
-        if (path.endsWith('/plugin-publications')) return Response.json([vhv, plugin])
-        if (path.endsWith('/organizations')) return Response.json([vhvOrg])
+        if (path.endsWith('/plugin-publications')) return Response.json([vhv, legacyPlugin, plugin])
+        if (path.endsWith('/organizations')) return Response.json([vhvOrg, unrelatedOrg])
         if (path.endsWith('/keys')) return Response.json([record])
         throw Error('Unexpected Core path: ' + path)
       })
@@ -155,6 +157,7 @@ describe('Generic developer plugin keys', () => {
     const fetchStub = vi.fn()
     vi.stubGlobal('fetch', fetchStub)
     await expect(issuePluginCredential('../invalid', ['sample.plan'])).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('GTM Lab', ['gtm-lab.demo'])).rejects.toMatchObject({ status: 422 })
     await expect(issuePluginCredential('sample', ['*'])).rejects.toMatchObject({ status: 422 })
     await expect(issuePluginCredential('sample', ['sample.plan', 'sample.plan'])).rejects.toMatchObject({ status: 422 })
     expect(fetchStub).not.toHaveBeenCalled()

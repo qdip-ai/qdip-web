@@ -171,11 +171,25 @@ async function metadata(): Promise<{
     !Array.isArray(orgs) ||
     catalog.length > 1000 ||
     orgs.length > 500 ||
-    catalog.some((p) => !p || !PLUGIN_ID.test(p.name) || !Array.isArray(p.capabilities)) ||
-    orgs.some((o) => !o || typeof o.id !== 'string' || !UUID.test(o.id) || typeof o.name !== 'string')
+    orgs.some((o) => !o || typeof o.id !== 'string' || typeof o.name !== 'string')
   )
     throw new DeveloperKeyError(502, 'Invalid Core plugin or organization catalog')
+  const validCatalog = catalog.filter(
+    (p) =>
+      p &&
+      typeof p.name === 'string' &&
+      PLUGIN_ID.test(p.name) &&
+      Array.isArray(p.capabilities) &&
+      p.capabilities.every((c) => typeof c === 'string' && CAPABILITY.test(c))
+  )
+  if (validCatalog.length < catalog.length)
+    console.warn('observatory_plugin_keys: incompatible Core plugin identifiers', catalog.length - validCatalog.length)
+  // Older independent SDK qualification organizations can use non-UUID IDs.
+  // We never read their keys. Only plugin-managed organizations need the
+  // strict UUID identity required by the key-management API.
   const managed = orgs.filter((o) => PREFIXES.some((prefix) => o.name.startsWith(prefix)))
+  if (managed.some((org) => !UUID.test(org.id)))
+    throw new DeveloperKeyError(502, 'Invalid managed plugin organization ID')
   // No key values are ever fetched from this read-only Core endpoint.
   const stored: Array<{ org: CoreOrg; keys: CoreKey[] }> = []
   for (let offset = 0; offset < managed.length; offset += 8) {
@@ -190,7 +204,7 @@ async function metadata(): Promise<{
     )
     stored.push(...group)
   }
-  return { catalog, orgs, stored }
+  return { catalog: validCatalog, orgs, stored }
 }
 
 function isActive(key: CoreKey): boolean {
