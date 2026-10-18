@@ -18,6 +18,7 @@ export const RO_CAPABILITIES = [
   'route-optimizer.customer-coordinate-vrp.v1',
   'route-optimizer.customer-address-vrp.v1',
 ] as const
+export const RO_SDK02_CAPABILITY = 'route-optimizer.select-routes.v1' as const
 const LIMIT = 131_072
 
 export type DeveloperKeyPair = {
@@ -165,8 +166,8 @@ async function issue(orgId: string, name: string, scopes: string[], capabilities
 
 /**
  * The same admin-only credential issuer supports VHV and Route Optimizer.
- * VHV requires two identities (app + SDK-02 Worker); RO's existing private
- * route Worker does not REGISTER remotely, so RO needs just one caller key.
+ * VHV and independent RO-SDK02 each use two keys. Legacy RO customer VRP
+ * remains a private single-key integration and must not be widened.
  * Core must independently attest exact scopes and capability allowlists.
  */
 export function createDeveloperCredentials(application: 'VHV', capability: 'secretary.plan'): Promise<DeveloperKeyPair>
@@ -174,6 +175,10 @@ export function createDeveloperCredentials(
   application: 'RO',
   capability: 'route-optimizer.customer-address-vrp.v1'
 ): Promise<RouteDeveloperKey>
+export function createDeveloperCredentials(
+  application: 'RO-SDK02',
+  capability: 'route-optimizer.select-routes.v1'
+): Promise<DeveloperKeyPair>
 export function createDeveloperCredentials(
   application: string,
   capability: string
@@ -184,7 +189,8 @@ export async function createDeveloperCredentials(
 ): Promise<DeveloperKeyPair | RouteDeveloperKey> {
   const vhv = application === 'VHV' && capability === 'secretary.plan'
   const route = application === 'RO' && capability === RO_CAPABILITIES[1]
-  if (!APP_NAME.test(application) || !CAPABILITY.test(capability) || (!vhv && !route))
+  const routeSdk02 = application === 'RO-SDK02' && capability === RO_SDK02_CAPABILITY
+  if (!APP_NAME.test(application) || !CAPABILITY.test(capability) || (!vhv && !route && !routeSdk02))
     throw new DeveloperKeyError(422, 'Unsupported application or capability')
 
   const name = 'qdip-sdk-app:' + application.toLowerCase()
@@ -198,14 +204,14 @@ export async function createDeveloperCredentials(
 
   const operation = randomUUID()
   const keyIds: string[] = []
-  const capabilities: string[] = route ? [...RO_CAPABILITIES] : ['secretary.plan']
+  const capabilities: string[] = route ? [...RO_CAPABILITIES] : [capability]
   const appScopes = route ? RO_SCOPES : APP_SCOPES
   try {
     const app = await issue(org.id, 'app/' + application + '/' + operation, appScopes, capabilities)
     keyIds.push(app.id)
     if (!RAW_KEY.test(app.key ?? '')) throw new DeveloperKeyError(502, 'Invalid application credential')
     let worker: CoreKey | null = null
-    if (vhv) {
+    if (vhv || routeSdk02) {
       worker = await issue(org.id, 'worker/' + application + '/' + operation, WORKER_SCOPES, capabilities)
       keyIds.push(worker.id)
       if (!RAW_KEY.test(worker.key ?? '')) throw new DeveloperKeyError(502, 'Invalid Worker credential')
@@ -239,8 +245,8 @@ export async function createDeveloperCredentials(
       }
     }
     return {
-      application: 'VHV',
-      capability: 'secretary.plan',
+      application: routeSdk02 ? 'RO-SDK02' : 'VHV',
+      capability,
       environment: 'production',
       app: { key: app.key!, expiresAt: app.expires_at! },
       worker: { key: worker!.key!, expiresAt: worker!.expires_at! },
