@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 type DeveloperKeyResponse = {
-  application: 'VHV' | 'RO'
+  application: 'VHV' | 'RO' | 'RO-SDK02'
   capability?: string
   capabilities?: string[]
   environment: 'production'
@@ -13,6 +13,13 @@ type DeveloperKeyResponse = {
 
 const copy = {
   uk: {
+    roSdk: 'Route Optimizer — SDK-02',
+    roSdkIntro: 'Незалежний плагін для вибору готових маршрутів. Він не обробляє адреси чи координати клієнтів; потрібні окремі ключі застосунку та Python Worker.',
+    roSdkCreate: 'Створити ключі для RO SDK-02',
+    roSdkApp: 'Ключ SDK-03 застосунку RO',
+    roSdkAppHint: 'Тільки серверний споживач. QDIP_API_KEY: plugins:read + plugins:execute для route-optimizer.select-routes.v1.',
+    roSdkWorkerHint: 'Тільки окремий RO SDK-02 Worker. QDIP_REMOTE_API_KEY: plugins:register для route-optimizer.select-routes.v1.',
+    roSdkReady: 'Збережіть кожен ключ у відповідному сервісі, запустіть окремий Worker та перевірте REGISTER → Kernel invoke, після чого публікуйте справжній запис плагіна.',
     title: 'Підключення застосунку до QDIP',
     application: 'Застосунок',
     ro: 'Route Optimizer (RO)',
@@ -42,6 +49,13 @@ const copy = {
     warning: 'Повторне створення випускає нові ключі; старі не відкликаються автоматично.',
   },
   en: {
+    roSdk: 'Route Optimizer — SDK-02',
+    roSdkIntro: 'Independent candidate-route selector, not customer address or coordinate VRP. Requires separate application and Python Worker keys.',
+    roSdkCreate: 'Create RO SDK-02 keys',
+    roSdkApp: 'RO SDK-03 application key',
+    roSdkAppHint: 'Server-side caller only. QDIP_API_KEY: plugins:read + plugins:execute for route-optimizer.select-routes.v1.',
+    roSdkWorkerHint: 'Independent RO SDK-02 Worker only. QDIP_REMOTE_API_KEY: plugins:register for route-optimizer.select-routes.v1.',
+    roSdkReady: 'Store each key only in its respective server, connect Worker via SDK REGISTER, verify Kernel invoke, then publish the actual registry record.',
     title: 'Connect an application to QDIP',
     application: 'Application',
     ro: 'Route Optimizer (RO)',
@@ -72,6 +86,13 @@ const copy = {
     warning: 'Creating new keys does not automatically revoke previously issued ones.',
   },
   pl: {
+    roSdk: 'Route Optimizer — SDK-02',
+    roSdkIntro: 'Niezależny wybór tras z gotowych kandydatów, bez adresów lub współrzędnych klientów. Wymaga osobnych kluczy aplikacji i Workera.',
+    roSdkCreate: 'Utwórz klucze RO SDK-02',
+    roSdkApp: 'Klucz aplikacji RO SDK-03',
+    roSdkAppHint: 'Tylko serwer. QDIP_API_KEY: plugins:read + plugins:execute dla route-optimizer.select-routes.v1.',
+    roSdkWorkerHint: 'Tylko RO SDK-02 Worker. QDIP_REMOTE_API_KEY: plugins:register dla route-optimizer.select-routes.v1.',
+    roSdkReady: 'Zapisz klucze w odpowiednich usługach, uruchom Worker i sprawdź REGISTER oraz Kernel, potem opublikuj wpis katalogu.',
     title: 'Połącz aplikację z QDIP',
     application: 'Aplikacja',
     ro: 'Route Optimizer (RO)',
@@ -103,7 +124,7 @@ const copy = {
 
 export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   const t = copy[locale]
-  const [application, setApplication] = useState<'VHV' | 'RO'>('VHV')
+  const [application, setApplication] = useState<'VHV' | 'RO' | 'RO-SDK02'>('VHV')
   const [keys, setKeys] = useState<DeveloperKeyResponse | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -123,7 +144,12 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
         cache: 'no-store',
         body: JSON.stringify({
           application,
-          capability: application === 'VHV' ? 'secretary.plan' : 'route-optimizer.customer-address-vrp.v1',
+          capability:
+            application === 'VHV'
+              ? 'secretary.plan'
+              : application === 'RO'
+                ? 'route-optimizer.customer-address-vrp.v1'
+                : 'route-optimizer.select-routes.v1',
         }),
       })
       const data: unknown = await response.json()
@@ -135,7 +161,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       if (
         value.application !== application ||
         typeof value.app?.key !== 'string' ||
-        (application === 'VHV' && typeof value.worker?.key !== 'string') ||
+        (application !== 'RO' && typeof value.worker?.key !== 'string') ||
         (application === 'RO' &&
           (value.worker !== null || !Array.isArray(value.capabilities) || value.capabilities.length !== 2))
       )
@@ -163,7 +189,9 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
     <main className="mx-auto max-w-4xl px-4 py-8 text-slate-100 md:px-8 md:py-12">
       <p className="text-xs uppercase tracking-widest text-slate-400">QDIP / Observatory / SDK</p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t.title}</h1>
-      <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">{application === 'VHV' ? t.intro : t.roIntro}</p>
+      <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+        {application === 'VHV' ? t.intro : application === 'RO' ? t.roIntro : t.roSdkIntro}
+      </p>
       <section className="mt-8 rounded-xl border border-white/15 bg-slate-900 p-5 sm:p-7">
         <form className="mt-6" onSubmit={(event) => void create(event)}>
           <label htmlFor="application" className="mb-2 block text-sm font-medium text-slate-200">
@@ -174,7 +202,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
             value={application}
             disabled={pending}
             onChange={(event) => {
-              setApplication(event.target.value as 'VHV' | 'RO')
+              setApplication(event.target.value as 'VHV' | 'RO' | 'RO-SDK02')
               setKeys(null)
               setError('')
               setCopied(null)
@@ -183,18 +211,21 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
           >
             <option value="VHV">{t.vhv}</option>
             <option value="RO">{t.ro}</option>
+            <option value="RO-SDK02">{t.roSdk}</option>
           </select>
           <p className="mb-4 text-sm text-slate-300">
             {application === 'VHV'
               ? 'secretary.plan · production'
-              : 'route-optimizer.customer-coordinate-vrp.v1 + route-optimizer.customer-address-vrp.v1 · production'}
+              : application === 'RO'
+                ? 'route-optimizer.customer-coordinate-vrp.v1 + route-optimizer.customer-address-vrp.v1 · production'
+                : 'route-optimizer.select-routes.v1 · production'}
           </p>
           <button
             type="submit"
             disabled={pending}
             className="min-h-11 rounded-lg bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 disabled:opacity-50"
           >
-            {pending ? t.creating : application === 'VHV' ? t.create : t.roCreate}
+            {pending ? t.creating : application === 'VHV' ? t.create : application === 'RO' ? t.roCreate : t.roSdkCreate}
           </button>
         </form>
         <p className="mt-4 text-sm text-slate-400">{t.warning}</p>
@@ -212,10 +243,10 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
           {(keys.worker ? (['app', 'worker'] as const) : (['app'] as const)).map((type) => (
             <div key={type} className="mb-6 grid min-w-0 gap-3">
               <h2 className="text-lg font-semibold">
-                {type === 'app' ? (keys.application === 'RO' ? t.roApp : t.app) : t.worker}
+                {type === 'app' ? (keys.application === 'RO' ? t.roApp : keys.application === 'RO-SDK02' ? t.roSdkApp : t.app) : t.worker}
               </h2>
               <p className="text-sm text-slate-400">
-                {type === 'app' ? (keys.application === 'RO' ? t.roHint : t.appHint) : t.workerHint}
+                {type === 'app' ? (keys.application === 'RO' ? t.roHint : keys.application === 'RO-SDK02' ? t.roSdkAppHint : t.appHint) : keys.application === 'RO-SDK02' ? t.roSdkWorkerHint : t.workerHint}
               </p>
               <div className="flex min-w-0 flex-wrap gap-3">
                 <input
@@ -238,8 +269,8 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
         </section>
       )}
       <section className="mt-8 border-t border-white/15 pt-6">
-        <p className="text-sm leading-7 text-slate-300">{application === 'RO' ? t.roReady : t.ready}</p>
-        {application === 'VHV' && (
+        <p className="text-sm leading-7 text-slate-300">{application === 'RO' ? t.roReady : application === 'RO-SDK02' ? t.roSdkReady : t.ready}</p>
+        {application !== 'RO' && (
           <a
             href={buildLocalePath('/admin/plugins', locale)}
             className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-slate-200 underline underline-offset-4"
