@@ -107,8 +107,14 @@ function coreOrigin(): { origin: string; key: string } {
 
 async function core<T>(method: 'GET' | 'POST', path: string, payload?: Record<string, unknown>): Promise<T> {
   const { origin, key } = coreOrigin()
-  const stage = path === 'plugin-publications' ? 'catalog' : path === 'organizations' ? 'organizations' :
-    path.endsWith('/keys') ? 'credentials' : 'key-management'
+  const stage =
+    path === 'plugin-publications'
+      ? 'catalog'
+      : path === 'organizations'
+        ? 'organizations'
+        : path.endsWith('/keys')
+          ? 'credentials'
+          : 'key-management'
   let response: Response
   try {
     response = await fetch(origin + '/api/v1/' + path, {
@@ -176,8 +182,9 @@ async function metadata(): Promise<{
     const group = await Promise.all(
       managed.slice(offset, offset + 8).map(async (org) => {
         const keys = await core<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
-        if (!Array.isArray(keys) || keys.length > 500)
+        if (!Array.isArray(keys) || keys.length > 500) {
           throw new DeveloperKeyError(502, 'QDIP Core credentials: invalid key list')
+        }
         return { org, keys }
       })
     )
