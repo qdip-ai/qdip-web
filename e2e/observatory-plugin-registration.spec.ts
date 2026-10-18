@@ -50,7 +50,7 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
     slug: 'delivery-routes',
   })
   await expect(card.getByRole('heading', { name: /Редагування плагіна/ })).toHaveCount(0)
-  await expect(card.getByText('Опубліковано')).toBeVisible()
+  await expect(card.getByText('Опубліковано', { exact: true })).toBeVisible()
   await expect(card.getByRole('link', { name: /Переглянути сторінку/ })).toHaveAttribute(
     'href',
     '/uk/plugins/delivery-routes'
