@@ -81,7 +81,7 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
                 {plugins.map((plugin) => {
                   const launch = launchLinkForPlugin(plugin)
                   return (
-                    <article key={plugin.name} className={styles.card}>
+                    <article key={plugin.name} className={`${styles.card} ${styles.publicCard}`}>
                       <div className={styles.meta}>
                         <span className={styles.pill} data-kind="published">{t.published}</span>
                         {!plugin.enabled && plugin.source === 'remote' && (
