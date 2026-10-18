@@ -4,8 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PluginCatalogEntry } from '@qdip/client'
 
 vi.mock('next/navigation', () => ({
-  notFound: () => { throw new Error('NOT_FOUND') },
-  redirect: (url: string) => { throw new Error('REDIRECT:' + url) },
+  notFound: () => {
+    throw new Error('NOT_FOUND')
+  },
+  redirect: (url: string) => {
+    throw new Error('REDIRECT:' + url)
+  },
 }))
 vi.mock('@/features/observatory', () => ({
   PrototypeShell: ({ children }: { children: ReactNode }) => <>{children}</>,
