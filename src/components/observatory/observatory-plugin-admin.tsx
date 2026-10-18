@@ -567,12 +567,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     : row.source === 'remote' && row.security?.state !== 'approved'
                       ? t.securityPending
                       : published
-                      ? t.published
-                    : row.enabled
-                      ? t.unpublished
-                      : row.source === 'remote'
-                        ? t.offline
-                        : t.disabled}
+                        ? t.published
+                        : row.enabled
+                          ? t.unpublished
+                          : row.source === 'remote'
+                            ? t.offline
+                            : t.disabled}
                 </Badge>
               </div>
               <p className="mt-4 break-words text-xs text-slate-400">
