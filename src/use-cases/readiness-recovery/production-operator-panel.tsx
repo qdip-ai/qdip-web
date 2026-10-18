@@ -11,6 +11,7 @@ import {
   OperatorRequestGuard,
   classifyOperatorHttpStatus,
   parsedExecutionIds,
+  recoverableRRSubmission,
   type OperatorErrorKind,
 } from './operator-guards'
 import {
@@ -435,7 +436,63 @@ export function RRProductionOperatorPanel({ locale = 'en' }: { locale?: Locale }
         }
       }
     } catch (reason) {
-      operationFailed(reason, epoch)
+      // Lost acknowledgement is not an execution failure. Never retry the POST.
+      const ambiguous =
+        reason instanceof TypeError ||
+        reason instanceof SyntaxError ||
+        (reason instanceof OperatorRequestError && reason.kind === 'UNAVAILABLE')
+      const attempted = ambiguous && method === 'POST'
+        ? recoverableRRSubmission(
+            label === 'Create execution' ? 'create' : 'replan',
+            body,
+            { preflight, predecessorExecutionId: executionId, decisionId }
+          )
+        : null
+      if (
+        attempted &&
+        (label === 'Create execution' || label === 'Replan execution') &&
+        requestGuard.current.current(epoch)
+      ) {
+        try {
+          const recovered: unknown = await checkedJson(
+            await fetch(`${prefix}/executions/${encodeURIComponent(attempted.executionId)}/presentation`, { cache: 'no-store', signal })
+          )
+          if (!requestGuard.current.current(epoch)) return
+          if (
+            !isKernelRRPresentation(recovered) ||
+            recovered.execution_id !== attempted.executionId ||
+            (attempted.decisionId !== null && recovered.decision_id !== attempted.decisionId) ||
+            recovered.predecessor_execution_id !== attempted.predecessorExecutionId ||
+            (attempted.payloadDigest !== null && recovered.payload_digest !== attempted.payloadDigest) ||
+            (attempted.sourceSnapshotId !== null && recovered.source_snapshot_id !== attempted.sourceSnapshotId)
+          ) throw new Error('Core evidence does not match the attempted execution')
+          setExecutionId(recovered.execution_id)
+          setDecisionId(recovered.decision_id)
+          setPresentation(recovered)
+          setError(null)
+          setErrorKind(null)
+          setOperation(t.submissionRecovered)
+          await findDirectPredecessor(recovered, epoch, signal)
+          return
+        } catch (readError) {
+          if (!requestGuard.current.current(epoch)) return
+          if (
+            readError instanceof OperatorRequestError &&
+            (readError.kind === 'AUTH_REQUIRED' || readError.kind === 'ACCESS_DENIED')
+          ) {
+            operationFailed(readError, epoch)
+            return
+          }
+          // Missing, transient, or mismatched evidence proves neither outcome.
+        }
+        setExecutionId(attempted.executionId)
+        if (attempted.decisionId) setDecisionId(attempted.decisionId)
+        setErrorKind('TRANSPORT_ERROR')
+        setError(t.submissionUncertain)
+        setOperation('')
+      } else {
+        operationFailed(reason, epoch)
+      }
     } finally {
       if (requestGuard.current.current(epoch)) setBusy(false)
     }
