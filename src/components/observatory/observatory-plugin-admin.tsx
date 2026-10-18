@@ -34,6 +34,7 @@ type FormFields = {
 const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Productivity', 'Other']
 const copy = {
   uk: {
+    eyebrow: 'QDIP / Обсерваторія / Адміністрування',
     title: 'Керування плагінами',
     subtitle:
       'Плагіни автоматично реєструються через QDIP SDK. Тут можна заповнити опис і керувати публікацією в каталозі.',
@@ -92,6 +93,7 @@ const copy = {
     demosHint: 'Ці демонстрації вже реалізовані у Web. Вони не є автоматично встановленими плагінами Core.',
   },
   en: {
+    eyebrow: 'QDIP / Observatory / Admin',
     title: 'Manage plugins',
     subtitle: 'Plugins register automatically through the QDIP SDK. Edit catalog metadata and publication here.',
     refresh: 'Refresh list',
@@ -149,6 +151,7 @@ const copy = {
     demosHint: 'These demos are implemented in Web and are not automatically installed Core plugins.',
   },
   pl: {
+    eyebrow: 'QDIP / Obserwatorium / Administracja',
     title: 'Zarządzanie wtyczkami',
     subtitle: 'Wtyczki rejestrują się automatycznie przez QDIP SDK. Tutaj edytujesz opis i publikację w katalogu.',
     refresh: 'Odśwież listę',
@@ -390,7 +393,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       <div className={styles.container}>
         <header className={styles.toolbar}>
           <div className={styles.hero}>
-            <p className={styles.eyebrow}>QDIP / Observatory / Admin</p>
+            <p className={styles.eyebrow}>{t.eyebrow}</p>
             <h1 className={styles.title}>{t.title}</h1>
             <p className={styles.lead}>{t.subtitle}</p>
           </div>
