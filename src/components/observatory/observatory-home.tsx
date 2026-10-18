@@ -79,7 +79,10 @@ export function ObservatoryHome({ locale, visibleIds }: { locale: Locale; visibl
               const systemCopy =
                 application.kind === 'use-case'
                   ? null
-                  : systemApplicationCopy(locale, application.id as 'decision-challenge' | 'decision-intake' | 'model-doctor')
+                  : systemApplicationCopy(
+                      locale,
+                      application.id as 'decision-challenge' | 'decision-intake' | 'model-doctor'
+                    )
               const title = systemCopy?.title ?? caseMessages(`${application.useCaseId}.title`)
               const description = systemCopy?.description ?? caseMessages(`${application.useCaseId}.description`)
               const tag = systemCopy?.tag ?? caseMessages(`${application.useCaseId}.tag`)
