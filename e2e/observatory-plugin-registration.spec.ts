@@ -12,8 +12,9 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
     capabilities: ['routes.optimize'],
     capability_versions: {},
     ui: { label: 'Route Optimizer', category: 'Operations' },
-    published: null,
-    published_version: null,
+    published: null as boolean | null,
+    published_version: null as string | null,
+    slug: null as string | null,
     capability_id: null,
     revision: 0,
   }
@@ -23,10 +24,10 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
   let saved: Record<string, unknown> | null = null
   await page.route('**/api/observatory/admin/plugins/route-optimizer', async (route) => {
     saved = route.request().postDataJSON() as Record<string, unknown>
-    plugin.published = true as never
-    plugin.published_version = '1.0.0' as never
+    plugin.published = true
+    plugin.published_version = '1.0.0'
     plugin.revision = 1
-    ;(plugin as typeof plugin & { slug?: string }).slug = 'delivery-routes'
+    plugin.slug = 'delivery-routes'
     await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
   })
   await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
