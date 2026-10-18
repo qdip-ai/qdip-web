@@ -213,8 +213,14 @@ describe('Observatory inline plugin editing', () => {
   })
 
   it('lets an administrator publish a third-party web application URL and preview the destination', async () => {
-    const changed = { ...secretary, application_url: 'https://console.example.org/start', published: true, published_version: '0.1.0' }
-    const fetchMock = vi.fn()
+    const changed = {
+      ...secretary,
+      application_url: 'https://console.example.org/start',
+      published: true,
+      published_version: '0.1.0',
+    }
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(reply({ plugins: [secretary] }))
       .mockResolvedValueOnce(reply({ updated: true }))
       .mockResolvedValueOnce(reply({ plugins: [changed] }))
@@ -227,7 +233,9 @@ describe('Observatory inline plugin editing', () => {
     fireEvent.change(url, { target: { value: 'https://console.example.org/start' } })
     expect(card('VHV — Decision Assistant').getByText(/Перехід на сайт розробника/)).toBeInTheDocument()
     fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
-    await waitFor(() => expect(card('VHV — Decision Assistant').getByRole('status')).toHaveTextContent('Плагін опубліковано'))
+    await waitFor(() =>
+      expect(card('VHV — Decision Assistant').getByRole('status')).toHaveTextContent('Плагін опубліковано')
+    )
     const put = fetchMock.mock.calls.find((args) => args[1]?.method === 'PUT')
     expect(JSON.parse(put?.[1].body as string).application_url).toBe('https://console.example.org/start')
   })

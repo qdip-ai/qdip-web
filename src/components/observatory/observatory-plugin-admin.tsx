@@ -59,9 +59,10 @@ const copy = {
     slugHint: 'Латинські малі літери, цифри й дефіс. Внутрішній ID плагіна не зміниться.',
     slugPreview: 'Публічна адреса',
     applicationUrl: 'Адреса застосунку (HTTPS)',
-    applicationUrlHint: 'Не API та не адреса Worker. Якщо у плагіна є вебзастосунок, користувачі відкриватимуть його за цим посиланням. Поле необов’язкове.',
+    applicationUrlHint:
+      'Не API та не адреса Worker. Якщо у плагіна є вебзастосунок, користувачі відкриватимуть його за цим посиланням. Поле необов’язкове.',
     applicationUrlInvalid: 'Використайте публічну HTTPS-адресу без ключів, параметрів і фрагментів.',
-    applicationUrlPreview: 'Перехід на сайт розробника', 
+    applicationUrlPreview: 'Перехід на сайт розробника',
     description: 'Опис',
     category: 'Категорія',
     capability: 'Можливість',
@@ -116,7 +117,8 @@ const copy = {
     slugHint: 'Lowercase letters, numbers and hyphens. The SDK plugin ID does not change.',
     slugPreview: 'Public URL',
     applicationUrl: 'Application URL (HTTPS)',
-    applicationUrlHint: 'Not an API endpoint or Worker URL. If this plugin has a web app, users can open it here. Optional.',
+    applicationUrlHint:
+      'Not an API endpoint or Worker URL. If this plugin has a web app, users can open it here. Optional.',
     applicationUrlInvalid: 'Use a public HTTPS URL without credentials, query parameters or fragments.',
     applicationUrlPreview: 'Open developer application',
     description: 'Description',
@@ -173,7 +175,8 @@ const copy = {
     slugHint: 'Małe litery, cyfry i łączniki. Identyfikator wtyczki SDK nie zmienia się.',
     slugPreview: 'Adres publiczny',
     applicationUrl: 'Adres aplikacji (HTTPS)',
-    applicationUrlHint: 'Nie adres API ani Workera. Jeśli wtyczka ma aplikację internetową, użytkownicy mogą ją stąd otwierać. Opcjonalne.',
+    applicationUrlHint:
+      'Nie adres API ani Workera. Jeśli wtyczka ma aplikację internetową, użytkownicy mogą ją stąd otwierać. Opcjonalne.',
     applicationUrlInvalid: 'Podaj publiczny adres HTTPS bez kluczy, parametrów i fragmentów.',
     applicationUrlPreview: 'Otwórz aplikację dewelopera',
     description: 'Opis',
@@ -227,10 +230,9 @@ function initialFields(row: Row): FormFields {
     slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
     // Temporary migration default for the previously hardcoded VHV catalog CTA.
     // Saving the editor writes this destination to Core like any other plugin.
-    application_url: row.application_url ??
-      (row.name === 'remote-04e7c87d7b72111c-secretary' && row.plugin_id === 'secretary'
-        ? 'https://vhv.qdip.ai'
-        : ''),
+    application_url:
+      row.application_url ??
+      (row.name === 'remote-04e7c87d7b72111c-secretary' && row.plugin_id === 'secretary' ? 'https://vhv.qdip.ai' : ''),
   }
 }
 
@@ -586,7 +588,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       />
                       <span className="text-xs font-normal leading-5 text-slate-400">{t.applicationUrlHint}</span>
                       {fields.application_url && (
-                        <span className={`min-w-0 break-all text-xs font-normal ${validPublicApplicationUrl(fields.application_url) ? 'text-emerald-200' : 'text-rose-300'}`}>
+                        <span
+                          className={`min-w-0 break-all text-xs font-normal ${validPublicApplicationUrl(fields.application_url) ? 'text-emerald-200' : 'text-rose-300'}`}
+                        >
                           {validPublicApplicationUrl(fields.application_url)
                             ? `${t.applicationUrlPreview}: ${fields.application_url}`
                             : t.applicationUrlInvalid}

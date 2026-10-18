@@ -78,8 +78,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
         ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(slug))
     )
       return NextResponse.json({ error: 'Invalid URL slug' }, { status: 422 })
-    if (applicationUrl !== undefined && (typeof applicationUrl !== 'string' ||
-        (applicationUrl !== '' && !validPublicApplicationUrl(applicationUrl))))
+    if (
+      applicationUrl !== undefined &&
+      (typeof applicationUrl !== 'string' || (applicationUrl !== '' && !validPublicApplicationUrl(applicationUrl)))
+    )
       return NextResponse.json({ error: 'Invalid application URL' }, { status: 422 })
     const conflicting =
       typeof slug === 'string' &&

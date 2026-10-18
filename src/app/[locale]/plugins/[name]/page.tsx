@@ -17,7 +17,8 @@ const copy = {
     demo: 'Відкрити демонстрацію',
     launch: 'Відкрити застосунок',
     launchNote: 'Зовнішній сайт розробника. Відкриється в новій вкладці; може знадобитися авторизація.',
-    headless: 'Цей плагін надає можливість через QDIP SDK. Вебзастосунок не вказано; для виконання потрібен авторизований клієнт.',
+    headless:
+      'Цей плагін надає можливість через QDIP SDK. Вебзастосунок не вказано; для виконання потрібен авторизований клієнт.',
     note: 'Публікація в каталозі не надає доступу до виконання плагіна.',
   },
   en: {
@@ -28,7 +29,8 @@ const copy = {
     demo: 'Open demo',
     launch: 'Open application',
     launchNote: 'External developer website. Opens in a new tab; sign-in may be required.',
-    headless: 'This plugin provides a capability via the QDIP SDK. No web app is listed; execution requires an authorized client.',
+    headless:
+      'This plugin provides a capability via the QDIP SDK. No web app is listed; execution requires an authorized client.',
     note: 'Catalog publication does not grant plugin execution permissions.',
   },
   pl: {
@@ -39,7 +41,8 @@ const copy = {
     demo: 'Otwórz demo',
     launch: 'Otwórz aplikację',
     launchNote: 'Zewnętrzna strona dewelopera. Otwiera się w nowej karcie; może być wymagane logowanie.',
-    headless: 'Wtyczka udostępnia funkcję przez QDIP SDK. Nie podano aplikacji internetowej; wykonanie wymaga autoryzowanego klienta.',
+    headless:
+      'Wtyczka udostępnia funkcję przez QDIP SDK. Nie podano aplikacji internetowej; wykonanie wymaga autoryzowanego klienta.',
     note: 'Publikacja w katalogu nie nadaje uprawnień do wykonania wtyczki.',
   },
 } as const

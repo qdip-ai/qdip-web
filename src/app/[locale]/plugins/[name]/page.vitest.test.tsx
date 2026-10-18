@@ -67,15 +67,24 @@ describe('published plugin detail application launcher', () => {
   })
 
   it('does not show an outbound VHV launch for a different published plugin', async () => {
-    catalog.mockResolvedValue([{ ...vhv, name: 'remote-unrelated', plugin_id: 'other', slug: 'other', application_url: null }])
+    catalog.mockResolvedValue([
+      { ...vhv, name: 'remote-unrelated', plugin_id: 'other', slug: 'other', application_url: null },
+    ])
     const html = await markup('uk', 'other')
     expect(html).not.toContain('https://vhv.qdip.ai')
     expect(html).not.toContain('Відкрити застосунок')
   })
 
   it('shows the hosted application URL of a different developer without a code change', async () => {
-    catalog.mockResolvedValue([{ ...vhv, name: 'remote-third-party', plugin_id: 'third-party',
-      slug: 'third-party', application_url: 'https://console.example.org/start' }])
+    catalog.mockResolvedValue([
+      {
+        ...vhv,
+        name: 'remote-third-party',
+        plugin_id: 'third-party',
+        slug: 'third-party',
+        application_url: 'https://console.example.org/start',
+      },
+    ])
     const html = await markup('uk', 'third-party')
     expect(html).toContain('href="https://console.example.org/start"')
     expect(html).toContain('console.example.org')

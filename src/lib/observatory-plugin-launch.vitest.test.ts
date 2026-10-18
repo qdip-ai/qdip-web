@@ -23,18 +23,21 @@ const vhv: PluginCatalogEntry = {
 describe('public plugin application links', () => {
   it('uses the catalog-approved application destination, not hardcoded VHV identity', () => {
     expect(launchLinkForPlugin(vhv)).toEqual({ href: 'https://vhv.qdip.ai', host: 'vhv.qdip.ai' })
-    expect(launchLinkForPlugin({
-      ...vhv,
-      name: 'remote-other-provider',
-      plugin_id: 'optimizer',
-      slug: 'optimizer',
-      application_url: 'https://other-example.dev/start',
-    })).toEqual({ href: 'https://other-example.dev/start', host: 'other-example.dev' })
+    expect(
+      launchLinkForPlugin({
+        ...vhv,
+        name: 'remote-other-provider',
+        plugin_id: 'optimizer',
+        slug: 'optimizer',
+        application_url: 'https://other-example.dev/start',
+      })
+    ).toEqual({ href: 'https://other-example.dev/start', host: 'other-example.dev' })
   })
 
   it('still provides a published external app when a remote Worker is offline', () => {
     expect(launchLinkForPlugin({ ...vhv, enabled: false })).toEqual({
-      href: 'https://vhv.qdip.ai', host: 'vhv.qdip.ai',
+      href: 'https://vhv.qdip.ai',
+      host: 'vhv.qdip.ai',
     })
   })
 
@@ -45,19 +48,31 @@ describe('public plugin application links', () => {
     expect(launchLinkForPlugin({ ...vhv, capabilities: [] })).toBeNull()
     // Transitional VHV link remains available until its admin record is migrated.
     expect(launchLinkForPlugin({ ...vhv, application_url: null })).toEqual({
-      href: 'https://vhv.qdip.ai', host: 'vhv.qdip.ai',
+      href: 'https://vhv.qdip.ai',
+      host: 'vhv.qdip.ai',
     })
-    expect(launchLinkForPlugin({
-      ...vhv, name: 'remote-third-party', application_url: null,
-    })).toBeNull()
+    expect(
+      launchLinkForPlugin({
+        ...vhv,
+        name: 'remote-third-party',
+        application_url: null,
+      })
+    ).toBeNull()
   })
 
   it.each([
-    'http://example.com', 'javascript:alert(1)', '//example.com',
-    'https://user:secret@example.com', 'https://example.com?token=secret',
-    'https://example.com/#fragment', 'https://example.com:8443',
-    'https://127.0.0.1', 'https://localhost', 'https://example.local',
-    'https://example.com\\@evil.test', 'https://example.com/' + 'x'.repeat(520),
+    'http://example.com',
+    'javascript:alert(1)',
+    '//example.com',
+    'https://user:secret@example.com',
+    'https://example.com?token=secret',
+    'https://example.com/#fragment',
+    'https://example.com:8443',
+    'https://127.0.0.1',
+    'https://localhost',
+    'https://example.local',
+    'https://example.com\\@evil.test',
+    'https://example.com/' + 'x'.repeat(520),
   ])('rejects unsafe application link %s', (url) => {
     expect(validPublicApplicationUrl(url)).toBe(false)
     expect(launchLinkForPlugin({ ...vhv, application_url: url })).toBeNull()
