@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import type { Locale } from '@/lib/observatory-i18n'
+import styles from './observatory-developer-keys.module.css'
 
 type ConnectedKey = {
   id: string
@@ -136,6 +137,11 @@ const translations = {
   },
 } as const
 
+// Presentation only: keep the exact capability ID in a separate secondary line.
+function capabilityTitle(capability: string): string {
+  return capability.replace(/[-_.]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^\w/, (first) => first.toUpperCase())
+}
+
 const endpoint = '/api/observatory/admin/applications'
 
 async function send<T>(method: 'GET' | 'POST' | 'DELETE', body?: object): Promise<T> {
@@ -268,7 +274,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8 text-slate-100 md:px-8 md:py-12">
+    <main className="mx-auto min-w-0 max-w-4xl px-4 py-8 text-slate-100 md:px-8 md:py-12">
       <p className="text-xs uppercase tracking-widest text-slate-400">QDIP / Observatory / SDK</p>
       <h1 className="mt-3 text-3xl font-semibold">{t.title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{t.description}</p>
@@ -282,15 +288,15 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
 
       {inventory && (
         <>
-          <section className="mt-8 rounded-xl border border-white/15 bg-slate-900 p-5 sm:p-7">
+          <section className="mt-8 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-5 sm:p-7">
             <h2 className="text-lg font-semibold">{t.available}</h2>
             {!inventory.available.length && !manual && (
               <p className="mt-3 text-sm text-slate-400">{t.emptyAvailable}</p>
             )}
-            <form className="mt-5 grid gap-4" onSubmit={(event) => void create(event)}>
+            <form className="mt-5 grid min-w-0 gap-4" onSubmit={(event) => void create(event)}>
               {!manual && !!inventory.available.length && (
                 <>
-                  <label className="grid gap-2 text-sm">
+                  <label className="grid min-w-0 gap-2 text-sm">
                     {t.select}
                     <select
                       value={selectedId}
@@ -308,29 +314,39 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
                       ))}
                     </select>
                   </label>
-                  <fieldset className="grid gap-2">
+                  <fieldset className="min-w-0">
                     <legend className="mb-2 text-sm">{t.capabilities}</legend>
-                    {selected?.capabilities.map((cap) => (
-                      <label key={cap} className="flex min-w-0 items-start gap-3 text-sm text-slate-300">
-                        <input
-                          type="checkbox"
-                          className="mt-1"
-                          checked={selectedCapabilities.includes(cap)}
-                          onChange={(event) =>
-                            setSelectedCapabilities((old) =>
-                              event.target.checked ? [...old, cap] : old.filter((c) => c !== cap)
-                            )
-                          }
-                        />
-                        <span className="break-all">{cap}</span>
-                      </label>
-                    ))}
+                    <div className={styles.capabilityList}>
+                      {selected?.capabilities.map((cap) => (
+                        <label key={cap} className={styles.capabilityOption}>
+                          <input
+                            type="checkbox"
+                            className={styles.capabilityInput}
+                            checked={selectedCapabilities.includes(cap)}
+                            onChange={(event) =>
+                              setSelectedCapabilities((old) =>
+                                event.target.checked ? [...old, cap] : old.filter((c) => c !== cap)
+                              )
+                            }
+                          />
+                          <span className={styles.capabilityText}>
+                            <span className={styles.capabilityName}>{capabilityTitle(cap)}</span>
+                            <span className={styles.capabilitySlug}>{cap}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </fieldset>
                 </>
               )}
-              <label className="flex items-center gap-3 text-sm text-slate-300">
-                <input type="checkbox" checked={manual} onChange={(event) => setManual(event.target.checked)} />
-                {t.custom}
+              <label className={`${styles.capabilityOption} ${styles.manualOption}`}>
+                <input
+                  type="checkbox"
+                  className={styles.capabilityInput}
+                  checked={manual}
+                  onChange={(event) => setManual(event.target.checked)}
+                />
+                <span className={styles.capabilityText}>{t.custom}</span>
               </label>
               {manual && (
                 <>
