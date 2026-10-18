@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
 import { coreCatalogClient, readCorePublications } from '@/lib/observatory-plugin-catalog'
 import { QdipError } from '@qdip/client'
+import { validPublicApplicationUrl } from '@/lib/observatory-plugin-launch'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     description?: unknown
     category?: unknown
     slug?: unknown
+    application_url?: unknown
   }
   try {
     const raw = await request.text()
@@ -58,6 +60,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     const description = update.description
     const category = update.category
     const slug = update.slug
+    const applicationUrl = update.application_url
     if (
       displayName !== undefined &&
       (typeof displayName !== 'string' || displayName.trim().length < 2 || displayName.length > 120)
@@ -75,6 +78,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
         ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(slug))
     )
       return NextResponse.json({ error: 'Invalid URL slug' }, { status: 422 })
+    if (applicationUrl !== undefined && (typeof applicationUrl !== 'string' ||
+        (applicationUrl !== '' && !validPublicApplicationUrl(applicationUrl))))
+      return NextResponse.json({ error: 'Invalid application URL' }, { status: 422 })
     const conflicting =
       typeof slug === 'string' &&
       catalog.some(
@@ -92,6 +98,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
       ...(description !== undefined ? { description: (description as string).trim() } : {}),
       ...(category !== undefined ? { category: (category as string).trim() } : {}),
       ...(slug !== undefined ? { slug: slug as string } : {}),
+      ...(applicationUrl !== undefined ? { applicationUrl: applicationUrl as string } : {}),
     })
     return NextResponse.json(updated, {
       headers: { 'Cache-Control': 'no-store' },
