@@ -1,0 +1,67 @@
+/* The whole label is the 44px touch target; native checkboxes must remain 20px.
+   Observatory's global coarse-pointer rule sets input min-height: 44px. */
+.capabilityList {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.capabilityOption {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.capabilityOption:hover {
+  background: rgba(148, 163, 184, 0.07);
+}
+.capabilityOption:focus-within {
+  outline: 2px solid #67e8f9;
+  outline-offset: 2px;
+}
+.capabilityInput {
+  appearance: auto;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  margin: 0;
+  align-self: center;
+  accent-color: #22d3ee;
+}
+.capabilityText {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.capabilityName {
+  display: block;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.4;
+}
+.capabilitySlug {
+  display: block;
+  margin-top: 3px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.manualOption {
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .capabilityOption {
+    column-gap: 10px;
+    padding: 9px 2px;
+  }
+}
