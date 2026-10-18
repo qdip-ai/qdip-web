@@ -12,6 +12,7 @@ import {
   Network,
   Blocks,
   Scale,
+  Stethoscope,
   SlidersHorizontal,
   UsersRound,
 } from 'lucide-react'
@@ -28,7 +29,15 @@ import styles from './prototype-shell.module.css'
 
 export type PrototypeTheme = UseCaseTheme
 export type ObservatoryRoute =
-  '/' | '/challenges' | '/decision-intake' | '/decisions' | '/plugins' | '/admin/plugins' | '/admin/apps' | UseCaseRoute
+  | '/'
+  | '/challenges'
+  | '/decision-intake'
+  | '/model-doctor'
+  | '/decisions'
+  | '/plugins'
+  | '/admin/plugins'
+  | '/admin/apps'
+  | UseCaseRoute
 
 type PrototypeShellProps = {
   locale: Locale
@@ -40,6 +49,7 @@ type PrototypeShellProps = {
 const NAV_ICONS = {
   scale: Scale,
   upload: FileUp,
+  stethoscope: Stethoscope,
   heart: UsersRound,
   network: Network,
   sparkles: FlaskConical,
@@ -88,7 +98,7 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
   const labelFor = (item: (typeof navItems)[number]) =>
     item.kind === 'use-case'
       ? caseT(`${item.useCaseId}.title`)
-      : systemApplicationCopy(locale, item.id as 'decision-challenge' | 'decision-intake').title
+      : systemApplicationCopy(locale, item.id as 'decision-challenge' | 'decision-intake' | 'model-doctor').title
   const activeLabel =
     activeRoute === '/admin/apps'
       ? (

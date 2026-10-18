@@ -1,7 +1,7 @@
 import { observableUseCases, type UseCaseTheme } from '@/use-cases/registry'
 
-export type ObservatoryApplicationKind = 'challenge' | 'intake' | 'use-case'
-export type ObservatoryApplicationIcon = 'scale' | 'upload' | 'heart' | 'network' | 'sparkles'
+export type ObservatoryApplicationKind = 'challenge' | 'intake' | 'tool' | 'use-case'
+export type ObservatoryApplicationIcon = 'scale' | 'upload' | 'stethoscope' | 'heart' | 'network' | 'sparkles'
 export type ObservatoryApplication = {
   id: string
   route: string
@@ -15,6 +15,7 @@ export type ObservatoryApplication = {
 const SYSTEM_APPLICATIONS: readonly ObservatoryApplication[] = [
   { id: 'decision-challenge', route: '/challenges', kind: 'challenge', order: 10, theme: 'cyan', icon: 'scale' },
   { id: 'decision-intake', route: '/decision-intake', kind: 'intake', order: 20, theme: 'violet', icon: 'upload' },
+  { id: 'model-doctor', route: '/model-doctor', kind: 'tool', order: 25, theme: 'violet', icon: 'stethoscope' },
 ]
 
 const USE_CASE_ICONS: Record<string, ObservatoryApplicationIcon> = {

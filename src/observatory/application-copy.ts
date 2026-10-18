@@ -1,7 +1,7 @@
 import type { Locale } from '@/lib/observatory-i18n'
 
 type Copy = { title: string; description: string; tag: string; pattern: string }
-const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake', Copy>> = {
+const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake' | 'model-doctor', Copy>> = {
   en: {
     'decision-challenge': {
       title: 'Decision Challenge',
@@ -16,6 +16,13 @@ const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake', Copy
         'Upload operational data, verify the inferred business semantics and turn the dataset into a DecisionContract for QDIP.',
       tag: 'DATA INTAKE',
       pattern: 'FRAME',
+    },
+    'model-doctor': {
+      title: 'Model Doctor',
+      description:
+        'Inspect native CP-SAT models, validate solutions, diagnose conflicts and review verified repair proposals in an isolated QDIP workspace.',
+      tag: 'SEPARATE WORKSPACE',
+      pattern: 'DIAGNOSE',
     },
   },
   uk: {
@@ -33,6 +40,13 @@ const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake', Copy
       tag: 'ВХІДНІ ДАНІ',
       pattern: 'ФОРМУВАННЯ',
     },
+    'model-doctor': {
+      title: 'Model Doctor',
+      description:
+        'Перевірка нативних CP-SAT моделей, діагностика конфліктів і пропозиції виправлень з перевіреним результатом в окремому середовищі QDIP.',
+      tag: 'ОКРЕМИЙ ЗАСТОСУНОК',
+      pattern: 'ДІАГНОСТИКА',
+    },
   },
   pl: {
     'decision-challenge': {
@@ -49,8 +63,15 @@ const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake', Copy
       tag: 'DANE WEJŚCIOWE',
       pattern: 'FORMUŁOWANIE',
     },
+    'model-doctor': {
+      title: 'Model Doctor',
+      description:
+        'Sprawdzanie natywnych modeli CP-SAT, diagnozowanie konfliktów i zweryfikowane propozycje napraw w odizolowanej aplikacji QDIP.',
+      tag: 'OSOBNA APLIKACJA',
+      pattern: 'DIAGNOSTYKA',
+    },
   },
 }
-export function systemApplicationCopy(locale: Locale, id: 'decision-challenge' | 'decision-intake') {
+export function systemApplicationCopy(locale: Locale, id: 'decision-challenge' | 'decision-intake' | 'model-doctor') {
   return copy[locale][id]
 }
