@@ -68,7 +68,6 @@ the QDIP platform root key in VHV.
 The admin page is currently an internal bootstrap interface; broader
 developer self-service registration and app ownership remain future work.
 
-
 ## Route Optimizer (RO): той самий екран створення ключів
 
 На `https://observatory.qdip.ai/uk/admin/apps` виберіть у списку застосунків

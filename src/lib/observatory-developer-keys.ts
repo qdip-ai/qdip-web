@@ -124,9 +124,7 @@ async function coreRequest<T>(method: 'GET' | 'POST', path: string, body?: Recor
   }
 }
 
-function validPolicy(
-  key: CoreKey, orgId: string, name: string, scopes: string[], capabilities: readonly string[]
-) {
+function validPolicy(key: CoreKey, orgId: string, name: string, scopes: string[], capabilities: readonly string[]) {
   const remaining = Date.parse(key.expires_at ?? '') - Date.now()
   return (
     key.org_id === orgId &&
@@ -150,9 +148,7 @@ async function revoke(orgId: string, keyId: string) {
   }
 }
 
-async function issue(
-  orgId: string, name: string, scopes: string[], capabilities: readonly string[]
-) {
+async function issue(orgId: string, name: string, scopes: string[], capabilities: readonly string[]) {
   const expiresAt = new Date(Date.now() + 30 * 86_400_000).toISOString()
   const key = await coreRequest<CoreKey>('POST', 'organizations/' + orgId + '/keys', {
     name,
@@ -173,17 +169,18 @@ async function issue(
  * route Worker does not REGISTER remotely, so RO needs just one caller key.
  * Core must independently attest exact scopes and capability allowlists.
  */
+export function createDeveloperCredentials(application: 'VHV', capability: 'secretary.plan'): Promise<DeveloperKeyPair>
 export function createDeveloperCredentials(
-  application: 'VHV', capability: 'secretary.plan'
-): Promise<DeveloperKeyPair>
-export function createDeveloperCredentials(
-  application: 'RO', capability: 'route-optimizer.customer-address-vrp.v1'
+  application: 'RO',
+  capability: 'route-optimizer.customer-address-vrp.v1'
 ): Promise<RouteDeveloperKey>
 export function createDeveloperCredentials(
-  application: string, capability: string
+  application: string,
+  capability: string
 ): Promise<DeveloperKeyPair | RouteDeveloperKey>
 export async function createDeveloperCredentials(
-  application: string, capability: string
+  application: string,
+  capability: string
 ): Promise<DeveloperKeyPair | RouteDeveloperKey> {
   const vhv = application === 'VHV' && capability === 'secretary.plan'
   const route = application === 'RO' && capability === RO_CAPABILITIES[1]
@@ -209,18 +206,19 @@ export async function createDeveloperCredentials(
     if (!RAW_KEY.test(app.key ?? '')) throw new DeveloperKeyError(502, 'Invalid application credential')
     let worker: CoreKey | null = null
     if (vhv) {
-      worker = await issue(
-        org.id, 'worker/' + application + '/' + operation, WORKER_SCOPES, capabilities
-      )
+      worker = await issue(org.id, 'worker/' + application + '/' + operation, WORKER_SCOPES, capabilities)
       keyIds.push(worker.id)
-      if (!RAW_KEY.test(worker.key ?? ''))
-        throw new DeveloperKeyError(502, 'Invalid Worker credential')
+      if (!RAW_KEY.test(worker.key ?? '')) throw new DeveloperKeyError(502, 'Invalid Worker credential')
     }
 
     const stored = await coreRequest<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
     if (!Array.isArray(stored)) throw new DeveloperKeyError(502, 'QDIP key policy readback failed')
-    const issued = worker ? [[app, appScopes], [worker, WORKER_SCOPES]] as const :
-      [[app, appScopes]] as const
+    const issued = worker
+      ? ([
+          [app, appScopes],
+          [worker, WORKER_SCOPES],
+        ] as const)
+      : ([[app, appScopes]] as const)
     for (const [credential, scopes] of issued) {
       const matches = stored.filter((row) => row.id === credential.id)
       if (
@@ -233,22 +231,24 @@ export async function createDeveloperCredentials(
     }
     if (route) {
       return {
-        application: 'RO', capabilities, environment: 'production',
+        application: 'RO',
+        capabilities,
+        environment: 'production',
         app: { key: app.key!, expiresAt: app.expires_at! },
         worker: null,
       }
     }
     return {
-      application: 'VHV', capability: 'secretary.plan', environment: 'production',
+      application: 'VHV',
+      capability: 'secretary.plan',
+      environment: 'production',
       app: { key: app.key!, expiresAt: app.expires_at! },
       worker: { key: worker!.key!, expiresAt: worker!.expires_at! },
     }
   } catch {
     const outcomes = await Promise.all(keyIds.map((id) => revoke(org.id, id)))
     if (outcomes.some((result) => !result))
-      throw new DeveloperKeyError(
-        503, 'Key creation failed; revocation unverified. Contact administrator before retry'
-      )
+      throw new DeveloperKeyError(503, 'Key creation failed; revocation unverified. Contact administrator before retry')
     throw new DeveloperKeyError(503, 'Unable to issue verified scoped credentials')
   }
 }
