@@ -52,6 +52,8 @@ describe('Generic developer plugin keys', () => {
       ui: { label: 'VHV' },
     }
     const vhvOrg = { id: ORG, name: 'qdip-sdk-app:vhv' }
+    const legacyPlugin = { ...plugin, name: 'GTM Lab' }
+    const unrelatedOrg = { id: 'sdk-gate-test-tenant', name: 'SDK qualification tenant' }
     const record = {
       ...key(),
       name: 'app/VHV/previous-operation',
@@ -61,23 +63,8 @@ describe('Generic developer plugin keys', () => {
       'fetch',
       vi.fn(async (input: string) => {
         const path = new URL(input).pathname
-        if (path.endsWith('/plugin-publications'))
-          return Response.json([
-            vhv,
-            {
-              name: 'GTM Lab',
-              plugin_id: 'GTM Lab',
-              enabled: true,
-              capabilities: ['gtm-lab.demo'],
-              ui: { label: 'GTM Lab' },
-            },
-            plugin,
-          ])
-        if (path.endsWith('/organizations'))
-          return Response.json([
-            vhvOrg,
-            { id: 'sdk-gate-test-tenant-not-a-uuid', name: 'SDK qualification tenant' },
-          ])
+        if (path.endsWith('/plugin-publications')) return Response.json([vhv, legacyPlugin, plugin])
+        if (path.endsWith('/organizations')) return Response.json([vhvOrg, unrelatedOrg])
         if (path.endsWith('/keys')) return Response.json([record])
         throw Error('Unexpected Core path: ' + path)
       })
