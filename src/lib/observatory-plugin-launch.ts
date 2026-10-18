@@ -9,13 +9,14 @@ export type PluginLaunchLink = Readonly<{ href: string; host: string }>
  */
 /** A browser must not follow a private, credential-bearing or non-HTTPS destination. */
 export function validPublicApplicationUrl(value: string): boolean {
-  if (!value || value.length > 512 || value !== value.trim() || /[\\\\\x00-\x1f\x7f]/.test(value)) return false
+  if (!value || value.length > 512 || value !== value.trim() || value.includes(String.fromCharCode(92)) || /[\x00-\x1f\x7f]/.test(value)) return false
   try {
     const url = new URL(value)
     const labels = url.hostname.toLowerCase().split('.')
     return url.protocol === 'https:' && !url.username && !url.password &&
       !url.search && !url.hash && !url.port && !url.hostname.endsWith('.') &&
       labels.length >= 2 &&
+      !['localhost', 'local', 'internal', 'lan', 'test', 'invalid', 'example'].includes(labels[labels.length - 1] ?? '') &&
       labels.every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)) &&
       /^[a-z]{2,63}$/.test(labels[labels.length - 1] ?? '')
   } catch {
