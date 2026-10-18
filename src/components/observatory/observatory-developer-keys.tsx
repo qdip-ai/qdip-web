@@ -400,28 +400,34 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
             <section className="mt-6 rounded-xl border border-white/25 bg-slate-900 p-5 sm:p-7">
               <h2 className="text-lg font-semibold">{issued.pluginId}</h2>
               <p className="mt-2 text-sm text-slate-300">{t.once}</p>
-              <div className="mt-4 flex flex-wrap gap-3">
+              <div className="mt-4 grid min-w-0 gap-3">
                 <input
                   readOnly
-                  type="password"
+                  type="text"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   aria-label={t.keyActive}
                   value={issued.key}
-                  className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/20 bg-slate-950 px-3 font-mono"
+                  onFocus={(event) => event.currentTarget.select()}
+                  className="block min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 font-mono text-sm"
                 />
-                <button
-                  type="button"
-                  onClick={() => void copy()}
-                  className="min-h-11 rounded-lg border border-white/20 px-4 text-sm"
-                >
-                  {copied ? t.copied : t.copy}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIssued(null)}
-                  className="min-h-11 rounded-lg border border-white/20 px-4 text-sm"
-                >
-                  {t.cancel}
-                </button>
+                <div className="grid min-w-0 grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => void copy()}
+                    className="min-h-11 min-w-0 rounded-lg border border-white/20 px-2 py-2 text-center text-sm leading-5 sm:px-4"
+                  >
+                    {copied ? t.copied : t.copy}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIssued(null)}
+                    className="min-h-11 min-w-0 rounded-lg border border-white/20 px-2 py-2 text-center text-sm leading-5 sm:px-4"
+                  >
+                    {t.cancel}
+                  </button>
+                </div>
               </div>
             </section>
           )}
