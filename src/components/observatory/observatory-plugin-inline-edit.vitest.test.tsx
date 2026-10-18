@@ -212,6 +212,39 @@ describe('Observatory inline plugin editing', () => {
     )
   })
 
+  it('lets an administrator publish a third-party web application URL and preview the destination', async () => {
+    const changed = { ...secretary, application_url: 'https://console.example.org/start', published: true, published_version: '0.1.0' }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(reply({ plugins: [secretary] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockResolvedValueOnce(reply({ plugins: [changed] }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
+    const url = card('VHV — Decision Assistant').getByRole('textbox', { name: 'Адреса застосунку (HTTPS)' })
+    expect(url).toHaveValue('')
+    fireEvent.change(url, { target: { value: 'https://console.example.org/start' } })
+    expect(card('VHV — Decision Assistant').getByText(/Перехід на сайт розробника/)).toBeInTheDocument()
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
+    await waitFor(() => expect(card('VHV — Decision Assistant').getByRole('status')).toHaveTextContent('Плагін опубліковано'))
+    const put = fetchMock.mock.calls.find((args) => args[1]?.method === 'PUT')
+    expect(JSON.parse(put?.[1].body as string).application_url).toBe('https://console.example.org/start')
+  })
+
+  it('rejects private and credential-bearing application URLs before submission', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply({ plugins: [secretary] })))
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
+    const url = card('VHV — Decision Assistant').getByRole('textbox', { name: 'Адреса застосунку (HTTPS)' })
+    fireEvent.change(url, { target: { value: 'http://localhost:3000/' } })
+    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
+    expect(card('VHV — Decision Assistant').getByText(/Використайте публічну HTTPS-адресу/)).toBeInTheDocument()
+    fireEvent.change(url, { target: { value: '' } })
+    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeEnabled()
+  })
+
   it('disables publishing an invalid reserved URL slug', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply({ plugins: [secretary] })))
     render(<ObservatoryPluginAdmin locale="uk" />)
