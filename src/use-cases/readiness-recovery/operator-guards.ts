@@ -48,3 +48,74 @@ export function parsedExecutionIds(value: unknown): { executionId: string; decis
   const safe = (id: unknown) => (typeof id === 'string' && /^[a-zA-Z0-9][\w.-]{0,127}$/.test(id) ? id : '')
   return { executionId: safe(executionId), decisionId: safe(decisionId) }
 }
+
+/** Resolve an ambiguous write by identity, never by retrying its POST. */
+export function recoverableRRSubmission(
+  kind: 'create' | 'replan',
+  rawBody: string | undefined,
+  options: {
+    preflight?: {
+      execution_id: string
+      decision_id: string
+      payload_digest: string
+      source_snapshot_id: string
+    } | null
+    predecessorExecutionId?: string
+    decisionId?: string
+  }
+): {
+  executionId: string
+  decisionId: string | null
+  predecessorExecutionId: string | null
+  payloadDigest: string | null
+  sourceSnapshotId: string | null
+} | null {
+  if (!rawBody) return null
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(rawBody)
+  } catch {
+    return null
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+  const doc = parsed as Record<string, unknown>
+  const validId = (id: unknown): id is string =>
+    typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(id)
+
+  if (kind === 'create') {
+    const preflight = options.preflight
+    if (
+      !preflight ||
+      !validId(doc.execution_id) ||
+      doc.execution_id !== preflight.execution_id ||
+      !validId(preflight.decision_id) ||
+      !/^[0-9a-f]{64}$/.test(preflight.payload_digest) ||
+      !preflight.source_snapshot_id.trim()
+    ) return null
+    return {
+      executionId: doc.execution_id,
+      decisionId: preflight.decision_id,
+      predecessorExecutionId: null,
+      payloadDigest: preflight.payload_digest,
+      sourceSnapshotId: preflight.source_snapshot_id,
+    }
+  }
+
+  const successor = doc.format_version === 'readiness-recovery.normalized-replan.v1'
+    ? doc.import_document
+    : doc
+  if (!successor || typeof successor !== 'object' || Array.isArray(successor)) return null
+  const nextId = (successor as Record<string, unknown>).execution_id
+  if (
+    !validId(nextId) ||
+    !validId(options.predecessorExecutionId) ||
+    nextId === options.predecessorExecutionId
+  ) return null
+  return {
+    executionId: nextId,
+    decisionId: validId(options.decisionId) ? options.decisionId : null,
+    predecessorExecutionId: options.predecessorExecutionId,
+    payloadDigest: null,
+    sourceSnapshotId: null,
+  }
+}
