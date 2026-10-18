@@ -51,4 +51,28 @@ describe('trusted external application launch links', () => {
       })
     ).toBeNull()
   })
+
+  it('launches an independently hosted SDK plugin only with the audited HTTPS destination', () => {
+    const thirdParty: PluginCatalogEntry = {
+      ...vhv,
+      name: 'remote-different-tenant-routing',
+      plugin_id: 'routing',
+      slug: 'routes',
+      capabilities: ['routes.optimize'],
+      capability_id: 'routes.optimize',
+      ui: { label: 'Route Optimizer' },
+      application_launch_url: 'https://routing.partner-example.org/app',
+      launch_url_verified: true,
+    }
+    expect(launchLinkForPlugin(thirdParty)).toEqual({
+      href: 'https://routing.partner-example.org/app',
+      application: 'Route Optimizer',
+    })
+    expect(launchLinkForPlugin({ ...thirdParty, launch_url_verified: false })).toBeNull()
+    expect(launchLinkForPlugin({ ...thirdParty, application_launch_url: 'http://127.0.0.1/admin' })).toBeNull()
+    expect(launchLinkForPlugin({ ...thirdParty, application_launch_url: 'https://private.internal/' })).toBeNull()
+    expect(launchLinkForPlugin({ ...thirdParty, published: false })).toBeNull()
+    expect(launchLinkForPlugin({ ...thirdParty, published_version: '0.2.0' })).toBeNull()
+    expect(launchLinkForPlugin({ ...thirdParty, capabilities: [] })).toBeNull()
+  })
 })

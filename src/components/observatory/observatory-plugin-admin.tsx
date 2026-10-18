@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/design-system'
+import { safePluginLaunchUrl } from '@qdip/client'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import styles from './plugin-experience.module.css'
 import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
@@ -12,6 +13,8 @@ type Row = {
   plugin_id?: string
   slug?: string | null
   slug_aliases?: string[]
+  application_launch_url?: string | null
+  launch_url_verified?: boolean
   source?: 'embedded' | 'remote'
   description: string
   version: string
@@ -30,6 +33,8 @@ type FormFields = {
   category: string
   capability_id: string
   slug: string
+  application_launch_url: string
+  launch_url_verified: boolean
 }
 const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Productivity', 'Other']
 const copy = {
@@ -56,6 +61,11 @@ const copy = {
     name: 'Назва',
     slug: 'Коротка адреса (URL)',
     slugHint: 'Латинські малі літери, цифри й дефіс. Внутрішній ID плагіна не зміниться.',
+    launchUrl: 'URL запуску застосунку',
+    launchHint: 'Адреса застосунку користувача (HTTPS), не Worker або API. Залиште порожнім, щоб прибрати посилання.',
+    launchReview:
+      'Я перевірив власника домену та перенаправлення URL. Підтверджую публікацію цього зовнішнього посилання.',
+    launchInvalid: 'Дозволено лише публічну HTTPS-адресу без приватного хоста, ключів, параметрів та портів.',
     slugPreview: 'Публічна адреса',
     description: 'Опис',
     category: 'Категорія',
@@ -114,6 +124,10 @@ const copy = {
     name: 'Display name',
     slug: 'Short URL (slug)',
     slugHint: 'Lowercase letters, numbers and hyphens. The SDK plugin ID does not change.',
+    launchUrl: 'Application launch URL',
+    launchHint: 'End-user app URL (HTTPS), not a Worker or API endpoint. Leave empty to remove a link.',
+    launchReview: 'I reviewed the domain owner and redirect behavior and approve this external application link.',
+    launchInvalid: 'Only a public HTTPS URL without private hosts, credentials, parameters or ports is accepted.',
     slugPreview: 'Public URL',
     description: 'Description',
     category: 'Category',
@@ -172,6 +186,10 @@ const copy = {
     name: 'Nazwa wyświetlana',
     slug: 'Krótki adres URL',
     slugHint: 'Małe litery, cyfry i łączniki. Identyfikator wtyczki SDK nie zmienia się.',
+    launchUrl: 'Adres URL uruchomienia aplikacji',
+    launchHint: 'Adres aplikacji dla użytkownika (HTTPS), nie Worker ani API. Puste pole usuwa link.',
+    launchReview: 'Sprawdzono właściciela domeny i przekierowania. Zatwierdzam zewnętrzny link do aplikacji.',
+    launchInvalid: 'Dozwolony jest tylko publiczny adres HTTPS bez prywatnych hostów, kluczy, parametrów i portów.',
     slugPreview: 'Adres publiczny',
     description: 'Opis',
     category: 'Kategoria',
@@ -229,6 +247,8 @@ function initialFields(row: Row): FormFields {
       (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) ||
       '',
     slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
+    application_launch_url: row.application_launch_url || '',
+    launch_url_verified: row.launch_url_verified === true && Boolean(row.application_launch_url),
   }
 }
 
@@ -242,6 +262,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     category: 'Other',
     capability_id: '',
     slug: '',
+    application_launch_url: '',
+    launch_url_verified: false,
   })
   const [error, setError] = useState('')
   const [mutationError, setMutationError] = useState<{ name: string; message: string } | null>(null)
@@ -357,6 +379,14 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           expected_revision: row.revision,
           capability_id: presentation?.capability_id || row.capability_id || row.capabilities[0],
           ...(presentation ? { slug: presentation.slug } : {}),
+          ...(presentation &&
+          (presentation.application_launch_url !== (row.application_launch_url || '') ||
+            presentation.launch_url_verified !== (row.launch_url_verified === true))
+            ? {
+                application_launch_url: presentation.application_launch_url,
+                launch_url_verified: presentation.launch_url_verified,
+              }
+            : {}),
           ...(presentation
             ? {
                 display_name: presentation.display_name,
@@ -558,6 +588,50 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         )}
                       </label>
                       <label className={styles.field}>
+                        {t.launchUrl}
+                        <input
+                          type="url"
+                          aria-label={t.launchUrl}
+                          className={styles.input}
+                          autoCapitalize="none"
+                          autoComplete="off"
+                          spellCheck={false}
+                          placeholder="https://app.example.org"
+                          value={fields.application_launch_url}
+                          onChange={(event) =>
+                            setFields((prev) => ({
+                              ...prev,
+                              application_launch_url: event.target.value,
+                              launch_url_verified: false,
+                            }))
+                          }
+                        />
+                        <span className={styles.fieldHint}>{t.launchHint}</span>
+                        {fields.application_launch_url !== '' &&
+                          !safePluginLaunchUrl(fields.application_launch_url) && (
+                            <span role="alert" className={styles.error}>
+                              {t.launchInvalid}
+                            </span>
+                          )}
+                      </label>
+                      {fields.application_launch_url && safePluginLaunchUrl(fields.application_launch_url) && (
+                        <label className={styles.field}>
+                          <span>
+                            <input
+                              type="checkbox"
+                              checked={fields.launch_url_verified}
+                              onChange={(event) =>
+                                setFields((prev) => ({
+                                  ...prev,
+                                  launch_url_verified: event.target.checked,
+                                }))
+                              }
+                            />{' '}
+                            {t.launchReview}
+                          </span>
+                        </label>
+                      )}
+                      <label className={styles.field}>
                         {t.description}
                         <textarea
                           className={styles.input}
@@ -631,6 +705,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                             !row.enabled ||
                             !fields.display_name.trim() ||
                             !fields.capability_id ||
+                            (fields.application_launch_url !== '' &&
+                              (!safePluginLaunchUrl(fields.application_launch_url) || !fields.launch_url_verified)) ||
                             !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
                             fields.slug.includes('--') ||
                             ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)

@@ -117,6 +117,28 @@ export function parseInvokeResponse(value: unknown): InvokeResponse {
     actionable: result.semantic_status === 'EXACT' && result.backend_status === 'OPTIMAL' && result.solution !== null };
 }
 
+/** Never expose a manifest/user-supplied URL as an application link. */
+export function safePluginLaunchUrl(value: unknown): value is string {
+  if (typeof value !== 'string' || value.length < 12 || value.length > 2048 ||
+      !/^[\x21-\x7e]+$/.test(value) || /[\\@?#%]/.test(value)) return false;
+  let url: URL;
+  try { url = new URL(value); } catch { return false; }
+  const host = url.hostname;
+  if ((url.href !== value && url.href !== value + '/') ||
+      url.protocol !== 'https:' || url.username || url.password || url.port ||
+      !host || host !== host.toLowerCase() || host.length > 253 ||
+      url.host !== host || !host.includes('.') ||
+      !/^[a-z0-9.-]+$/.test(host)) return false;
+  const labels = host.split('.');
+  if (labels.some(label => !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label) ||
+      label.startsWith('xn--')) || !/^[a-z]{2,63}$/.test(labels.at(-1)!)) return false;
+  if (/(?:^|\.)(?:localhost|local|internal|invalid|test|example|onion|home|lan|arpa|nip\.io|sslip\.io)$/.test(host) ||
+      /^(?:[0-9]+\.){3}[0-9]+$/.test(host)) return false;
+  if (!/^\/[A-Za-z0-9/._~-]*$/.test(url.pathname) || url.pathname.includes('//') ||
+      url.pathname.split('/').some(x => x === '.' || x === '..') || url.search || url.hash) return false;
+  return true;
+}
+
 /** Never trust an administrative HTTP envelope merely because it came from Core. */
 export function parsePluginCatalogEntry(input: unknown): PluginCatalogEntry {
   const v = obj(input);
@@ -135,6 +157,10 @@ export function parsePluginCatalogEntry(input: unknown): PluginCatalogEntry {
   if (v.slug_aliases !== undefined && (!Array.isArray(v.slug_aliases) ||
       v.slug_aliases.length > 256 || v.slug_aliases.some((slug: unknown) => typeof slug !== 'string' ||
         !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(slug)))) return fail();
+  if (v.application_launch_url !== undefined && v.application_launch_url !== null &&
+      (v.launch_url_verified !== true || !safePluginLaunchUrl(v.application_launch_url))) return fail();
+  if (v.launch_url_verified !== undefined && typeof v.launch_url_verified !== 'boolean') return fail();
+  if (v.application_launch_url == null && v.launch_url_verified === true) return fail();
   const versions = obj(v.capability_versions);
   if (ui.label != null && typeof ui.label !== 'string') return fail();
   if (ui.category != null && typeof ui.category !== 'string') return fail();
@@ -154,7 +180,9 @@ export function parsePluginCatalogEntry(input: unknown): PluginCatalogEntry {
     published: v.published, revision: v.revision as number,
     capability_id: v.capability_id, published_version: v.published_version,
     ...(v.slug !== undefined ? { slug: v.slug as string | null } : {}),
-    ...(v.slug_aliases !== undefined ? { slug_aliases: v.slug_aliases as string[] } : {})
+    ...(v.slug_aliases !== undefined ? { slug_aliases: v.slug_aliases as string[] } : {}),
+    ...(v.application_launch_url !== undefined ? { application_launch_url: v.application_launch_url as string | null } : {}),
+    ...(v.launch_url_verified !== undefined ? { launch_url_verified: v.launch_url_verified as boolean } : {})
   };
 }
 
