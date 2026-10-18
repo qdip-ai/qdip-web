@@ -55,6 +55,7 @@ describe('lost RR acknowledgement identity', () => {
     expect(recoverableRRSubmission('create', '{"execution_id":"other"}', { preflight })).toBeNull()
     expect(recoverableRRSubmission('create', '{"execution_id":"../bad"}', { preflight })).toBeNull()
     expect(recoverableRRSubmission('create', '{"execution_id":"run-10"}', {})).toBeNull()
+    expect(recoverableRRSubmission('create', '', { preflight })).toBeNull()
   })
 
   it('supports both replan formats and refuses ambiguous or unsafe IDs', () => {
