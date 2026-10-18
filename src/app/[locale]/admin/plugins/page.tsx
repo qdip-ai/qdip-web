@@ -24,7 +24,7 @@ export default async function PluginAdministrationPage({ params }: { params: Pro
       />
     )
   return (
-    <PrototypeShell locale={locale as Locale} activeRoute="/admin/plugins">
+    <PrototypeShell locale={locale as Locale} activeRoute="/admin/plugins" theme="burgundy">
       <ObservatoryPluginAdmin locale={locale as Locale} />
     </PrototypeShell>
   )
