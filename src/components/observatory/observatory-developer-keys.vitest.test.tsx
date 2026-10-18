@@ -17,7 +17,10 @@ function stubCatalog(capabilities: string[]) {
     ],
     connected: [],
   }
-  vi.stubGlobal('fetch', vi.fn(async () => Response.json(inventory)))
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json(inventory))
+  )
 }
 
 afterEach(() => {
