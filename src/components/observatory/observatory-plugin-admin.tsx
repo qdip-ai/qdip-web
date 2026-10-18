@@ -209,6 +209,7 @@ const copy = {
 function isPublished(row: Row) {
   // Publication is a catalog state; remote Worker liveness is a separate state.
   return (
+    (row.enabled || row.source === 'remote') &&
     row.published === true &&
     row.published_version === row.version &&
     typeof row.capability_id === 'string' &&
@@ -220,7 +221,7 @@ function initialFields(row: Row): FormFields {
     display_name: row.ui?.label || row.name,
     description: row.description || '',
     category: row.ui?.category || 'Other',
-    capability_id: row.capability_id || row.capabilities[0] || '',
+    capability_id: (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) || '',
     slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
   }
 }
