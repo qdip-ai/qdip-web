@@ -30,9 +30,17 @@ export function launchLinkForPlugin(plugin: PluginCatalogEntry): PluginLaunchLin
     plugin.published_version !== plugin.version ||
     typeof plugin.capability_id !== 'string' ||
     !plugin.capabilities.includes(plugin.capability_id) ||
-    typeof plugin.application_url !== 'string'
+    (plugin.application_url !== null && plugin.application_url !== undefined && typeof plugin.application_url !== 'string')
   ) return null
-  const value = plugin.application_url
+  // Transition only: retain the existing VHV link until an administrator
+  // saves application_url through the generic catalog field. Do not infer
+  // URLs from a user-controlled slug, name or worker-provided description.
+  const legacyVhv = plugin.application_url === undefined || plugin.application_url === null
+    ? plugin.name === 'remote-04e7c87d7b72111c-secretary' &&
+      plugin.plugin_id === 'secretary' && plugin.source === 'remote' &&
+      plugin.capability_id === 'secretary.plan'
+    : false
+  const value = plugin.application_url || (legacyVhv ? 'https://vhv.qdip.ai' : '')
   if (!validPublicApplicationUrl(value)) return null
   return { href: value, host: new URL(value).hostname }
 }
