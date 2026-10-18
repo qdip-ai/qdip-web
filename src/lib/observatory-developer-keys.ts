@@ -3,39 +3,19 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
 
-/**
- * Trusted Observatory backend only. All application tenants are internal QDIP
- * isolation records; the VHV application neither creates nor stores orgs.
- */
-const APP_NAME = /^[A-Za-z][A-Za-z0-9-]{1,31}$/
+/** One generic, admin-only key manager. Plugin identity is data from Core. */
+const PLUGIN_ID = /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/
 const CAPABILITY = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/
 const UUID = /^[a-f0-9-]{36}$/i
 const RAW_KEY = /^dip-[a-f0-9]{32}$/
-const APP_SCOPES = ['plugins:read', 'plugins:execute']
-const WORKER_SCOPES = ['plugins:register']
-const RO_SCOPES = ['plugins:execute']
-export const RO_CAPABILITIES = [
-  'route-optimizer.customer-coordinate-vrp.v1',
-  'route-optimizer.customer-address-vrp.v1',
-] as const
 const LIMIT = 131_072
+const PREFIXES = ['qdip-sdk-app:', 'qdip-sdk-plugin:'] as const
+const ROLE_SCOPES = {
+  execute: ['plugins:read', 'plugins:execute'],
+  worker: ['plugins:register'],
+} as const
 
-export type DeveloperKeyPair = {
-  application: string
-  capability: string
-  environment: 'production'
-  app: { key: string; expiresAt: string }
-  worker: { key: string; expiresAt: string }
-}
-
-export type RouteDeveloperKey = {
-  application: 'RO'
-  capabilities: readonly string[]
-  environment: 'production'
-  app: { key: string; expiresAt: string }
-  worker: null
-}
-
+type Role = keyof typeof ROLE_SCOPES
 type CoreOrg = { id: string; name: string }
 type CoreKey = {
   id: string
@@ -48,6 +28,41 @@ type CoreKey = {
   expires_at: string | null
   revoked_at: string | null
 }
+type CatalogPlugin = {
+  name: string
+  plugin_id?: string
+  enabled: boolean
+  capabilities: string[]
+  ui?: { label?: string }
+  published?: boolean | null
+}
+export type ConnectedKey = {
+  id: string
+  orgId: string
+  role: Role
+  expiresAt: string
+  capabilities: string[]
+}
+export type PluginKeyEntry = {
+  id: string
+  label: string
+  capabilities: string[]
+  registered: boolean
+  enabled: boolean
+  keys: ConnectedKey[]
+}
+export type PluginKeyInventory = {
+  available: PluginKeyEntry[]
+  connected: PluginKeyEntry[]
+}
+export type IssuedPluginKey = {
+  pluginId: string
+  key: string
+  keyId: string
+  expiresAt: string
+  capabilities: string[]
+  role: Role
+}
 
 export class DeveloperKeyError extends Error {
   constructor(
@@ -58,33 +73,31 @@ export class DeveloperKeyError extends Error {
   }
 }
 
-function exactArray(actual: unknown, expected: string[]) {
-  return (
-    Array.isArray(actual) &&
-    actual.length === expected.length &&
-    actual.every((item, index) => item === expected[index])
-  )
-}
+const exact = (actual: unknown, expected: readonly string[]): boolean =>
+  Array.isArray(actual) && actual.length === expected.length && actual.every((item, i) => item === expected[i])
 
-function safeCore() {
+function coreOrigin(): { origin: string; key: string } {
   const { base, key } = corePluginConnection()
-  const origin = new URL(base)
+  const url = new URL(base)
   if (
-    origin.protocol !== 'https:' &&
-    !(
-      process.env.NODE_ENV === 'test' &&
-      origin.protocol === 'http:' &&
-      ['localhost', '127.0.0.1'].includes(origin.hostname)
-    )
+    (url.protocol !== 'https:' &&
+      !(
+        process.env.NODE_ENV === 'test' &&
+        url.protocol === 'http:' &&
+        ['localhost', '127.0.0.1'].includes(url.hostname)
+      )) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    url.pathname !== '/'
   )
-    throw new DeveloperKeyError(503, 'QDIP Core HTTPS origin required')
-  if (origin.username || origin.password || origin.search || origin.hash || origin.pathname !== '/')
     throw new DeveloperKeyError(503, 'QDIP Core origin misconfigured')
-  return { origin: origin.origin, key }
+  return { origin: url.origin, key }
 }
 
-async function coreRequest<T>(method: 'GET' | 'POST', path: string, body?: Record<string, unknown>): Promise<T> {
-  const { origin, key } = safeCore()
+async function core<T>(method: 'GET' | 'POST', path: string, payload?: Record<string, unknown>): Promise<T> {
+  const { origin, key } = coreOrigin()
   let response: Response
   try {
     response = await fetch(origin + '/api/v1/' + path, {
@@ -92,163 +105,278 @@ async function coreRequest<T>(method: 'GET' | 'POST', path: string, body?: Recor
       headers: {
         'x-api-key': key,
         accept: 'application/json',
-        ...(body ? { 'content-type': 'application/json' } : {}),
+        ...(payload ? { 'content-type': 'application/json' } : {}),
       },
-      body: body ? JSON.stringify(body) : undefined,
-      cache: 'no-store',
+      body: payload ? JSON.stringify(payload) : undefined,
       redirect: 'error',
-      signal: AbortSignal.timeout(8_000),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(12_000),
     })
   } catch {
     throw new DeveloperKeyError(503, 'QDIP Core unavailable')
   }
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined)
-    if ([401, 403].includes(response.status))
-      throw new DeveloperKeyError(502, 'QDIP administrative credential rejected')
-    throw new DeveloperKeyError(503, 'QDIP Core operation failed')
+    throw new DeveloperKeyError(
+      response.status === 401 || response.status === 403 ? 502 : 503,
+      'QDIP administrative operation failed'
+    )
   }
   const length = response.headers.get('content-length')
-  if (length && Number(length) > LIMIT) throw new DeveloperKeyError(502, 'QDIP Core response too large')
-  let data: string
+  if (length && Number(length) > LIMIT) throw new DeveloperKeyError(502, 'Core response too large')
+  let raw: string
   try {
-    data = await response.text()
+    raw = await response.text()
   } catch {
-    throw new DeveloperKeyError(502, 'Invalid QDIP Core response')
+    throw new DeveloperKeyError(502, 'Invalid QDIP response')
   }
-  if (data.length > LIMIT) throw new DeveloperKeyError(502, 'QDIP Core response too large')
+  if (raw.length > LIMIT) throw new DeveloperKeyError(502, 'Core response too large')
   try {
-    return JSON.parse(data) as T
+    return JSON.parse(raw) as T
   } catch {
-    throw new DeveloperKeyError(502, 'Invalid QDIP Core response')
+    throw new DeveloperKeyError(502, 'Invalid QDIP response')
   }
 }
 
-function validPolicy(key: CoreKey, orgId: string, name: string, scopes: string[], capabilities: readonly string[]) {
-  const remaining = Date.parse(key.expires_at ?? '') - Date.now()
+async function metadata(): Promise<{
+  catalog: CatalogPlugin[]
+  orgs: CoreOrg[]
+  stored: Array<{ org: CoreOrg; keys: CoreKey[] }>
+}> {
+  const [catalog, orgs] = await Promise.all([
+    core<CatalogPlugin[]>('GET', 'plugin-publications'),
+    core<CoreOrg[]>('GET', 'organizations'),
+  ])
+  if (
+    !Array.isArray(catalog) ||
+    !Array.isArray(orgs) ||
+    catalog.length > 1000 ||
+    orgs.length > 500 ||
+    catalog.some((p) => !p || !PLUGIN_ID.test(p.name) || !Array.isArray(p.capabilities)) ||
+    orgs.some((o) => !o || !UUID.test(o.id) || typeof o.name !== 'string')
+  )
+    throw new DeveloperKeyError(502, 'Invalid Core plugin or organization catalog')
+  const managed = orgs.filter((o) => PREFIXES.some((prefix) => o.name.startsWith(prefix)))
+  // No key values are ever fetched from this read-only Core endpoint.
+  const stored: Array<{ org: CoreOrg; keys: CoreKey[] }> = []
+  for (let offset = 0; offset < managed.length; offset += 8) {
+    const group = await Promise.all(
+      managed.slice(offset, offset + 8).map(async (org) => {
+        const keys = await core<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
+        if (!Array.isArray(keys) || keys.length > 500) throw new DeveloperKeyError(502, 'Invalid Core key list')
+        return { org, keys }
+      })
+    )
+    stored.push(...group)
+  }
+  return { catalog, orgs, stored }
+}
+
+function isActive(key: CoreKey): boolean {
   return (
-    key.org_id === orgId &&
-    key.name === name &&
     key.environment === 'production' &&
-    exactArray(key.scopes, scopes) &&
-    exactArray(key.allowed_capabilities, [...capabilities]) &&
     key.revoked_at === null &&
-    Number.isFinite(remaining) &&
-    remaining > 29 * 86_400_000 &&
-    remaining <= 31 * 86_400_000
+    typeof key.expires_at === 'string' &&
+    Date.parse(key.expires_at) > Date.now() &&
+    Array.isArray(key.allowed_capabilities) &&
+    key.allowed_capabilities.length > 0
   )
 }
 
-async function revoke(orgId: string, keyId: string) {
-  try {
-    await coreRequest('POST', 'organizations/' + orgId + '/keys/' + keyId + '/revoke', {})
-    return true
-  } catch {
-    return false
+function keyView(org: CoreOrg, key: CoreKey): ConnectedKey | null {
+  if (!isActive(key) || !UUID.test(key.id)) return null
+  const role: Role | null = exact(key.scopes, ROLE_SCOPES.worker)
+    ? 'worker'
+    : exact(key.scopes, ROLE_SCOPES.execute)
+      ? 'execute'
+      : null
+  if (
+    !role ||
+    key.org_id !== org.id ||
+    !key.allowed_capabilities ||
+    key.allowed_capabilities.some((c) => typeof c !== 'string' || !CAPABILITY.test(c))
+  )
+    return null
+  return {
+    id: key.id,
+    orgId: org.id,
+    role,
+    expiresAt: key.expires_at!,
+    capabilities: [...key.allowed_capabilities],
   }
 }
 
-async function issue(orgId: string, name: string, scopes: string[], capabilities: readonly string[]) {
-  const expiresAt = new Date(Date.now() + 30 * 86_400_000).toISOString()
-  const key = await coreRequest<CoreKey>('POST', 'organizations/' + orgId + '/keys', {
-    name,
-    environment: 'production',
-    scopes,
-    allowed_capabilities: [...capabilities],
-    expires_at: expiresAt,
-  })
-  // Return the key ID to the caller before validating the one-time raw
-  // material. A malformed raw response must still be revoked if possible.
-  if (!UUID.test(key?.id ?? '')) throw new DeveloperKeyError(502, 'QDIP Core returned an invalid credential ID')
-  return key
+function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
+  const active: Array<ConnectedKey & { name: string }> = data.stored.flatMap(({ org, keys }) =>
+    keys.flatMap((key) => {
+      const row = keyView(org, key)
+      return row ? [{ ...row, name: key.name }] : []
+    })
+  )
+  const items = new Map<string, PluginKeyEntry>()
+  for (const plugin of data.catalog) {
+    const caps = plugin.capabilities.filter((c): c is string => typeof c === 'string' && CAPABILITY.test(c))
+    const pluginId = plugin.name
+    // Existing keys remain visible even if a remote Worker disconnected.
+    const keys = active
+      .filter((k) => k.capabilities.some((c) => caps.includes(c)))
+      .map(({ id, orgId, role, expiresAt, capabilities }) => ({ id, orgId, role, expiresAt, capabilities }))
+    if (!caps.length || (!plugin.enabled && !keys.length)) continue
+    items.set(pluginId, {
+      id: pluginId,
+      label: plugin.ui?.label || plugin.plugin_id || pluginId,
+      capabilities: [...new Set(caps)].slice(0, 16),
+      registered: true,
+      enabled: true,
+      keys,
+    })
+  }
+  for (const record of active) {
+    // Existing catalog items already own this credential. Do not create a
+    // duplicate legacy-organization card such as "vhv" next to "VHV".
+    const alreadyShown = [...items.values()].some((p) =>
+      p.keys.some((k) => k.id === record.id && k.orgId === record.orgId)
+    )
+    if (alreadyShown) continue
+    const match = /^access\/([A-Za-z0-9_.-]{1,128})\//.exec(record.name)
+    // Backward compatibility for VHV and earlier app keys, without hardcoded names.
+    const legacy = data.stored.find(({ org }) => org.id === record.orgId)?.org.name
+    const id = match?.[1] || (legacy?.startsWith('qdip-sdk-app:') ? legacy.slice('qdip-sdk-app:'.length) : '')
+    if (!id || items.has(id)) continue
+    const keys = active
+      .filter((x) => (match ? x.name.startsWith('access/' + id + '/') : x.orgId === record.orgId))
+      .map(({ id: keyId, orgId, role, expiresAt, capabilities }) => ({
+        id: keyId,
+        orgId,
+        role,
+        expiresAt,
+        capabilities,
+      }))
+    items.set(id, {
+      id,
+      label: id,
+      capabilities: [...new Set(keys.flatMap((k) => k.capabilities))],
+      registered: false,
+      enabled: false,
+      keys,
+    })
+  }
+  return [...items.values()].sort((a, b) => a.label.localeCompare(b.label))
 }
 
-/**
- * The same admin-only credential issuer supports VHV and Route Optimizer.
- * VHV requires two identities (app + SDK-02 Worker); RO's existing private
- * route Worker does not REGISTER remotely, so RO needs just one caller key.
- * Core must independently attest exact scopes and capability allowlists.
- */
-export function createDeveloperCredentials(application: 'VHV', capability: 'secretary.plan'): Promise<DeveloperKeyPair>
-export function createDeveloperCredentials(
-  application: 'RO',
-  capability: 'route-optimizer.customer-address-vrp.v1'
-): Promise<RouteDeveloperKey>
-export function createDeveloperCredentials(
-  application: string,
-  capability: string
-): Promise<DeveloperKeyPair | RouteDeveloperKey>
-export async function createDeveloperCredentials(
-  application: string,
-  capability: string
-): Promise<DeveloperKeyPair | RouteDeveloperKey> {
-  const vhv = application === 'VHV' && capability === 'secretary.plan'
-  const route = application === 'RO' && capability === RO_CAPABILITIES[1]
-  if (!APP_NAME.test(application) || !CAPABILITY.test(capability) || (!vhv && !route))
-    throw new DeveloperKeyError(422, 'Unsupported application or capability')
+export async function listPluginCredentials(): Promise<PluginKeyInventory> {
+  const entries = rows(await metadata())
+  return {
+    available: entries.filter((p) => p.enabled && !p.keys.some((k) => k.role === 'execute')),
+    connected: entries.filter((p) => p.keys.length > 0),
+  }
+}
 
-  const name = 'qdip-sdk-app:' + application.toLowerCase()
-  const orgs = await coreRequest<CoreOrg[]>('GET', 'organizations')
-  if (!Array.isArray(orgs)) throw new DeveloperKeyError(502, 'Invalid QDIP organization response')
-  const existing = orgs.filter((org) => org && org.name === name && UUID.test(org.id))
-  if (existing.length > 1) throw new DeveloperKeyError(409, 'Ambiguous QDIP application identity')
-  const org = existing[0] ?? (await coreRequest<CoreOrg>('POST', 'organizations', { name }))
-  if (!org || !UUID.test(org.id) || org.name !== name)
-    throw new DeveloperKeyError(502, 'QDIP application isolation was not created')
+async function revoke(orgId: string, keyId: string): Promise<void> {
+  await core('POST', 'organizations/' + orgId + '/keys/' + keyId + '/revoke', {})
+}
 
-  const operation = randomUUID()
-  const keyIds: string[] = []
-  const capabilities: string[] = route ? [...RO_CAPABILITIES] : ['secretary.plan']
-  const appScopes = route ? RO_SCOPES : APP_SCOPES
+export async function revokePluginCredential(orgId: string, keyId: string): Promise<void> {
+  if (!UUID.test(orgId) || !UUID.test(keyId)) throw new DeveloperKeyError(422, 'Invalid key identity')
+  const data = await metadata()
+  const found = data.stored.find(({ org }) => org.id === orgId)
+  if (!found || !found.keys.some((k) => k.id === keyId && keyView(found.org, k)))
+    throw new DeveloperKeyError(404, 'Active managed key not found')
+  await revoke(orgId, keyId)
+}
+
+export async function issuePluginCredential(
+  pluginId: string,
+  capabilities: string[],
+  role: Role = 'execute',
+  manual = false
+): Promise<IssuedPluginKey> {
+  if (
+    !PLUGIN_ID.test(pluginId) ||
+    !Array.isArray(capabilities) ||
+    capabilities.length < 1 ||
+    capabilities.length > 16 ||
+    capabilities.some((x) => typeof x !== 'string' || !CAPABILITY.test(x)) ||
+    new Set(capabilities).size !== capabilities.length ||
+    !Object.hasOwn(ROLE_SCOPES, role) ||
+    typeof manual !== 'boolean'
+  )
+    throw new DeveloperKeyError(422, 'Invalid plugin key policy')
+
+  const data = await metadata()
+  const registered = data.catalog.find((p) => p.name === pluginId)
+  if (registered) {
+    if (!registered.enabled || capabilities.some((c) => !registered.capabilities.includes(c)))
+      throw new DeveloperKeyError(422, 'Capabilities not registered or plugin disabled')
+  } else if (!manual) {
+    throw new DeveloperKeyError(422, 'Plugin is not registered; use explicit manual bootstrap')
+  }
+  const scopes = [...ROLE_SCOPES[role]]
+  const exactMatch = data.stored.some(({ org, keys }) =>
+    keys.some((key) => {
+      const row = keyView(org, key)
+      return (
+        row &&
+        row.role === role &&
+        exact(row.capabilities, capabilities) &&
+        (registered
+          ? capabilities.some((c) => registered.capabilities.includes(c))
+          : key.name.startsWith('access/' + pluginId + '/'))
+      )
+    })
+  )
+  if (exactMatch) throw new DeveloperKeyError(409, 'A matching active key already exists')
+
+  // Old VHV organization and keys are left intact. New plugins use stable
+  // opaque internal organizations, independent of presentation labels.
+  const orgName = 'qdip-sdk-plugin:' + pluginId
+  const candidates = data.orgs.filter((org) => org.name === orgName)
+  if (candidates.length > 1) throw new DeveloperKeyError(409, 'Ambiguous plugin organization')
+  const org = candidates[0] ?? (await core<CoreOrg>('POST', 'organizations', { name: orgName }))
+  if (!org || !UUID.test(org.id) || org.name !== orgName)
+    throw new DeveloperKeyError(502, 'Could not verify plugin organization')
+
+  const expiresAt = new Date(Date.now() + 30 * 86_400_000).toISOString()
+  let created: CoreKey | null = null
   try {
-    const app = await issue(org.id, 'app/' + application + '/' + operation, appScopes, capabilities)
-    keyIds.push(app.id)
-    if (!RAW_KEY.test(app.key ?? '')) throw new DeveloperKeyError(502, 'Invalid application credential')
-    let worker: CoreKey | null = null
-    if (vhv) {
-      worker = await issue(org.id, 'worker/' + application + '/' + operation, WORKER_SCOPES, capabilities)
-      keyIds.push(worker.id)
-      if (!RAW_KEY.test(worker.key ?? '')) throw new DeveloperKeyError(502, 'Invalid Worker credential')
-    }
-
-    const stored = await coreRequest<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
-    if (!Array.isArray(stored)) throw new DeveloperKeyError(502, 'QDIP key policy readback failed')
-    const issued = worker
-      ? ([
-          [app, appScopes],
-          [worker, WORKER_SCOPES],
-        ] as const)
-      : ([[app, appScopes]] as const)
-    for (const [credential, scopes] of issued) {
-      const matches = stored.filter((row) => row.id === credential.id)
-      if (
-        !validPolicy(credential, org.id, credential.name, scopes, capabilities) ||
-        matches.length !== 1 ||
-        !validPolicy(matches[0], org.id, credential.name, scopes, capabilities)
-      ) {
-        throw new DeveloperKeyError(502, 'QDIP key restrictions not verified; keys not released')
-      }
-    }
-    if (route) {
-      return {
-        application: 'RO',
-        capabilities,
-        environment: 'production',
-        app: { key: app.key!, expiresAt: app.expires_at! },
-        worker: null,
-      }
-    }
-    return {
-      application: 'VHV',
-      capability: 'secretary.plan',
+    created = await core<CoreKey>('POST', 'organizations/' + org.id + '/keys', {
+      name: 'access/' + pluginId + '/' + randomUUID(),
       environment: 'production',
-      app: { key: app.key!, expiresAt: app.expires_at! },
-      worker: { key: worker!.key!, expiresAt: worker!.expires_at! },
+      scopes,
+      allowed_capabilities: capabilities,
+      expires_at: expiresAt,
+    })
+    if (!created || !UUID.test(created.id)) throw new DeveloperKeyError(503, 'Key issuance outcome unverified')
+    const stored = await core<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
+    const matches = Array.isArray(stored) ? stored.filter((k) => k.id === created!.id) : []
+    const valid = (key: CoreKey) =>
+      key.org_id === org.id &&
+      key.name === created!.name &&
+      key.environment === 'production' &&
+      exact(key.scopes, scopes) &&
+      exact(key.allowed_capabilities, capabilities) &&
+      key.revoked_at === null &&
+      Date.parse(key.expires_at ?? '') - Date.now() > 29 * 86_400_000 &&
+      Date.parse(key.expires_at ?? '') - Date.now() <= 31 * 86_400_000
+    if (!RAW_KEY.test(created.key ?? '') || !valid(created) || matches.length !== 1 || !valid(matches[0]))
+      throw new DeveloperKeyError(502, 'Core failed scoped key attestation')
+    return {
+      pluginId,
+      key: created.key!,
+      keyId: created.id,
+      expiresAt: created.expires_at!,
+      capabilities,
+      role,
     }
   } catch {
-    const outcomes = await Promise.all(keyIds.map((id) => revoke(org.id, id)))
-    if (outcomes.some((result) => !result))
-      throw new DeveloperKeyError(503, 'Key creation failed; revocation unverified. Contact administrator before retry')
-    throw new DeveloperKeyError(503, 'Unable to issue verified scoped credentials')
+    if (!created?.id) {
+      throw new DeveloperKeyError(503, 'Key issuance outcome unverified; reconcile keys before retry')
+    }
+    try {
+      await revoke(org.id, created.id)
+    } catch {
+      throw new DeveloperKeyError(503, 'Key issuance failed; revocation unverified')
+    }
+    throw new DeveloperKeyError(503, 'Key issuance failed; new key revoked')
   }
 }

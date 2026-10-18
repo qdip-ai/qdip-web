@@ -1,146 +1,236 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
-import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
-type DeveloperKeyResponse = {
-  application: 'VHV' | 'RO'
-  capability?: string
-  capabilities?: string[]
-  environment: 'production'
-  app: { key: string; expiresAt: string }
-  worker: { key: string; expiresAt: string } | null
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import type { Locale } from '@/lib/observatory-i18n'
+
+type ConnectedKey = {
+  id: string
+  orgId: string
+  role: 'execute' | 'worker'
+  expiresAt: string
+  capabilities: string[]
+}
+type Plugin = {
+  id: string
+  label: string
+  capabilities: string[]
+  registered: boolean
+  enabled: boolean
+  keys: ConnectedKey[]
+}
+type Inventory = { available: Plugin[]; connected: Plugin[] }
+type Issued = {
+  pluginId: string
+  key: string
+  keyId: string
+  role: 'execute' | 'worker'
+  expiresAt: string
+  capabilities: string[]
 }
 
-const copy = {
+const translations = {
   uk: {
-    title: 'Підключення застосунку до QDIP',
-    application: 'Застосунок',
-    ro: 'Route Optimizer (RO)',
-    vhv: 'VHV — Decision Assistant',
-    roIntro:
-      'Створіть окремий ключ для RO з дозволами на оптимізацію за адресами та координатами. Другий ключ Worker не потрібен.',
-    roCreate: 'Створити ключ для RO',
-    roApp: 'Ключ застосунку Route Optimizer',
-    roHint:
-      'Використовуйте лише у backend-застосунку як QDIP_ROUTE_ORG_API_KEY. Дозвіл: plugins:execute; тільки дві можливості RO.',
-    roReady:
-      'Збережіть ключ у backend, який викликає @qdip/client, та налаштуйте приватний URL Route Worker. Це ще не публікація плагіна в каталозі.',
-    intro:
-      'Створіть два обмежені ключі: один для VHV через TypeScript SDK, другий — для реєстрації Python Worker. Організації існують тільки всередині QDIP.',
-    create: 'Створити ключі для VHV',
+    title: 'Ключі та підключення плагінів',
+    description:
+      'Виберіть будь-який зареєстрований плагін або підготуйте ключ для нового. Ключ обмежений обраними можливостями.',
+    available: 'Доступні для підключення',
+    connected: 'Ключі вже видано',
+    emptyAvailable: 'Усі доступні плагіни мають активні ключі.',
+    emptyConnected: 'Активних ключів поки немає.',
+    loading: 'Завантаження каталогу…',
+    error: 'Не вдалося завантажити каталог і ключі QDIP.',
+    select: 'Плагін',
+    capabilities: 'Дозволені можливості',
+    role: 'Тип ключа',
+    execute: 'Виклик плагіна',
+    worker: 'Реєстрація Worker',
+    custom: 'Плагін ще не зареєстрований',
+    customId: 'ID плагіна',
+    customCaps: 'Capability ID (через кому або з нового рядка)',
+    customHint:
+      'Для нового SDK Worker спершу видайте ключ реєстрації, потім зареєструйте Manifest через SDK. Ключ сам не встановлює плагін.',
+    create: 'Згенерувати ключ',
     creating: 'Створення…',
-    app: 'Ключ застосунку VHV',
-    worker: 'Ключ Worker',
-    appHint: 'Railway → @secretary/api → QDIP_API_KEY. Дозволи: plugins:read + plugins:execute.',
-    workerHint: 'Railway → vhv-qdip-secretary-plan-worker → QDIP_REMOTE_API_KEY. Дозвіл: plugins:register.',
-    once: 'Ключі відображаються лише один раз. Збережіть їх у відповідних Railway Variables, не в GitHub, браузерному коді чи Observatory.',
-    ready: 'Після запуску Worker відкрийте керування плагінами, виберіть зареєстрований secretary і опублікуйте його.',
-    publish: 'Перейти до публікації плагіна',
-    copy: 'Копіювати',
+    copy: 'Копіювати ключ',
     copied: 'Скопійовано',
-    error: 'Не вдалося створити ключі. Перевірте права адміністратора й версію QDIP Core.',
-    warning: 'Повторне створення випускає нові ключі; старі не відкликаються автоматично.',
+    once: 'Новий ключ показується один раз. Збережіть його лише на сервері застосунку або Worker, ніколи в браузерному коді.',
+    cancel: 'Закрити',
+    revoke: 'Відкликати',
+    revokeConfirm: 'Відкликати ключ? Застосунок може втратити доступ.',
+    scope: 'Тип',
+    expiry: 'Діє до',
+    keyActive: 'Активний ключ',
+    registered: 'Зареєстровано в Core',
+    pending: 'Маніфест ще не зареєстровано',
+    warning: 'Наявність ключа не підтверджує, що Worker запущений. Стан виконання перевіряється окремо.',
   },
   en: {
-    title: 'Connect an application to QDIP',
-    application: 'Application',
-    ro: 'Route Optimizer (RO)',
-    vhv: 'VHV — Decision Assistant',
-    roIntro:
-      'Create a dedicated RO key for address and coordinate routing. No separate Worker registration key is needed.',
-    roCreate: 'Create RO key',
-    roApp: 'Route Optimizer application key',
-    roHint:
-      'Use only in your server-side caller as QDIP_ROUTE_ORG_API_KEY. plugins:execute with only the two RO capabilities.',
-    roReady:
-      'Put the key in your backend calling @qdip/client and configure the private Route Worker URL. This does not publish the plugin.',
-    intro:
-      'Create two restricted keys: one for the VHV TypeScript SDK and another for Python Worker registration. Organization isolation is internal to QDIP.',
-    create: 'Create VHV keys',
+    title: 'Plugin connections and keys',
+    description:
+      'Choose any registered plugin, or bootstrap a new one. Each key is restricted to selected capabilities.',
+    available: 'Available to connect',
+    connected: 'Credentials issued',
+    emptyAvailable: 'All available plugins already have active keys.',
+    emptyConnected: 'No active credentials yet.',
+    loading: 'Loading catalog…',
+    error: 'Could not load QDIP catalog and keys.',
+    select: 'Plugin',
+    capabilities: 'Allowed capabilities',
+    role: 'Key purpose',
+    execute: 'Invoke plugin',
+    worker: 'Register Worker',
+    custom: 'Plugin not yet registered',
+    customId: 'Plugin ID',
+    customCaps: 'Capability IDs (comma or newline separated)',
+    customHint:
+      'For a new SDK Worker, create a registration key and register its Manifest with the SDK. A key alone does not install a plugin.',
+    create: 'Generate key',
     creating: 'Creating…',
-    app: 'VHV application key',
-    worker: 'Worker key',
-    appHint: 'Railway → @secretary/api → QDIP_API_KEY. Permissions: plugins:read + plugins:execute.',
-    workerHint: 'Railway → vhv-qdip-secretary-plan-worker → QDIP_REMOTE_API_KEY. Permission: plugins:register.',
-    once: 'These keys appear only once. Save them as Railway Variables, never in GitHub, browser code, or Observatory.',
-    ready:
-      'Once the Worker is running, open plugin administration, select the registered secretary plugin, and publish it.',
-    publish: 'Open plugin publication',
-    copy: 'Copy',
+    copy: 'Copy key',
     copied: 'Copied',
-    error: 'Unable to create keys. Check administrator access and the QDIP Core release.',
-    warning: 'Creating new keys does not automatically revoke previously issued ones.',
+    once: 'Key shown once. Store only in the server-side application or Worker, never browser code.',
+    cancel: 'Close',
+    revoke: 'Revoke',
+    revokeConfirm: 'Revoke this credential? The application may lose access.',
+    scope: 'Purpose',
+    expiry: 'Expires',
+    keyActive: 'Active credential',
+    registered: 'Registered in Core',
+    pending: 'Manifest not registered',
+    warning: 'An issued key does not prove that the Worker is running; runtime status is separate.',
   },
   pl: {
-    title: 'Połącz aplikację z QDIP',
-    application: 'Aplikacja',
-    ro: 'Route Optimizer (RO)',
-    vhv: 'VHV — Decision Assistant',
-    roIntro: 'Utwórz osobny klucz RO dla adresów i współrzędnych. Drugi klucz rejestracji Workera nie jest potrzebny.',
-    roCreate: 'Utwórz klucz RO',
-    roApp: 'Klucz aplikacji Route Optimizer',
-    roHint: 'Używaj wyłącznie w backendzie jako QDIP_ROUTE_ORG_API_KEY. plugins:execute, tylko dwie możliwości RO.',
-    roReady:
-      'Zapisz klucz w backendzie korzystającym z @qdip/client i ustaw prywatny URL Workera. To nie publikuje wtyczki.',
-    intro:
-      'Utwórz dwa ograniczone klucze: dla TypeScript SDK VHV i do rejestracji Python Workera. Izolacja organizacji pozostaje wyłącznie w QDIP.',
-    create: 'Utwórz klucze VHV',
+    title: 'Połączenia i klucze wtyczek',
+    description:
+      'Wybierz dowolną zarejestrowaną wtyczkę lub przygotuj klucz dla nowej. Klucz ma ograniczone uprawnienia.',
+    available: 'Dostępne do podłączenia',
+    connected: 'Wydane klucze',
+    emptyAvailable: 'Wszystkie dostępne wtyczki mają już aktywne klucze.',
+    emptyConnected: 'Brak aktywnych kluczy.',
+    loading: 'Ładowanie katalogu…',
+    error: 'Nie udało się pobrać katalogu i kluczy QDIP.',
+    select: 'Wtyczka',
+    capabilities: 'Dozwolone możliwości',
+    role: 'Rodzaj klucza',
+    execute: 'Wywołanie wtyczki',
+    worker: 'Rejestracja Workera',
+    custom: 'Wtyczka nie jest jeszcze zarejestrowana',
+    customId: 'ID wtyczki',
+    customCaps: 'Capability ID (rozdzielone przecinkiem lub nową linią)',
+    customHint:
+      'Dla nowego SDK Workera najpierw utwórz klucz rejestracji, potem zarejestruj Manifest przez SDK. Klucz nie instaluje wtyczki.',
+    create: 'Wygeneruj klucz',
     creating: 'Tworzenie…',
-    app: 'Klucz aplikacji VHV',
-    worker: 'Klucz Workera',
-    appHint: 'Railway → @secretary/api → QDIP_API_KEY. Uprawnienia: plugins:read + plugins:execute.',
-    workerHint: 'Railway → vhv-qdip-secretary-plan-worker → QDIP_REMOTE_API_KEY. Uprawnienie: plugins:register.',
-    once: 'Klucze są widoczne tylko raz. Zapisz je jako Railway Variables, nigdy w GitHub, kodzie przeglądarki ani Observatory.',
-    ready:
-      'Po uruchomieniu Workera otwórz zarządzanie wtyczkami, wybierz zarejestrowany plugin secretary i go opublikuj.',
-    publish: 'Przejdź do publikacji',
-    copy: 'Kopiuj',
+    copy: 'Kopiuj klucz',
     copied: 'Skopiowano',
-    error: 'Nie można utworzyć kluczy. Sprawdź uprawnienia administratora i wersję QDIP Core.',
-    warning: 'Nowe klucze nie unieważniają automatycznie poprzednich.',
+    once: 'Klucz jest widoczny tylko raz. Przechowuj go wyłącznie w backendzie lub Workerze.',
+    cancel: 'Zamknij',
+    revoke: 'Unieważnij',
+    revokeConfirm: 'Unieważnić klucz? Aplikacja może utracić dostęp.',
+    scope: 'Rodzaj',
+    expiry: 'Ważny do',
+    keyActive: 'Aktywny klucz',
+    registered: 'Zarejestrowano w Core',
+    pending: 'Manifest nie jest zarejestrowany',
+    warning: 'Wydanie klucza nie oznacza, że Worker działa. To osobny status.',
   },
 } as const
 
+const endpoint = '/api/observatory/admin/applications'
+
+async function send<T>(method: 'GET' | 'POST' | 'DELETE', body?: object): Promise<T> {
+  const response = await fetch(endpoint, {
+    method,
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data: unknown = await response.json()
+  if (!response.ok) {
+    const reason =
+      data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
+        ? data.error
+        : 'Request failed'
+    throw new Error(reason)
+  }
+  return data as T
+}
+
 export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
-  const t = copy[locale]
-  const [application, setApplication] = useState<'VHV' | 'RO'>('VHV')
-  const [keys, setKeys] = useState<DeveloperKeyResponse | null>(null)
+  const t = translations[locale]
+  const [inventory, setInventory] = useState<Inventory | null>(null)
+  const [selectedId, setSelectedId] = useState('')
+  const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([])
+  const [manual, setManual] = useState(false)
+  const [manualId, setManualId] = useState('')
+  const [manualCapabilities, setManualCapabilities] = useState('')
+  const [role, setRole] = useState<'execute' | 'worker'>('execute')
+  const [issued, setIssued] = useState<Issued | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const [copied, setCopied] = useState<'app' | 'worker' | null>(null)
+
+  const load = useCallback(async () => {
+    const result = await send<Inventory>('GET')
+    setInventory(result)
+    return result
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void send<Inventory>('GET')
+      .then((result) => {
+        if (!active) return
+        setInventory(result)
+        if (result.available.length) {
+          setSelectedId(result.available[0].id)
+          setSelectedCapabilities(result.available[0].capabilities)
+        }
+      })
+      .catch(() => {
+        if (active) setError(t.error)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [load, t.error])
+
+  const selected = inventory?.available.find((p) => p.id === selectedId)
+  const allowed = manual
+    ? [
+        ...new Set(
+          manualCapabilities
+            .split(/[,\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        ),
+      ]
+    : selectedCapabilities
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setKeys(null)
-    setCopied(null)
     setError('')
+    setIssued(null)
     setPending(true)
     try {
-      const response = await fetch('/api/observatory/admin/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        cache: 'no-store',
-        body: JSON.stringify({
-          application,
-          capability: application === 'VHV' ? 'secretary.plan' : 'route-optimizer.customer-address-vrp.v1',
-        }),
+      const output = await send<Issued>('POST', {
+        pluginId: manual ? manualId.trim() : selectedId,
+        capabilities: allowed,
+        role,
+        manual,
       })
-      const data: unknown = await response.json()
-      if (!response.ok || !data || typeof data !== 'object' || !('app' in data) || !('worker' in data))
-        throw new Error(
-          data && typeof data === 'object' && 'error' in data && typeof data.error === 'string' ? data.error : t.error
-        )
-      const value = data as DeveloperKeyResponse
-      if (
-        value.application !== application ||
-        typeof value.app?.key !== 'string' ||
-        (application === 'VHV' && typeof value.worker?.key !== 'string') ||
-        (application === 'RO' &&
-          (value.worker !== null || !Array.isArray(value.capabilities) || value.capabilities.length !== 2))
-      )
-        throw new Error(t.error)
-      setKeys(value)
+      if (!output.key || !output.keyId) throw new Error(t.error)
+      setIssued(output)
+      setCopied(false)
+      const result = await load()
+      const next = result.available[0]
+      setSelectedId(next?.id ?? '')
+      setSelectedCapabilities(next?.capabilities ?? [])
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t.error)
     } finally {
@@ -148,12 +238,25 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
     }
   }
 
-  async function copyKey(type: 'app' | 'worker') {
-    const value = keys?.[type]?.key
-    if (!value) return
+  async function revoke(key: ConnectedKey) {
+    if (!window.confirm(t.revokeConfirm)) return
+    setPending(true)
+    setError('')
     try {
-      await navigator.clipboard.writeText(value)
-      setCopied(type)
+      await send('DELETE', { orgId: key.orgId, keyId: key.id })
+      await load()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t.error)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function copy() {
+    if (!issued) return
+    try {
+      await navigator.clipboard.writeText(issued.key)
+      setCopied(true)
     } catch {
       setError(t.error)
     }
@@ -162,92 +265,181 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 text-slate-100 md:px-8 md:py-12">
       <p className="text-xs uppercase tracking-widest text-slate-400">QDIP / Observatory / SDK</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t.title}</h1>
-      <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">{application === 'VHV' ? t.intro : t.roIntro}</p>
-      <section className="mt-8 rounded-xl border border-white/15 bg-slate-900 p-5 sm:p-7">
-        <form className="mt-6" onSubmit={(event) => void create(event)}>
-          <label htmlFor="application" className="mb-2 block text-sm font-medium text-slate-200">
-            {t.application}
-          </label>
-          <select
-            id="application"
-            value={application}
-            disabled={pending}
-            onChange={(event) => {
-              setApplication(event.target.value as 'VHV' | 'RO')
-              setKeys(null)
-              setError('')
-              setCopied(null)
-            }}
-            className="mb-5 min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 text-sm text-slate-100"
-          >
-            <option value="VHV">{t.vhv}</option>
-            <option value="RO">{t.ro}</option>
-          </select>
-          <p className="mb-4 text-sm text-slate-300">
-            {application === 'VHV'
-              ? 'secretary.plan · production'
-              : 'route-optimizer.customer-coordinate-vrp.v1 + route-optimizer.customer-address-vrp.v1 · production'}
-          </p>
-          <button
-            type="submit"
-            disabled={pending}
-            className="min-h-11 rounded-lg bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 disabled:opacity-50"
-          >
-            {pending ? t.creating : application === 'VHV' ? t.create : t.roCreate}
-          </button>
-        </form>
-        <p className="mt-4 text-sm text-slate-400">{t.warning}</p>
-        {error && (
-          <p role="alert" className="mt-4 text-sm text-red-300">
-            {error}
-          </p>
-        )}
-      </section>
-      {keys && (
-        <section className="mt-8 rounded-xl border border-white/20 bg-slate-900 p-5 sm:p-7">
-          <p role="status" className="mb-6 text-sm text-slate-300">
-            {t.once}
-          </p>
-          {(keys.worker ? (['app', 'worker'] as const) : (['app'] as const)).map((type) => (
-            <div key={type} className="mb-6 grid min-w-0 gap-3">
-              <h2 className="text-lg font-semibold">
-                {type === 'app' ? (keys.application === 'RO' ? t.roApp : t.app) : t.worker}
-              </h2>
-              <p className="text-sm text-slate-400">
-                {type === 'app' ? (keys.application === 'RO' ? t.roHint : t.appHint) : t.workerHint}
-              </p>
-              <div className="flex min-w-0 flex-wrap gap-3">
+      <h1 className="mt-3 text-3xl font-semibold">{t.title}</h1>
+      <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{t.description}</p>
+
+      {loading ? <p className="mt-6 text-sm text-slate-400">{t.loading}</p> : null}
+      {error ? (
+        <p role="alert" className="mt-6 text-sm text-red-300">
+          {error}
+        </p>
+      ) : null}
+
+      {inventory && (
+        <>
+          <section className="mt-8 rounded-xl border border-white/15 bg-slate-900 p-5 sm:p-7">
+            <h2 className="text-lg font-semibold">{t.available}</h2>
+            {!inventory.available.length && !manual && (
+              <p className="mt-3 text-sm text-slate-400">{t.emptyAvailable}</p>
+            )}
+            <form className="mt-5 grid gap-4" onSubmit={(event) => void create(event)}>
+              {!manual && !!inventory.available.length && (
+                <>
+                  <label className="grid gap-2 text-sm">
+                    {t.select}
+                    <select
+                      value={selectedId}
+                      onChange={(event) => {
+                        const plugin = inventory.available.find((p) => p.id === event.target.value)
+                        setSelectedId(event.target.value)
+                        setSelectedCapabilities(plugin?.capabilities ?? [])
+                      }}
+                      className="min-h-11 rounded-lg border border-white/20 bg-slate-950 px-3"
+                    >
+                      {inventory.available.map((plugin) => (
+                        <option key={plugin.id} value={plugin.id}>
+                          {plugin.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <fieldset className="grid gap-2">
+                    <legend className="mb-2 text-sm">{t.capabilities}</legend>
+                    {selected?.capabilities.map((cap) => (
+                      <label key={cap} className="flex min-w-0 items-start gap-3 text-sm text-slate-300">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={selectedCapabilities.includes(cap)}
+                          onChange={(event) =>
+                            setSelectedCapabilities((old) =>
+                              event.target.checked ? [...old, cap] : old.filter((c) => c !== cap)
+                            )
+                          }
+                        />
+                        <span className="break-all">{cap}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                </>
+              )}
+              <label className="flex items-center gap-3 text-sm text-slate-300">
+                <input type="checkbox" checked={manual} onChange={(event) => setManual(event.target.checked)} />
+                {t.custom}
+              </label>
+              {manual && (
+                <>
+                  <p className="text-sm text-slate-400">{t.customHint}</p>
+                  <label className="grid gap-2 text-sm">
+                    {t.customId}
+                    <input
+                      value={manualId}
+                      onChange={(event) => setManualId(event.target.value)}
+                      autoComplete="off"
+                      className="min-h-11 rounded-lg border border-white/20 bg-slate-950 px-3"
+                    />
+                  </label>
+                  <label className="grid gap-2 text-sm">
+                    {t.customCaps}
+                    <textarea
+                      value={manualCapabilities}
+                      onChange={(event) => setManualCapabilities(event.target.value)}
+                      rows={2}
+                      className="rounded-lg border border-white/20 bg-slate-950 px-3 py-2"
+                    />
+                  </label>
+                </>
+              )}
+              <label className="grid gap-2 text-sm">
+                {t.role}
+                <select
+                  value={role}
+                  onChange={(event) => setRole(event.target.value as 'execute' | 'worker')}
+                  className="min-h-11 rounded-lg border border-white/20 bg-slate-950 px-3"
+                >
+                  <option value="execute">{t.execute}</option>
+                  <option value="worker">{t.worker}</option>
+                </select>
+              </label>
+              <button
+                type="submit"
+                disabled={pending || allowed.length === 0 || (!manual && !selected) || (manual && !manualId.trim())}
+                className="min-h-11 justify-self-start rounded-lg bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 disabled:opacity-40"
+              >
+                {pending ? t.creating : t.create}
+              </button>
+            </form>
+          </section>
+
+          {issued && (
+            <section className="mt-6 rounded-xl border border-white/25 bg-slate-900 p-5 sm:p-7">
+              <h2 className="text-lg font-semibold">{issued.pluginId}</h2>
+              <p className="mt-2 text-sm text-slate-300">{t.once}</p>
+              <div className="mt-4 flex flex-wrap gap-3">
                 <input
                   readOnly
-                  aria-label={type === 'app' ? t.app : t.worker}
-                  value={keys[type]?.key ?? ''}
                   type="password"
-                  className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/20 bg-slate-950 px-3 font-mono text-sm"
+                  aria-label={t.keyActive}
+                  value={issued.key}
+                  className="min-h-11 min-w-0 flex-1 rounded-lg border border-white/20 bg-slate-950 px-3 font-mono"
                 />
                 <button
                   type="button"
-                  onClick={() => void copyKey(type)}
-                  className="min-h-11 rounded-lg border border-white/25 px-4 text-sm"
+                  onClick={() => void copy()}
+                  className="min-h-11 rounded-lg border border-white/20 px-4 text-sm"
                 >
-                  {copied === type ? t.copied : t.copy}
+                  {copied ? t.copied : t.copy}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIssued(null)}
+                  className="min-h-11 rounded-lg border border-white/20 px-4 text-sm"
+                >
+                  {t.cancel}
                 </button>
               </div>
+            </section>
+          )}
+
+          <section className="mt-8">
+            <h2 className="text-lg font-semibold">{t.connected}</h2>
+            <p className="mt-2 text-sm text-slate-400">{t.warning}</p>
+            {!inventory.connected.length && <p className="mt-5 text-sm text-slate-400">{t.emptyConnected}</p>}
+            <div className="mt-5 grid gap-3">
+              {inventory.connected.map((plugin) => (
+                <article key={plugin.id} className="rounded-xl border border-white/15 bg-slate-900 p-5">
+                  <h3 className="text-base font-semibold">{plugin.label}</h3>
+                  <p className="mt-1 text-xs text-slate-400">{plugin.registered ? t.registered : t.pending}</p>
+                  {plugin.keys.map((key) => (
+                    <div
+                      key={key.id}
+                      className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4"
+                    >
+                      <div className="min-w-0 text-sm">
+                        <p>
+                          {t.keyActive} · {key.role === 'worker' ? t.worker : t.execute}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {t.expiry}: {new Date(key.expiresAt).toLocaleDateString(locale)}
+                        </p>
+                        <p className="mt-1 break-all text-xs text-slate-500">{key.capabilities.join(', ')}</p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => void revoke(key)}
+                        className="min-h-10 rounded-lg border border-red-400/35 px-4 text-sm text-red-200 disabled:opacity-50"
+                      >
+                        {t.revoke}
+                      </button>
+                    </div>
+                  ))}
+                </article>
+              ))}
             </div>
-          ))}
-        </section>
+          </section>
+        </>
       )}
-      <section className="mt-8 border-t border-white/15 pt-6">
-        <p className="text-sm leading-7 text-slate-300">{application === 'RO' ? t.roReady : t.ready}</p>
-        {application === 'VHV' && (
-          <a
-            href={buildLocalePath('/admin/plugins', locale)}
-            className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-slate-200 underline underline-offset-4"
-          >
-            {t.publish} →
-          </a>
-        )}
-      </section>
     </main>
   )
 }
