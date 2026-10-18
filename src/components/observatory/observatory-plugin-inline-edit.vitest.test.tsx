@@ -260,12 +260,22 @@ describe('Observatory inline plugin editing', () => {
 
   it('offers capability selection only when SDK registers multiple capabilities', async () => {
     const multi = { ...secretary, capabilities: ['secretary.plan', 'secretary.check'] }
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(reply({ plugins: [multi] }))
       .mockResolvedValueOnce(reply({ updated: true }))
-      .mockResolvedValueOnce(reply({ plugins: [{
-        ...multi, capability_id: 'secretary.check', published: true, published_version: '0.1.0',
-      }] }))
+      .mockResolvedValueOnce(
+        reply({
+          plugins: [
+            {
+              ...multi,
+              capability_id: 'secretary.check',
+              published: true,
+              published_version: '0.1.0',
+            },
+          ],
+        })
+      )
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
     await loaded()
@@ -281,7 +291,8 @@ describe('Observatory inline plugin editing', () => {
 
   it('keeps an offline but published plugin visible as published and allows unpublishing', async () => {
     const offline = { ...secretary, published: true, published_version: '0.1.0', enabled: false }
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(reply({ plugins: [offline] }))
       .mockResolvedValueOnce(reply({ updated: true }))
       .mockResolvedValueOnce(reply({ plugins: [{ ...offline, published: false, published_version: null }] }))
