@@ -234,8 +234,8 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
   for (const record of active) {
     // Existing catalog items already own this credential. Do not create a
     // duplicate legacy-organization card such as "vhv" next to "VHV".
-    const alreadyShown = [...items.values()].some(p =>
-      p.keys.some(k => k.id === record.id && k.orgId === record.orgId)
+    const alreadyShown = [...items.values()].some((p) =>
+      p.keys.some((k) => k.id === record.id && k.orgId === record.orgId)
     )
     if (alreadyShown) continue
     const match = /^access\/([A-Za-z0-9_.-]{1,128})\//.exec(record.name)
