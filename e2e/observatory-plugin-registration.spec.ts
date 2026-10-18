@@ -58,3 +58,53 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
   )
   await expect(card.getByText('Версія: 1.0.0')).toBeVisible()
 })
+
+
+test('375px admin editor has no horizontal overflow and hides the singleton SDK capability selector', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.context().clearCookies()
+  await page.context().addCookies(oidcTestCookies(['observatory_admin']))
+  await page.route('**/api/observatory/admin/plugins', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        plugins: [{
+          name: 'mobile-secretary',
+          plugin_id: 'secretary',
+          source: 'remote',
+          version: '0.1.0',
+          description: 'A planning plugin for a personal assistant',
+          enabled: true,
+          capabilities: ['secretary.plan'],
+          published: false,
+          published_version: null,
+          capability_id: 'secretary.plan',
+          slug: 'secretary',
+          revision: 0,
+          ui: { label: 'VHV — Decision Assistant', category: 'Productivity' },
+        }],
+      }),
+    })
+  })
+
+  await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
+  const card = page.locator('article').filter({ hasText: 'VHV — Decision Assistant' })
+  await card.getByRole('button', { name: 'Редагувати' }).click()
+  await expect(card.getByRole('combobox', { name: 'Можливість SDK' })).toHaveCount(0)
+
+  for (const control of [
+    card.getByRole('textbox', { name: 'Назва' }),
+    card.getByRole('textbox', { name: 'Коротка адреса (URL)' }),
+    card.getByRole('textbox', { name: 'Опис' }),
+    card.getByRole('combobox', { name: 'Категорія' }),
+    card.getByRole('button', { name: 'Зберегти й опублікувати' }),
+  ]) {
+    await expect(control).toBeVisible()
+    const rect = await control.boundingBox()
+    expect(rect).not.toBeNull()
+    expect(rect!.x).toBeGreaterThanOrEqual(0)
+    expect(rect!.x + rect!.width).toBeLessThanOrEqual(375)
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+})
