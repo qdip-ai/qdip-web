@@ -1,10 +1,5 @@
 import type { PluginCatalogEntry } from '@qdip/client'
 
-type LaunchCandidate = Pick<
-  PluginCatalogEntry,
-  'name' | 'plugin_id' | 'source' | 'published' | 'version' | 'published_version' | 'capability_id' | 'capabilities'
->
-
 export type PluginLaunchLink = Readonly<{ href: string; application: string }>
 
 /**
@@ -12,7 +7,7 @@ export type PluginLaunchLink = Readonly<{ href: string; application: string }>
  * SDK-registered plugins cannot inject arbitrary outbound URLs or impersonate
  * another application's call-to-action through a display name or public slug.
  */
-export function launchLinkForPlugin(plugin: LaunchCandidate): PluginLaunchLink | null {
+export function launchLinkForPlugin(plugin: PluginCatalogEntry): PluginLaunchLink | null {
   if (
     plugin.name === 'remote-04e7c87d7b72111c-secretary' &&
     plugin.plugin_id === 'secretary' &&
