@@ -5,6 +5,7 @@ import { LoaderCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/design-system'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import styles from './plugin-experience.module.css'
+import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
 
 type Row = {
   name: string
@@ -30,7 +31,7 @@ type FormFields = {
   capability_id: string
   slug: string
 }
-const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Other']
+const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Productivity', 'Other']
 const copy = {
   uk: {
     title: 'Керування плагінами',
@@ -573,7 +574,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           >
                             {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
                               (category) => (
-                                <option key={category}>{category}</option>
+                                <option key={category} value={category}>{pluginCategoryLabel(category, locale)}</option>
                               )
                             )}
                           </select>
