@@ -41,6 +41,7 @@ describe('published plugin directory', () => {
     ...meta,
     name: 'route-optimizer',
     source: 'remote',
+    security: { state: 'approved', approval_source: 'trusted_first_party_manual' },
     version: '2.0',
     description: 'Delivery route optimization',
     ui: { label: 'Route Optimizer', category: 'Operations' },
@@ -58,6 +59,11 @@ describe('published plugin directory', () => {
   })
   it('hides explicitly disabled embedded plugins from the public directory', () => {
     expect(publishedPluginEntries([{ ...approved, source: 'embedded', enabled: false }])).toEqual([])
+  })
+  it('excludes unapproved and permanently revoked remote plugins', () => {
+    expect(publishedPluginEntries([{ ...approved, security: { state: 'pending_review' } }])).toEqual([])
+    expect(publishedPluginEntries([{ ...approved, security: { state: 'quarantined' } }])).toEqual([])
+    expect(publishedPluginEntries([{ ...approved, security: { state: 'revoked' } }])).toEqual([])
   })
   it('excludes unpublished and stale catalog entries', () => {
     expect(publishedPluginEntries([{ ...approved, published: false }])).toEqual([])
