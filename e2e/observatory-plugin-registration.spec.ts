@@ -56,5 +56,5 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
     'href',
     '/uk/plugins/delivery-routes'
   )
-  await expect(page.getByText('Стандартна сторінка каталогу')).toBeVisible()
+  await expect(card.getByText('Версія: 1.0.0')).toBeVisible()
 })
