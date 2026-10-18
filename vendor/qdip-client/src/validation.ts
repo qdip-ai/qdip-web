@@ -195,7 +195,7 @@ export function parsePluginSecurityState(input: unknown): import('./types.js').P
     };
   }
   return {
-    state: v.state,
+    state: v.state as import('./types.js').PluginSecurityState['state'],
     ...(v.reason !== undefined ? { reason: v.reason as string | null } : {}),
     ...(v.review_reference !== undefined ? { review_reference: v.review_reference as string | null } : {}),
     ...(v.approval_source !== undefined ? { approval_source: v.approval_source as string | null } : {}),
