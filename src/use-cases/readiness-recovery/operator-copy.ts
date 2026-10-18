@@ -67,7 +67,7 @@ export const rrOperatorCopy: Record<Locale, Record<string, string>> = {
     noResult: 'No Kernel result available.',
     requestMismatch: 'Kernel response was not valid for the submitted execution.',
     submissionRecovered: 'Saved execution confirmed after lost acknowledgement.',
-    submissionUncertain: 'Write status unknown. Do not submit again. Inspect the execution ID after Core recovers.'
+    submissionUncertain: 'Write status unknown. Do not submit again. Inspect the execution ID after Core recovers.',
     restricted: 'Restricted single-organization reference access. Backend credentials remain on the server.',
   },
   uk: {
@@ -135,7 +135,7 @@ export const rrOperatorCopy: Record<Locale, Record<string, string>> = {
     noResult: 'Результату Kernel ще немає.',
     requestMismatch: 'Відповідь Kernel не відповідає створеному виконанню.',
     submissionRecovered: 'Збережене виконання підтверджено після втрати відповіді.',
-    submissionUncertain: 'Статус запису невідомий. Не надсилайте повторно. Перевірте execution ID після відновлення Core.'
+    submissionUncertain: 'Статус запису невідомий. Не надсилайте повторно. Перевірте execution ID після відновлення Core.',
     restricted: 'Обмежений референсний доступ для однієї організації. Ключі бекенду не передаються браузеру.',
   },
   pl: {
@@ -202,7 +202,7 @@ export const rrOperatorCopy: Record<Locale, Record<string, string>> = {
     noResult: 'Brak wyniku Kernel.',
     requestMismatch: 'Odpowiedź Kernel nie odpowiada wysłanemu wykonaniu.',
     submissionRecovered: 'Potwierdzono zapisane wykonanie po utracie odpowiedzi.',
-    submissionUncertain: 'Status zapisu nieznany. Nie wysyłaj ponownie. Sprawdź ID wykonania po przywróceniu Core.'
+    submissionUncertain: 'Status zapisu nieznany. Nie wysyłaj ponownie. Sprawdź ID wykonania po przywróceniu Core.',
     restricted: 'Ograniczony dostęp referencyjny jednej organizacji. Klucze serwera nie trafiają do przeglądarki.',
   },
 }
