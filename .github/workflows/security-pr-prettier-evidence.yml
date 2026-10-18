@@ -1,0 +1,33 @@
+name: Temporary security PR formatting evidence
+on:
+  push:
+    branches:
+      - feat/observatory-plugin-security-20261018
+permissions:
+  contents: read
+jobs:
+  emit-formatted-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format touched security files and emit exact output for review
+        run: |
+          pnpm exec prettier --write 'e2e/observatory-plugin-security.spec.ts' 'src/components/observatory/observatory-plugin-inline-edit.vitest.test.tsx' 'src/components/observatory/observatory-plugin-admin.tsx'
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const names = [
+            'e2e/observatory-plugin-security.spec.ts',
+            'src/components/observatory/observatory-plugin-inline-edit.vitest.test.tsx',
+            'src/components/observatory/observatory-plugin-admin.tsx',
+          ]
+          for (const name of names) {
+            console.log('QDIP_FORMATTED_JSON:' + JSON.stringify({path:name,content:fs.readFileSync(name,'utf8')}))
+          }
+          NODE
