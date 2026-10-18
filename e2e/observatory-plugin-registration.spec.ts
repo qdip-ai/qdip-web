@@ -59,8 +59,9 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
   await expect(card.getByText('Версія: 1.0.0')).toBeVisible()
 })
 
-
-test('375px admin editor has no horizontal overflow and hides the singleton SDK capability selector', async ({ page }) => {
+test('375px admin editor has no horizontal overflow and hides the singleton SDK capability selector', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await page.context().clearCookies()
   await page.context().addCookies(oidcTestCookies(['observatory_admin']))
@@ -69,21 +70,23 @@ test('375px admin editor has no horizontal overflow and hides the singleton SDK 
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        plugins: [{
-          name: 'mobile-secretary',
-          plugin_id: 'secretary',
-          source: 'remote',
-          version: '0.1.0',
-          description: 'A planning plugin for a personal assistant',
-          enabled: true,
-          capabilities: ['secretary.plan'],
-          published: false,
-          published_version: null,
-          capability_id: 'secretary.plan',
-          slug: 'secretary',
-          revision: 0,
-          ui: { label: 'VHV — Decision Assistant', category: 'Productivity' },
-        }],
+        plugins: [
+          {
+            name: 'mobile-secretary',
+            plugin_id: 'secretary',
+            source: 'remote',
+            version: '0.1.0',
+            description: 'A planning plugin for a personal assistant',
+            enabled: true,
+            capabilities: ['secretary.plan'],
+            published: false,
+            published_version: null,
+            capability_id: 'secretary.plan',
+            slug: 'secretary',
+            revision: 0,
+            ui: { label: 'VHV — Decision Assistant', category: 'Productivity' },
+          },
+        ],
       }),
     })
   })
