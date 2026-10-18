@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle, RefreshCw } from 'lucide-react'
-import { Badge, Button } from '@/design-system'
+import { Button } from '@/design-system'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
-import { DIP_USE_CASES } from '@/use-cases/registry'
+import styles from './plugin-experience.module.css'
+import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
 
 type Row = {
   name: string
@@ -30,9 +31,10 @@ type FormFields = {
   capability_id: string
   slug: string
 }
-const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Other']
+const categories = ['Operations', 'Optimization', 'Analytics', 'Decision support', 'Productivity', 'Other']
 const copy = {
   uk: {
+    eyebrow: 'QDIP / Обсерваторія / Адміністрування',
     title: 'Керування плагінами',
     subtitle:
       'Плагіни автоматично реєструються через QDIP SDK. Тут можна заповнити опис і керувати публікацією в каталозі.',
@@ -57,7 +59,11 @@ const copy = {
     slugPreview: 'Публічна адреса',
     description: 'Опис',
     category: 'Категорія',
-    capability: 'Можливість',
+    capability: 'Можливість SDK',
+    technical: 'Технічні деталі',
+    registryId: 'Ідентифікатор реєстрації',
+    capabilityHint: 'Визначено розробником через SDK. Це не окрема назва плану.',
+    noDescription: 'Опис поки не додано.',
     version: 'Версія',
     publish: 'Зберегти й опублікувати',
     saveChanges: 'Зберегти зміни',
@@ -87,6 +93,7 @@ const copy = {
     demosHint: 'Ці демонстрації вже реалізовані у Web. Вони не є автоматично встановленими плагінами Core.',
   },
   en: {
+    eyebrow: 'QDIP / Observatory / Admin',
     title: 'Manage plugins',
     subtitle: 'Plugins register automatically through the QDIP SDK. Edit catalog metadata and publication here.',
     refresh: 'Refresh list',
@@ -110,7 +117,11 @@ const copy = {
     slugPreview: 'Public URL',
     description: 'Description',
     category: 'Category',
-    capability: 'Capability',
+    capability: 'SDK capability',
+    technical: 'Technical details',
+    registryId: 'Registry identifier',
+    capabilityHint: 'Declared by the developer through the SDK. It is not a separate plan.',
+    noDescription: 'No description yet.',
     version: 'Version',
     publish: 'Save and publish',
     saveChanges: 'Save changes',
@@ -140,6 +151,7 @@ const copy = {
     demosHint: 'These demos are implemented in Web and are not automatically installed Core plugins.',
   },
   pl: {
+    eyebrow: 'QDIP / Obserwatorium / Administracja',
     title: 'Zarządzanie wtyczkami',
     subtitle: 'Wtyczki rejestrują się automatycznie przez QDIP SDK. Tutaj edytujesz opis i publikację w katalogu.',
     refresh: 'Odśwież listę',
@@ -163,7 +175,11 @@ const copy = {
     slugPreview: 'Adres publiczny',
     description: 'Opis',
     category: 'Kategoria',
-    capability: 'Funkcja',
+    capability: 'Funkcja SDK',
+    technical: 'Szczegóły techniczne',
+    registryId: 'Identyfikator rejestracji',
+    capabilityHint: 'Określona przez dewelopera przez SDK. To nie osobny plan.',
+    noDescription: 'Brak opisu.',
     version: 'Wersja',
     publish: 'Zapisz i opublikuj',
     saveChanges: 'Zapisz zmiany',
@@ -195,8 +211,9 @@ const copy = {
 } as const
 
 function isPublished(row: Row) {
+  // Publication is a catalog state; remote Worker liveness is a separate state.
   return (
-    row.enabled &&
+    (row.enabled || row.source === 'remote') &&
     row.published === true &&
     row.published_version === row.version &&
     typeof row.capability_id === 'string' &&
@@ -208,7 +225,9 @@ function initialFields(row: Row): FormFields {
     display_name: row.ui?.label || row.name,
     description: row.description || '',
     category: row.ui?.category || 'Other',
-    capability_id: row.capability_id || row.capabilities[0] || '',
+    capability_id:
+      (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) ||
+      '',
     slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
   }
 }
@@ -370,271 +389,282 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8 text-slate-100 md:px-8 md:py-12">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300">QDIP / Observatory / Admin</p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t.title}</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">{t.subtitle}</p>
-        </div>
-        <div className="flex flex-col items-start gap-2 sm:items-end">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={pending || refreshing}
-            aria-busy={refreshing}
-            onClick={() => void refresh()}
-          >
-            {refreshing ? (
-              <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <RefreshCw className="mr-2 inline-block h-4 w-4" aria-hidden="true" />
-            )}
-            {refreshing ? t.refreshing : t.refresh}
-          </Button>
-          <div role="status" aria-live="polite" aria-atomic="true" className="text-sm text-slate-300">
-            {refreshing
-              ? t.loading
-              : refreshFailed
-                ? t.failed
-                : refreshResult
-                  ? `${refreshResult.changed === null ? t.refreshed : refreshResult.changed ? t.changed : t.unchanged} · ${t.count}: ${refreshResult.count} · ${t.refreshed}: ${refreshResult.checkedAt.toLocaleTimeString(
-                      locale === 'uk' ? 'uk-UA' : locale === 'pl' ? 'pl-PL' : 'en-GB',
-                      { hour: '2-digit', minute: '2-digit', second: '2-digit' }
-                    )}`
-                  : ''}
+    <main className={styles.page}>
+      <div className={styles.container}>
+        <header className={styles.toolbar}>
+          <div className={styles.hero}>
+            <p className={styles.eyebrow}>{t.eyebrow}</p>
+            <h1 className={styles.title}>{t.title}</h1>
+            <p className={styles.lead}>{t.subtitle}</p>
           </div>
-        </div>
-      </div>
-      {error && (
-        <p role="alert" className="mt-5 rounded-lg border border-rose-500/50 px-4 py-3 text-sm text-rose-300">
-          {error}
-        </p>
-      )}
-
-      {rows?.length === 0 && <p className="mt-6 text-sm text-slate-400">{t.empty}</p>}
-      <section className="mt-8 grid gap-4" aria-label={t.registered}>
-        {sorted.map((row) => {
-          const published = isPublished(row)
-          const demo = DIP_USE_CASES.find(
-            (item) => item.plugin.id === row.name && row.capabilities.includes(item.plugin.capability)
-          )
-          return (
-            <article key={row.name} className="min-w-0 rounded-xl border border-white/15 bg-slate-900 p-4 sm:p-6">
-              <div className="flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:justify-between">
-                <div className="w-full min-w-0 flex-1">
-                  <h3 className="break-words text-lg font-semibold">{row.ui?.label || row.name}</h3>
-                  <p className="mt-1 break-all text-xs text-slate-500">{row.plugin_id || row.name}</p>
-                  {row.description && (
-                    <p className="mt-3 whitespace-pre-line break-words text-sm leading-6 text-slate-400">
-                      {row.description}
+          <div className={styles.toolbarActions}>
+            <Button
+              type="button"
+              variant="secondary"
+              className={styles.control}
+              disabled={pending || refreshing}
+              aria-busy={refreshing}
+              onClick={() => void refresh()}
+            >
+              {refreshing ? (
+                <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw className="mr-2 inline-block h-4 w-4" aria-hidden="true" />
+              )}
+              {refreshing ? t.refreshing : t.refresh}
+            </Button>
+            <div role="status" aria-live="polite" aria-atomic="true" className={styles.note}>
+              {refreshing
+                ? t.loading
+                : refreshFailed
+                  ? t.failed
+                  : refreshResult
+                    ? `${refreshResult.changed === null ? t.refreshed : refreshResult.changed ? t.changed : t.unchanged} · ${t.count}: ${refreshResult.count} · ${t.refreshed}: ${refreshResult.checkedAt.toLocaleTimeString(
+                        locale === 'uk' ? 'uk-UA' : locale === 'pl' ? 'pl-PL' : 'en-GB',
+                        { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+                      )}`
+                    : ''}
+            </div>
+          </div>
+        </header>
+        {error && (
+          <p role="alert" className={styles.error}>
+            {error}
+          </p>
+        )}
+        {rows?.length === 0 && <p className={styles.empty}>{t.empty}</p>}
+        <section className={styles.adminList} aria-label={t.registered}>
+          {sorted.map((row) => {
+            const published = isPublished(row)
+            const offline = !row.enabled
+            return (
+              <article key={row.name} className={`${styles.card} ${styles.adminCard}`}>
+                <div className={styles.adminTop}>
+                  <div className={styles.adminSummary}>
+                    <h3 className={styles.cardTitle}>{row.ui?.label || row.name}</h3>
+                    <p className={styles.description}>{row.description || t.noDescription}</p>
+                    <p className={styles.note} style={{ marginTop: '0.75rem' }}>
+                      {t.version}: {row.version}
                     </p>
+                  </div>
+                  <div className={styles.meta} style={{ marginTop: 0 }}>
+                    <span className={styles.pill} data-kind={published ? 'published' : 'unpublished'}>
+                      {published ? t.published : t.unpublished}
+                    </span>
+                    {offline && (
+                      <span className={styles.pill} data-kind="offline">
+                        {row.source === 'remote' ? t.offline : t.disabled}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className={styles.actionRow}>
+                  <Button
+                    ref={selected === row.name ? editButtonRef : undefined}
+                    type="button"
+                    variant="secondary"
+                    className={styles.control}
+                    disabled={pending}
+                    aria-expanded={selected === row.name}
+                    aria-controls={`editor-${row.name}`}
+                    onClick={() => choose(row)}
+                  >
+                    {selected === row.name ? t.collapse : t.edit}
+                  </Button>
+                  {published && (
+                    <>
+                      <a className={styles.link} href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}>
+                        {t.details} <span aria-hidden="true">→</span>
+                      </a>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className={styles.control}
+                        disabled={pending}
+                        onClick={() => void update(row, false)}
+                      >
+                        {t.hide}
+                      </Button>
+                    </>
                   )}
                 </div>
-                <Badge variant={published ? 'emerald' : 'neutral'}>
-                  {published
-                    ? t.published
-                    : row.enabled
-                      ? t.unpublished
-                      : row.source === 'remote'
-                        ? t.offline
-                        : t.disabled}
-                </Badge>
-              </div>
-              <p className="mt-4 break-words text-xs text-slate-400">
-                {t.version}: {row.version} · {demo ? t.demo : t.generic}
-              </p>
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <Button
-                  ref={selected === row.name ? editButtonRef : undefined}
-                  type="button"
-                  variant="secondary"
-                  disabled={pending}
-                  aria-expanded={selected === row.name}
-                  aria-controls={`editor-${row.name}`}
-                  onClick={() => choose(row)}
-                >
-                  {selected === row.name ? t.collapse : t.edit}
-                </Button>
-                {published && (
-                  <>
-                    <a
-                      className="text-sm font-semibold text-cyan-300"
-                      href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}
-                    >
-                      {t.details} →
-                    </a>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={pending}
-                      onClick={() => void update(row, false)}
-                    >
-                      {t.hide}
-                    </Button>
-                  </>
+                {mutationSuccess?.name === row.name && (
+                  <p ref={confirmationRef} role="status" tabIndex={-1} className={styles.status}>
+                    {mutationSuccess.message}
+                  </p>
                 )}
-              </div>
-              {mutationSuccess?.name === row.name && (
-                <p
-                  ref={confirmationRef}
-                  role="status"
-                  tabIndex={-1}
-                  className="mt-4 text-sm text-emerald-300 outline-none"
-                >
-                  {mutationSuccess.message}
-                </p>
-              )}
-              {mutationError?.name === row.name && (
-                <p role="alert" className="mt-4 text-sm text-rose-300">
-                  {mutationError.message}
-                </p>
-              )}
-              {selected === row.name && (
-                <section
-                  id={`editor-${row.name}`}
-                  className="mt-5 min-w-0 border-t border-white/15 pt-5"
-                  aria-labelledby={`editor-title-${row.name}`}
-                >
-                  <h4
-                    ref={editorTitleRef}
-                    tabIndex={-1}
-                    id={`editor-title-${row.name}`}
-                    className="mb-4 text-base font-semibold outline-none"
+                {mutationError?.name === row.name && (
+                  <p role="alert" className={styles.error}>
+                    {mutationError.message}
+                  </p>
+                )}
+                {selected === row.name && (
+                  <section
+                    id={`editor-${row.name}`}
+                    className={styles.editor}
+                    aria-labelledby={`editor-title-${row.name}`}
                   >
-                    {t.editing}: {row.ui?.label || row.plugin_id || row.name}
-                  </h4>
-                  <form
-                    className="grid gap-4"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      if (row.enabled && fields.capability_id) void update(row, true, fields)
-                    }}
-                  >
-                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                      {t.name}
-                      <input
-                        className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                        value={fields.display_name}
-                        required
-                        minLength={2}
-                        maxLength={120}
-                        onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
-                      />
-                    </label>
-                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                      {t.slug}
-                      <input
-                        aria-label={t.slug}
-                        className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm text-slate-100"
-                        value={fields.slug}
-                        type="text"
-                        placeholder="secretary"
-                        autoCapitalize="none"
-                        autoComplete="off"
-                        spellCheck={false}
-                        required
-                        minLength={2}
-                        maxLength={64}
-                        pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
-                        onChange={(event) => setFields((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))}
-                      />
-                      <span className="text-xs font-normal text-slate-400">{t.slugHint}</span>
-                      {fields.slug && (
-                        <span className="min-w-0 break-all text-xs font-normal text-slate-300">
-                          {t.slugPreview}: /{locale}/plugins/{fields.slug}
-                        </span>
-                      )}
-                    </label>
-                    <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                      {t.description}
-                      <textarea
-                        className="min-h-28 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                        value={fields.description}
-                        rows={3}
-                        maxLength={2000}
-                        onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
-                      />
-                    </label>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                        {t.category}
-                        <select
-                          className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                          value={fields.category}
-                          onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
-                        >
-                          {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
-                            (category) => (
-                              <option key={category}>{category}</option>
-                            )
-                          )}
-                        </select>
+                    <h4
+                      ref={editorTitleRef}
+                      tabIndex={-1}
+                      id={`editor-title-${row.name}`}
+                      className={styles.formHeading}
+                    >
+                      {t.editing}: {row.ui?.label || row.plugin_id || row.name}
+                    </h4>
+                    <form
+                      className={styles.form}
+                      style={{ marginTop: '1.2rem' }}
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        if (row.enabled && fields.capability_id) void update(row, true, fields)
+                      }}
+                    >
+                      <label className={styles.field}>
+                        {t.name}
+                        <input
+                          className={styles.input}
+                          value={fields.display_name}
+                          required
+                          minLength={2}
+                          maxLength={120}
+                          onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
+                        />
                       </label>
-                      <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                        {t.capability}
-                        <select
-                          className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                          value={fields.capability_id}
-                          onChange={(event) => setFields((prev) => ({ ...prev, capability_id: event.target.value }))}
-                        >
-                          {row.capabilities.map((capability) => (
-                            <option key={capability}>{capability}</option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    {!row.enabled && <p className="text-sm text-amber-300">{t.offlinePublish}</p>}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Button
-                        type="submit"
-                        disabled={
-                          pending ||
-                          !row.enabled ||
-                          !fields.display_name.trim() ||
-                          !fields.capability_id ||
-                          !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
-                          fields.slug.includes('--') ||
-                          ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)
-                        }
-                      >
-                        {pending ? (
-                          <>
-                            <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
-                            {t.busy}
-                          </>
-                        ) : published ? (
-                          t.saveChanges
-                        ) : (
-                          t.publish
+                      <label className={styles.field}>
+                        {t.slug}
+                        <input
+                          aria-label={t.slug}
+                          className={styles.input}
+                          value={fields.slug}
+                          type="text"
+                          placeholder="secretary"
+                          autoCapitalize="none"
+                          autoComplete="off"
+                          spellCheck={false}
+                          required
+                          minLength={2}
+                          maxLength={64}
+                          pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
+                          onChange={(event) =>
+                            setFields((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))
+                          }
+                        />
+                        <span className={styles.fieldHint}>{t.slugHint}</span>
+                        {fields.slug && (
+                          <span className={styles.preview}>
+                            {t.slugPreview}: /{locale}/plugins/{fields.slug}
+                          </span>
                         )}
-                      </Button>
-                      <Button type="button" variant="secondary" disabled={pending} onClick={closeEditor}>
-                        {t.cancel}
-                      </Button>
-                    </div>
-                  </form>
-                </section>
-              )}
-            </article>
-          )
-        })}
-      </section>
-      <section className="mt-10">
-        <h2 className="text-xl font-semibold">{t.demosTitle}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-400">{t.demosHint}</p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {DIP_USE_CASES.map((useCase) => (
-            <a
-              key={useCase.id}
-              href={buildLocalePath(useCase.route, locale)}
-              className="max-w-full break-words rounded-lg border border-white/15 px-3 py-2 text-sm text-cyan-300"
-            >
-              {useCase.id}
-            </a>
-          ))}
-        </div>
-      </section>
+                      </label>
+                      <label className={styles.field}>
+                        {t.description}
+                        <textarea
+                          className={styles.input}
+                          value={fields.description}
+                          rows={4}
+                          maxLength={2000}
+                          onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
+                        />
+                      </label>
+                      <div className={styles.fieldRow}>
+                        <label className={styles.field}>
+                          {t.category}
+                          <select
+                            className={styles.input}
+                            value={fields.category}
+                            onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
+                          >
+                            {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
+                              (category) => (
+                                <option key={category} value={category}>
+                                  {pluginCategoryLabel(category, locale)}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </label>
+                        {row.capabilities.length > 1 && (
+                          <label className={styles.field}>
+                            {t.capability}
+                            <select
+                              className={styles.input}
+                              value={fields.capability_id}
+                              onChange={(event) =>
+                                setFields((prev) => ({ ...prev, capability_id: event.target.value }))
+                              }
+                            >
+                              {row.capabilities.map((capability) => (
+                                <option key={capability}>{capability}</option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
+                      </div>
+                      <details className={styles.technical}>
+                        <summary>{t.technical}</summary>
+                        <dl className={styles.definition} style={{ marginTop: '0.85rem' }}>
+                          <div>
+                            <dt>{t.registryId}</dt>
+                            <dd>
+                              <code>{row.plugin_id || row.name}</code>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{t.capability}</dt>
+                            <dd>
+                              <code>{fields.capability_id || '—'}</code>
+                            </dd>
+                          </div>
+                        </dl>
+                        <p className={styles.fieldHint} style={{ marginTop: '0.75rem' }}>
+                          {t.capabilityHint}
+                        </p>
+                      </details>
+                      {!row.enabled && <p className={styles.notice}>{t.offlinePublish}</p>}
+                      <div className={styles.actionRow} style={{ marginTop: '0.2rem' }}>
+                        <Button
+                          type="submit"
+                          className={styles.control}
+                          disabled={
+                            pending ||
+                            !row.enabled ||
+                            !fields.display_name.trim() ||
+                            !fields.capability_id ||
+                            !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
+                            fields.slug.includes('--') ||
+                            ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)
+                          }
+                        >
+                          {pending ? (
+                            <>
+                              <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
+                              {t.busy}
+                            </>
+                          ) : published ? (
+                            t.saveChanges
+                          ) : (
+                            t.publish
+                          )}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className={styles.control}
+                          disabled={pending}
+                          onClick={closeEditor}
+                        >
+                          {t.cancel}
+                        </Button>
+                      </div>
+                    </form>
+                  </section>
+                )}
+              </article>
+            )
+          })}
+        </section>
+      </div>
     </main>
   )
 }

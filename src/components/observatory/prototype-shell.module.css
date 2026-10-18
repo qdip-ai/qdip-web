@@ -5,6 +5,13 @@
   color: var(--ds-text);
   background: var(--ds-bg);
 }
+.shell:global([data-ds-theme='burgundy'][data-ds-mode='dark']) {
+  /* The default burgundy brand swatch is too dark for nav text on a dark shell. */
+  --ds-accent: #e4a0b4;
+  --ds-accent-rgb: 228 160 180;
+  --ds-accent-contrast: #250b16;
+  --ds-focus: rgba(228, 160, 180, 0.65);
+}
 .shell :global(.ds-product-header-inner),
 .shell :global(.ds-product-header-navigation) {
   max-width: var(--ds-content-max);

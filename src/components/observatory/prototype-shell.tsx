@@ -27,7 +27,7 @@ import { type UseCaseRoute, type UseCaseTheme } from '@/use-cases/registry'
 import { ObservatoryFooter } from './observatory-footer'
 import styles from './prototype-shell.module.css'
 
-export type PrototypeTheme = UseCaseTheme
+export type PrototypeTheme = UseCaseTheme | 'burgundy'
 export type ObservatoryRoute =
   | '/'
   | '/challenges'

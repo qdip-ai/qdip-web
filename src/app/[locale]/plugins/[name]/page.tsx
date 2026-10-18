@@ -2,41 +2,67 @@ import { notFound, redirect } from 'next/navigation'
 import { PrototypeShell } from '@/features/observatory'
 import { publishedPlugins } from '@/lib/observatory-plugin-catalog'
 import { launchLinkForPlugin } from '@/lib/observatory-plugin-launch'
+import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
 import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { DIP_USE_CASES } from '@/use-cases/registry'
+import styles from '@/components/observatory/plugin-experience.module.css'
 
 export const dynamic = 'force-dynamic'
 
 const copy = {
   uk: {
-    back: 'Усі плагіни',
+    back: 'До всіх плагінів',
+    eyebrow: 'QDIP / Плагін',
+    overview: 'Про плагін',
     version: 'Версія',
-    capability: 'Можливість',
+    capability: 'Технічна можливість',
     category: 'Категорія',
-    demo: 'Відкрити демонстрацію',
+    identity: 'Ідентифікатор SDK',
+    technical: 'Технічна інформація',
+    demo: 'Переглянути демонстрацію',
     launch: 'Відкрити застосунок',
-    launchNote: 'Відкриється у новій вкладці. Може знадобитися авторизація.',
-    note: 'Публікація в каталозі не надає доступу до виконання плагіна.',
+    launchNote: 'Застосунок відкриється у новій вкладці. Може знадобитися авторизація.',
+    unavailable:
+      'Для цього плагіна ще не налаштовано перевірене посилання на застосунок. Публікація опису не означає можливості запуску.',
+    offline: 'Remote Worker наразі відключений. Функції QDIP можуть бути тимчасово недоступними.',
+    noDescription: 'Автор плагіна ще не додав опис.',
+    note: 'Доступ до виконання плагіна перевіряється QDIP окремо від публікації в каталозі.',
   },
   en: {
     back: 'All plugins',
+    eyebrow: 'QDIP / Plugin',
+    overview: 'About this plugin',
     version: 'Version',
-    capability: 'Capability',
+    capability: 'Technical capability',
     category: 'Category',
-    demo: 'Open demo',
+    identity: 'SDK identifier',
+    technical: 'Technical information',
+    demo: 'View demonstration',
     launch: 'Open application',
-    launchNote: 'Opens in a new tab. Sign-in may be required.',
-    note: 'Catalog publication does not grant plugin execution permissions.',
+    launchNote: 'The application opens in a new tab. Sign-in may be required.',
+    unavailable:
+      'This plugin has no verified application link yet. Publishing a description does not enable execution.',
+    offline: 'The remote Worker is disconnected. QDIP execution may be temporarily unavailable.',
+    noDescription: 'The author has not provided a description yet.',
+    note: 'QDIP checks execution permission separately from catalog publication.',
   },
   pl: {
     back: 'Wszystkie wtyczki',
+    eyebrow: 'QDIP / Wtyczka',
+    overview: 'O wtyczce',
     version: 'Wersja',
-    capability: 'Funkcja',
+    capability: 'Funkcja techniczna',
     category: 'Kategoria',
-    demo: 'Otwórz demo',
+    identity: 'Identyfikator SDK',
+    technical: 'Informacje techniczne',
+    demo: 'Zobacz demonstrację',
     launch: 'Otwórz aplikację',
-    launchNote: 'Otwiera się w nowej karcie. Może być wymagane logowanie.',
-    note: 'Publikacja w katalogu nie nadaje uprawnień do wykonania wtyczki.',
+    launchNote: 'Aplikacja otworzy się w nowej karcie. Może być wymagane logowanie.',
+    unavailable:
+      'Wtyczka nie ma jeszcze zweryfikowanego łącza do aplikacji. Publikacja opisu nie oznacza możliwości uruchomienia.',
+    offline: 'Zdalny Worker jest rozłączony. Funkcje QDIP mogą być tymczasowo niedostępne.',
+    noDescription: 'Autor nie dodał jeszcze opisu.',
+    note: 'QDIP sprawdza uprawnienia wykonania niezależnie od publikacji w katalogu.',
   },
 } as const
 
@@ -44,7 +70,7 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
   const { locale, name } = await params
   if (!isSupportedLocale(locale) || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(name)) notFound()
   const plugins = await publishedPlugins()
-  // Resolve immutable SDK identity and historical URLs, but expose only published entries.
+  // Historic URLs redirect to the canonical, admin-selected slug.
   const plugin =
     plugins.find((item) => (item.slug || item.name) === name) ??
     plugins.find((item) => item.name === name || item.slug_aliases?.includes(name))
@@ -53,51 +79,79 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
   if (name !== canonicalName) redirect(buildLocalePath(`/plugins/${canonicalName}`, locale))
   const t = copy[locale]
   const launch = launchLinkForPlugin(plugin)
-  const demo = DIP_USE_CASES.find((item) => item.plugin.id === name && item.plugin.capability === plugin.capability_id)
+  const demo = DIP_USE_CASES.find(
+    (item) => item.plugin.id === plugin.name && item.plugin.capability === plugin.capability_id
+  )
   return (
-    <PrototypeShell locale={locale as Locale} activeRoute="/plugins">
-      <main className="mx-auto max-w-4xl px-4 py-8 text-slate-100 md:px-8">
-        <a className="text-sm font-semibold text-cyan-300" href={buildLocalePath('/plugins', locale)}>
-          ← {t.back}
-        </a>
-        <h1 className="mt-6 break-words text-3xl font-semibold">{plugin.ui?.label || plugin.name}</h1>
-        <p className="mt-5 whitespace-pre-line break-words text-base leading-7 text-slate-300">{plugin.description}</p>
-        {launch && (
-          <div className="mt-7 flex flex-col items-start gap-2">
-            <a
-              href={launch.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-rose-500/60 bg-rose-950 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-rose-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300"
-            >
-              {t.launch} {launch.application} ↗
-            </a>
-            <p className="text-xs text-slate-400">{t.launchNote}</p>
-          </div>
-        )}
-        <dl className="mt-8 grid gap-4 rounded-xl border border-white/15 bg-slate-900 p-5 sm:grid-cols-2">
-          <div>
-            <dt className="text-xs text-slate-400">{t.version}</dt>
-            <dd className="mt-1">{plugin.version}</dd>
-          </div>
-          <div>
-            <dt className="text-xs text-slate-400">{t.category}</dt>
-            <dd className="mt-1">{plugin.ui?.category || '—'}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-xs text-slate-400">{t.capability}</dt>
-            <dd className="mt-1 break-all font-mono text-sm">{plugin.capability_id}</dd>
-          </div>
-        </dl>
-        {demo && (
-          <a
-            className="mt-6 inline-block rounded-lg border border-cyan-300/40 px-4 py-3 text-sm font-semibold text-cyan-300"
-            href={buildLocalePath(demo.route, locale)}
-          >
-            {t.demo} →
+    <PrototypeShell locale={locale as Locale} activeRoute="/plugins" theme="burgundy">
+      <main className={styles.page}>
+        <div className={styles.narrow}>
+          <a className={styles.link} href={buildLocalePath('/plugins', locale)}>
+            <span aria-hidden="true">←</span> {t.back}
           </a>
-        )}
-        <p className="mt-7 text-xs text-slate-500">{t.note}</p>
+          <header className={styles.hero} style={{ marginTop: '1.5rem' }}>
+            <p className={styles.eyebrow}>{t.eyebrow}</p>
+            <h1 className={styles.title}>{plugin.ui?.label || plugin.name}</h1>
+            {plugin.ui?.category && (
+              <div className={styles.meta}>
+                <span className={styles.pill}>{pluginCategoryLabel(plugin.ui.category, locale)}</span>
+              </div>
+            )}
+            <p className={styles.lead}>{plugin.description || t.noDescription}</p>
+          </header>
+          {launch ? (
+            <section className={styles.card} aria-label={t.launch}>
+              <a className={styles.primaryLink} href={launch.href} target="_blank" rel="noopener noreferrer">
+                {t.launch} {launch.application} <span aria-hidden="true">↗</span>
+              </a>
+              <p className={styles.note} style={{ marginTop: '0.8rem' }}>
+                {t.launchNote}
+              </p>
+            </section>
+          ) : (
+            <p className={styles.empty}>{t.unavailable}</p>
+          )}
+          {plugin.source === 'remote' && !plugin.enabled && (
+            <p className={styles.notice} role="status">
+              {t.offline}
+            </p>
+          )}
+          {demo && (
+            <div className={styles.actionRow}>
+              <a className={styles.link} href={buildLocalePath(demo.route, locale)}>
+                {t.demo} <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          )}
+          <details className={styles.technical}>
+            <summary>{t.technical}</summary>
+            <dl className={styles.definition} style={{ marginTop: '1rem' }}>
+              <div>
+                <dt>{t.version}</dt>
+                <dd>{plugin.version}</dd>
+              </div>
+              <div>
+                <dt>{t.category}</dt>
+                <dd>{pluginCategoryLabel(plugin.ui?.category, locale)}</dd>
+              </div>
+              <div>
+                <dt>{t.capability}</dt>
+                <dd>
+                  <code>{plugin.capability_id}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>{t.identity}</dt>
+                <dd>
+                  <code>{plugin.plugin_id || plugin.name}</code>
+                </dd>
+              </div>
+            </dl>
+            <p className={styles.note} style={{ marginTop: '1rem' }}>
+              {t.note}
+            </p>
+          </details>
+        </div>
       </main>
     </PrototypeShell>
   )
