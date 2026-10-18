@@ -1,0 +1,26 @@
+name: One-time RO formatting
+on:
+  push:
+    branches: [feat/observatory-route-optimizer-keys]
+    paths: [.github/workflows/ro-format-once.yml]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9fab # v4.2.2
+        with:
+          persist-credentials: true
+      - run: corepack enable && corepack prepare pnpm@10.22.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write src/components/observatory/observatory-developer-keys.tsx src/lib/observatory-developer-keys.ts src/lib/observatory-developer-keys.vitest.test.ts docs/observatory-developer-apps.md
+      - name: Commit formatted files
+        run: |
+          git config user.name "qdip-formatter"
+          git config user.email "qdip-formatter@users.noreply.github.com"
+          git add src/components/observatory/observatory-developer-keys.tsx src/lib/observatory-developer-keys.ts src/lib/observatory-developer-keys.vitest.test.ts docs/observatory-developer-apps.md
+          if ! git diff --cached --quiet; then
+            git commit -m "style(observatory): format RO key administration changes"
+            git push origin HEAD:feat/observatory-route-optimizer-keys
+          fi
