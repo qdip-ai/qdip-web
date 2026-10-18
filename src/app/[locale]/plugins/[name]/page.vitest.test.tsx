@@ -60,6 +60,9 @@ describe('published plugin detail application launcher', () => {
     expect(html).toContain('href="https://vhv.qdip.ai"')
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noopener noreferrer"')
+    expect(html).toContain('lucide-arrow-up-right')
+    expect(html).toContain('aria-hidden="true"')
+    expect(html).not.toContain('↗')
     expect(html).toContain('secretary.plan')
   })
 

@@ -6,6 +6,7 @@ import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
 import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 import styles from '@/components/observatory/plugin-experience.module.css'
+import { PluginLaunchLink } from '@/components/observatory/plugin-launch-link'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,13 +101,9 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
             <p className={styles.lead}>{plugin.description || t.noDescription}</p>
           </header>
           {launch ? (
-            <section className={styles.card} aria-label={t.launch}>
-              <a className={styles.primaryLink} href={launch.href} target="_blank" rel="noopener noreferrer">
-                {t.launch} {launch.application} <span aria-hidden="true">↗</span>
-              </a>
-              <p className={styles.note} style={{ marginTop: '0.8rem' }}>
-                {t.launchNote}
-              </p>
+            <section className={styles.launchPanel} aria-label={t.launch}>
+              <PluginLaunchLink href={launch.href} label={`${t.launch} ${launch.application}`} />
+              <p className={styles.launchNote}>{t.launchNote}</p>
             </section>
           ) : (
             <p className={styles.empty}>{t.unavailable}</p>

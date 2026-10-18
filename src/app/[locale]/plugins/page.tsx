@@ -6,6 +6,7 @@ import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observato
 import { DIP_USE_CASES } from '@/use-cases/registry'
 import { notFound } from 'next/navigation'
 import styles from '@/components/observatory/plugin-experience.module.css'
+import { PluginLaunchLink } from '@/components/observatory/plugin-launch-link'
 
 export const dynamic = 'force-dynamic'
 
@@ -136,17 +137,7 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
                         >
                           {t.details} <span aria-hidden="true">→</span>
                         </a>
-                        {launch && (
-                          <a
-                            className={styles.primaryLink}
-                            href={launch.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`${t.launch} ${launch.application}`}
-                          >
-                            {t.launch} {launch.application} <span aria-hidden="true">↗</span>
-                          </a>
-                        )}
+                        {launch && <PluginLaunchLink href={launch.href} label={`${t.launch} ${launch.application}`} />}
                       </div>
                     </article>
                   )
