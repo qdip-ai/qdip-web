@@ -190,13 +190,13 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
     const caps = plugin.capabilities.filter((c): c is string =>
       typeof c === 'string' && CAPABILITY.test(c)
     )
-    if (!caps.length || !plugin.enabled) continue
     const pluginId = plugin.name
-    // A valid existing key means "credential issued", not proven runtime E2E.
+    // Existing keys remain visible even if a remote Worker disconnected.
     const keys = active.filter(k => k.capabilities.some(c => caps.includes(c))).map(
       ({ id, orgId, role, expiresAt, capabilities }) =>
         ({ id, orgId, role, expiresAt, capabilities })
     )
+    if (!caps.length || (!plugin.enabled && !keys.length)) continue
     items.set(pluginId, {
       id: pluginId, label: plugin.ui?.label || plugin.plugin_id || pluginId,
       capabilities: [...new Set(caps)].slice(0, 16),
@@ -205,11 +205,15 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
   }
   for (const record of active) {
     const match = /^access\/([A-Za-z0-9_.-]{1,128})\//.exec(record.name)
-    if (!match || items.has(match[1])) continue
-    const id = match[1]
-    const keys = active.filter(x => x.name.startsWith('access/' + id + '/')).map(
-      ({ id: keyId, orgId, role, expiresAt, capabilities }) =>
-        ({ id: keyId, orgId, role, expiresAt, capabilities })
+    // Backward compatibility for VHV and earlier app keys, without hardcoded names.
+    const legacy = data.stored.find(({ org }) => org.id === record.orgId)?.org.name
+    const id = match?.[1] || (legacy?.startsWith('qdip-sdk-app:') ?
+      legacy.slice('qdip-sdk-app:'.length) : '')
+    if (!id || items.has(id)) continue
+    const keys = active.filter(x =>
+      (match ? x.name.startsWith('access/' + id + '/') : x.orgId === record.orgId)
+    ).map(({ id: keyId, orgId, role, expiresAt, capabilities }) =>
+      ({ id: keyId, orgId, role, expiresAt, capabilities })
     )
     items.set(id, {
       id, label: id, capabilities: [...new Set(keys.flatMap(k => k.capabilities))],
@@ -222,7 +226,7 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
 export async function listPluginCredentials(): Promise<PluginKeyInventory> {
   const entries = rows(await metadata())
   return {
-    available: entries.filter(p => !p.keys.some(k => k.role === 'execute')),
+    available: entries.filter(p => p.enabled && !p.keys.some(k => k.role === 'execute')),
     connected: entries.filter(p => p.keys.length > 0),
   }
 }
