@@ -147,3 +147,14 @@ test('session refresh revokes previously visible diagnostic evidence', async ({ 
   await expect(page.locator('[data-testid="doctor-result"]').getByText('INFEASIBLE', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Виконати в Doctor' })).toBeDisabled()
 })
+
+test('Doctor workspace remains usable on a narrow mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await mockDoctor(page, false)
+  await page.goto(origin + '/uk/model-doctor')
+  await expect(page.getByRole('heading', { name: 'Аналіз моделі в Observatory' })).toBeVisible()
+  await expect(page.locator('[data-testid="doctor-file"]')).toBeAttached()
+  await expect(page.getByRole('button', { name: 'Перевірити сесію' })).toBeVisible()
+  const width = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  expect(width).toBeLessThanOrEqual(1)
+})
