@@ -1,5 +1,5 @@
 import { QdipError, type QdipErrorCode } from './errors';
-import { parseCapabilitiesResponse, parseInvokeResponse, parsePluginCatalog, parsePluginCatalogEntry } from './validation';
+import { parseCapabilitiesResponse, parseInvokeResponse, parsePluginCatalog, parsePluginCatalogEntry, safePluginLaunchUrl } from './validation';
 import type { CapabilitiesResponse, InvokeOptions, InvokeResponse, QdipClientOptions, PluginCatalogEntry, PluginCatalogUpdate } from './types';
 
 const DEFAULT_INVOKE_DEADLINE_MS = 45_000;
@@ -176,7 +176,11 @@ export class QdipClient {
         (update.description !== undefined && update.description.length > 2000) ||
         (update.category !== undefined && !/^[A-Za-z0-9 _.-]{1,64}$/.test(update.category)) ||
         (update.slug !== undefined && (!/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(update.slug) ||
-        update.slug.includes('--') || ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(update.slug)))) {
+        update.slug.includes('--') || ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(update.slug))) ||
+        (update.applicationLaunchUrl !== undefined && update.applicationLaunchUrl !== '' &&
+          (!safePluginLaunchUrl(update.applicationLaunchUrl) || update.launchUrlVerified !== true)) ||
+        (update.applicationLaunchUrl === '' && update.launchUrlVerified === true) ||
+        (update.applicationLaunchUrl === undefined && update.launchUrlVerified !== undefined)) {
       throw new QdipError('CONFIGURATION_ERROR');
     }
     const payload = serializeInput({
@@ -188,6 +192,8 @@ export class QdipClient {
       ...(update.description !== undefined ? { description: update.description } : {}),
       ...(update.category !== undefined ? { category: update.category } : {}),
       ...(update.slug !== undefined ? { slug: update.slug } : {}),
+      ...(update.applicationLaunchUrl !== undefined ? { application_launch_url: update.applicationLaunchUrl } : {}),
+      ...(update.launchUrlVerified !== undefined ? { launch_url_verified: update.launchUrlVerified } : {}),
     });
     return this.request('plugin-publications/' + encodeURIComponent(name), this.adminApiKey,
       'PUT', update.deadlineMs ?? DISCOVERY_DEADLINE_MS, update.signal, payload,

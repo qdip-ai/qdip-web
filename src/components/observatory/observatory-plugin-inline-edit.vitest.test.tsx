@@ -307,4 +307,69 @@ describe('Observatory inline plugin editing', () => {
     const put = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
     expect(JSON.parse(put?.[1].body as string).published).toBe(false)
   })
+
+  it('requires explicit administrator URL review and persists a verified third-party link', async () => {
+    const next = {
+      ...secretary,
+      application_launch_url: 'https://routing.partner-example.org/app',
+      launch_url_verified: true,
+      published: true,
+      published_version: '0.1.0',
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply({ plugins: [secretary] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockResolvedValueOnce(reply({ plugins: [next] }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    const entry = card('VHV — Decision Assistant')
+    fireEvent.click(entry.getByRole('button', { name: 'Редагувати' }))
+    const launch = entry.getByRole('textbox', { name: 'URL запуску застосунку' })
+    fireEvent.change(launch, { target: { value: 'http://localhost/worker' } })
+    expect(entry.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
+    fireEvent.change(launch, { target: { value: 'https://routing.partner-example.org/app' } })
+    const approve = entry.getByRole('checkbox', { name: /перевірив власника домену/ })
+    expect(approve).not.toBeChecked()
+    expect(entry.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
+    fireEvent.click(approve)
+    expect(entry.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeEnabled()
+    fireEvent.click(entry.getByRole('button', { name: 'Зберегти й опублікувати' }))
+    await waitFor(() => expect(fetchMock.mock.calls.some((call) => call[1]?.method === 'PUT')).toBe(true))
+    const put = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
+    expect(JSON.parse(put?.[1].body as string)).toMatchObject({
+      application_launch_url: 'https://routing.partner-example.org/app',
+      launch_url_verified: true,
+    })
+  })
+
+  it('can revoke a previously verified launch link without revoking the plugin', async () => {
+    const installed = {
+      ...secretary,
+      application_launch_url: 'https://routing.partner-example.org/app',
+      launch_url_verified: true,
+    }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply({ plugins: [installed] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockResolvedValueOnce(
+        reply({ plugins: [{ ...installed, application_launch_url: null, launch_url_verified: false }] })
+      )
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    const entry = card('VHV — Decision Assistant')
+    fireEvent.click(entry.getByRole('button', { name: 'Редагувати' }))
+    fireEvent.change(entry.getByRole('textbox', { name: 'URL запуску застосунку' }), { target: { value: '' } })
+    fireEvent.click(entry.getByRole('button', { name: 'Зберегти й опублікувати' }))
+    await waitFor(() => expect(fetchMock.mock.calls.some((call) => call[1]?.method === 'PUT')).toBe(true))
+    const put = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
+    expect(JSON.parse(put?.[1].body as string)).toMatchObject({
+      published: true,
+      application_launch_url: '',
+      launch_url_verified: false,
+    })
+  })
 })

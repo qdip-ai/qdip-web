@@ -103,6 +103,9 @@ export interface PluginCatalogEntry {
   slug?: string | null;
   /** Historical URL slugs kept for backward-compatible redirects. */
   slug_aliases?: string[];
+  /** Present only after an explicit platform-admin destination review. */
+  application_launch_url?: string | null;
+  launch_url_verified?: boolean;
 }
 
 export interface PluginCatalogUpdate {
@@ -115,6 +118,10 @@ export interface PluginCatalogUpdate {
   category?: string;
   /** Human-friendly public route. Never changes the immutable SDK plugin ID. */
   slug?: string;
+  /** Empty string clears an existing verified destination. */
+  applicationLaunchUrl?: string;
+  /** Must be true when setting an external URL, false when clearing it. */
+  launchUrlVerified?: boolean;
   /** Verified user subject for server-side publication audit, not an API key. */
   actor: string;
   deadlineMs?: number;
