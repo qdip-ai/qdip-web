@@ -159,8 +159,9 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     let active = true
-    void load().then(result => {
+    void send<Inventory>('GET').then(result => {
       if (!active) return
+      setInventory(result)
       if (result.available.length) {
         setSelectedId(result.available[0].id)
         setSelectedCapabilities(result.available[0].capabilities)
