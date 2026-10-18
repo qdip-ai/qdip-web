@@ -64,6 +64,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
         quarantined: payload.quarantined,
         reason: payload.reason,
       })
+    } else if (payload.action === 'approve') {
+      if (
+        typeof payload.reason !== 'string' ||
+        typeof payload.review_reference !== 'string' ||
+        payload.risk_acknowledged !== true
+      )
+        return NextResponse.json({ error: 'Explicit risk acceptance required' }, { status: 422 })
+      outcome = await client.catalog.approve(name, {
+        ...input,
+        reason: payload.reason,
+        reviewReference: payload.review_reference,
+        riskAcknowledged: true,
+      })
     } else {
       return NextResponse.json({ error: 'Unknown security action' }, { status: 422 })
     }
