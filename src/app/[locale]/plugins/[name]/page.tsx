@@ -21,7 +21,8 @@ const copy = {
     demo: 'Переглянути демонстрацію',
     launch: 'Відкрити застосунок',
     launchNote: 'Застосунок відкриється у новій вкладці. Може знадобитися авторизація.',
-    unavailable: 'Для цього плагіна ще не налаштовано перевірене посилання на застосунок. Публікація опису не означає можливості запуску.',
+    unavailable:
+      'Для цього плагіна ще не налаштовано перевірене посилання на застосунок. Публікація опису не означає можливості запуску.',
     offline: 'Remote Worker наразі відключений. Функції QDIP можуть бути тимчасово недоступними.',
     noDescription: 'Автор плагіна ще не додав опис.',
     note: 'Доступ до виконання плагіна перевіряється QDIP окремо від публікації в каталозі.',
@@ -38,7 +39,8 @@ const copy = {
     demo: 'View demonstration',
     launch: 'Open application',
     launchNote: 'The application opens in a new tab. Sign-in may be required.',
-    unavailable: 'This plugin has no verified application link yet. Publishing a description does not enable execution.',
+    unavailable:
+      'This plugin has no verified application link yet. Publishing a description does not enable execution.',
     offline: 'The remote Worker is disconnected. QDIP execution may be temporarily unavailable.',
     noDescription: 'The author has not provided a description yet.',
     note: 'QDIP checks execution permission separately from catalog publication.',
@@ -55,7 +57,8 @@ const copy = {
     demo: 'Zobacz demonstrację',
     launch: 'Otwórz aplikację',
     launchNote: 'Aplikacja otworzy się w nowej karcie. Może być wymagane logowanie.',
-    unavailable: 'Wtyczka nie ma jeszcze zweryfikowanego łącza do aplikacji. Publikacja opisu nie oznacza możliwości uruchomienia.',
+    unavailable:
+      'Wtyczka nie ma jeszcze zweryfikowanego łącza do aplikacji. Publikacja opisu nie oznacza możliwości uruchomienia.',
     offline: 'Zdalny Worker jest rozłączony. Funkcje QDIP mogą być tymczasowo niedostępne.',
     noDescription: 'Autor nie dodał jeszcze opisu.',
     note: 'QDIP sprawdza uprawnienia wykonania niezależnie od publikacji w katalogu.',
@@ -89,7 +92,9 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
             <p className={styles.eyebrow}>{t.eyebrow}</p>
             <h1 className={styles.title}>{plugin.ui?.label || plugin.name}</h1>
             {plugin.ui?.category && (
-              <div className={styles.meta}><span className={styles.pill}>{plugin.ui.category}</span></div>
+              <div className={styles.meta}>
+                <span className={styles.pill}>{plugin.ui.category}</span>
+              </div>
             )}
             <p className={styles.lead}>{plugin.description || t.noDescription}</p>
           </header>
@@ -98,13 +103,17 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
               <a className={styles.primaryLink} href={launch.href} target="_blank" rel="noopener noreferrer">
                 {t.launch} {launch.application} <span aria-hidden="true">↗</span>
               </a>
-              <p className={styles.note} style={{ marginTop: '0.8rem' }}>{t.launchNote}</p>
+              <p className={styles.note} style={{ marginTop: '0.8rem' }}>
+                {t.launchNote}
+              </p>
             </section>
           ) : (
             <p className={styles.empty}>{t.unavailable}</p>
           )}
           {plugin.source === 'remote' && !plugin.enabled && (
-            <p className={styles.notice} role="status">{t.offline}</p>
+            <p className={styles.notice} role="status">
+              {t.offline}
+            </p>
           )}
           {demo && (
             <div className={styles.actionRow}>
@@ -116,12 +125,30 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
           <details className={styles.technical}>
             <summary>{t.technical}</summary>
             <dl className={styles.definition} style={{ marginTop: '1rem' }}>
-              <div><dt>{t.version}</dt><dd>{plugin.version}</dd></div>
-              <div><dt>{t.category}</dt><dd>{plugin.ui?.category || '—'}</dd></div>
-              <div><dt>{t.capability}</dt><dd><code>{plugin.capability_id}</code></dd></div>
-              <div><dt>{t.identity}</dt><dd><code>{plugin.plugin_id || plugin.name}</code></dd></div>
+              <div>
+                <dt>{t.version}</dt>
+                <dd>{plugin.version}</dd>
+              </div>
+              <div>
+                <dt>{t.category}</dt>
+                <dd>{plugin.ui?.category || '—'}</dd>
+              </div>
+              <div>
+                <dt>{t.capability}</dt>
+                <dd>
+                  <code>{plugin.capability_id}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>{t.identity}</dt>
+                <dd>
+                  <code>{plugin.plugin_id || plugin.name}</code>
+                </dd>
+              </div>
             </dl>
-            <p className={styles.note} style={{ marginTop: '1rem' }}>{t.note}</p>
+            <p className={styles.note} style={{ marginTop: '1rem' }}>
+              {t.note}
+            </p>
           </details>
         </div>
       </main>
