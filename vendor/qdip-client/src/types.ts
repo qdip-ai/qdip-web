@@ -99,6 +99,10 @@ export interface PluginCatalogEntry {
   revision: number;
   capability_id: string | null;
   published_version: string | null;
+  /** Canonical public URL slug, not a Gateway plugin identity. */
+  slug?: string | null;
+  /** Historical URL slugs kept for backward-compatible redirects. */
+  slug_aliases?: string[];
 }
 
 export interface PluginCatalogUpdate {
@@ -109,6 +113,8 @@ export interface PluginCatalogUpdate {
   displayName?: string;
   description?: string;
   category?: string;
+  /** Human-friendly public route. Never changes the immutable SDK plugin ID. */
+  slug?: string;
   /** Verified user subject for server-side publication audit, not an API key. */
   actor: string;
   deadlineMs?: number;

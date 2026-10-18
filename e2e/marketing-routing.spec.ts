@@ -348,6 +348,9 @@ test.describe('current marketing routing', () => {
     const evidence = page.locator('#why article').first()
     await expect(evidence).toHaveCSS('background-color', 'rgb(255, 255, 255)')
     const primary = page.locator('a[class*="primaryButtonLarge"]').first()
+    // Theme changes can leave the pointer over the CTA after mobile layout shifts.
+    // Assert its resting burgundy color, not its intentional hover shade.
+    await page.mouse.move(0, 0)
     await expect(primary).toHaveCSS('background-color', 'rgb(122, 24, 56)')
     // Regressions from the light-theme screenshot: no white heading on pale CTA.
     const cta = page.locator('section[class*="finalCta"]')

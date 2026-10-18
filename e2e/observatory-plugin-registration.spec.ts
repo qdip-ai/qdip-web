@@ -12,9 +12,10 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
     capabilities: ['routes.optimize'],
     capability_versions: {},
     ui: { label: 'Route Optimizer', category: 'Operations' },
-    published: null,
-    published_version: null,
-    capability_id: null,
+    published: null as boolean | null,
+    published_version: null as string | null,
+    slug: null as string | null,
+    capability_id: null as string | null,
     revision: 0,
   }
   await page.route('**/api/observatory/admin/plugins', async (route) => {
@@ -23,14 +24,22 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
   let saved: Record<string, unknown> | null = null
   await page.route('**/api/observatory/admin/plugins/route-optimizer', async (route) => {
     saved = route.request().postDataJSON() as Record<string, unknown>
+    plugin.published = true
+    plugin.published_version = '1.0.0'
+    plugin.revision = 1
+    plugin.slug = 'delivery-routes'
+    plugin.capability_id = 'routes.optimize'
     await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
   })
   await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
-  await page.getByLabel('Зареєстрований через SDK плагін').selectOption('route-optimizer')
-  await page.getByLabel('Назва').fill('Оптимізатор маршрутів')
-  await page.getByLabel('Опис').fill('Розрахунок маршрутів доставки')
-  await page.getByLabel('Категорія').selectOption('Optimization')
-  await page.getByRole('button', { name: 'Зберегти й опублікувати' }).click()
+  const card = page.locator('article').filter({ hasText: 'Route Optimizer' })
+  await card.getByRole('button', { name: 'Редагувати' }).click()
+  await expect(card.getByRole('heading', { name: /Редагування плагіна/ })).toBeVisible()
+  await card.getByLabel('Назва').fill('Оптимізатор маршрутів')
+  await card.getByRole('textbox', { name: 'Коротка адреса (URL)' }).fill('delivery-routes')
+  await card.getByLabel('Опис').fill('Розрахунок маршрутів доставки')
+  await card.getByLabel('Категорія').selectOption('Optimization')
+  await card.getByRole('button', { name: 'Зберегти й опублікувати' }).click()
   await expect.poll(() => saved).not.toBeNull()
   expect(saved).toMatchObject({
     published: true,
@@ -39,6 +48,13 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
     display_name: 'Оптимізатор маршрутів',
     description: 'Розрахунок маршрутів доставки',
     category: 'Optimization',
+    slug: 'delivery-routes',
   })
+  await expect(card.getByRole('heading', { name: /Редагування плагіна/ })).toHaveCount(0)
+  await expect(card.getByText('Опубліковано', { exact: true })).toBeVisible()
+  await expect(card.getByRole('link', { name: /Переглянути сторінку/ })).toHaveAttribute(
+    'href',
+    '/uk/plugins/delivery-routes'
+  )
   await expect(page.getByText('Стандартна сторінка каталогу')).toBeVisible()
 })

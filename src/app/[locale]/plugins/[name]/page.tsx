@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { PrototypeShell } from '@/features/observatory'
 import { publishedPlugins } from '@/lib/observatory-plugin-catalog'
 import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
@@ -36,8 +36,14 @@ const copy = {
 export default async function PluginDetailsPage({ params }: { params: Promise<{ locale: string; name: string }> }) {
   const { locale, name } = await params
   if (!isSupportedLocale(locale) || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(name)) notFound()
-  const plugin = (await publishedPlugins()).find((item) => item.name === name)
+  const plugins = await publishedPlugins()
+  // Resolve immutable SDK identity and historical URLs, but expose only published entries.
+  const plugin =
+    plugins.find((item) => (item.slug || item.name) === name) ??
+    plugins.find((item) => item.name === name || item.slug_aliases?.includes(name))
   if (!plugin) notFound()
+  const canonicalName = plugin.slug || plugin.name
+  if (name !== canonicalName) redirect(buildLocalePath(`/plugins/${canonicalName}`, locale))
   const t = copy[locale]
   const demo = DIP_USE_CASES.find((item) => item.plugin.id === name && item.plugin.capability === plugin.capability_id)
   return (
