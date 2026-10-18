@@ -50,6 +50,13 @@ const copy = {
     version: 'Версія',
     publish: 'Зберегти й опублікувати',
     edit: 'Редагувати',
+    cancel: 'Скасувати',
+    close: 'Згорнути',
+    editing: 'Редагування плагіна',
+    saved: 'Зміни збережено. Плагін опубліковано.',
+    hidden: 'Плагін приховано з каталогу.',
+    verifying: 'Збережено. Перевіряю статус…',
+    unverified: 'Збережено, але оновлений статус не підтверджено. Оновіть список.',
     published: 'Опубліковано',
     unpublished: 'Не опубліковано',
     disabled: 'Вимкнено в Core',
@@ -90,6 +97,13 @@ const copy = {
     version: 'Version',
     publish: 'Save and publish',
     edit: 'Edit',
+    cancel: 'Cancel',
+    close: 'Collapse',
+    editing: 'Edit plugin',
+    saved: 'Changes saved. Plugin published.',
+    hidden: 'Plugin unpublished from catalog.',
+    verifying: 'Saved. Checking status…',
+    unverified: 'Saved, but the new status could not be verified. Refresh the list.',
     published: 'Published',
     unpublished: 'Unpublished',
     disabled: 'Disabled in Core',
@@ -130,6 +144,13 @@ const copy = {
     version: 'Wersja',
     publish: 'Zapisz i opublikuj',
     edit: 'Edytuj',
+    cancel: 'Anuluj',
+    close: 'Zwiń',
+    editing: 'Edycja wtyczki',
+    saved: 'Zmiany zapisano. Wtyczka opublikowana.',
+    hidden: 'Wtyczka ukryta w katalogu.',
+    verifying: 'Zapisano. Sprawdzanie stanu…',
+    unverified: 'Zapisano, ale nie potwierdzono nowego stanu. Odśwież listę.',
     published: 'Opublikowano',
     unpublished: 'Nieopublikowano',
     disabled: 'Wyłączona w Core',
@@ -176,6 +197,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     capability_id: '',
   })
   const [error, setError] = useState('')
+  const [mutationError, setMutationError] = useState<{ name: string; message: string } | null>(null)
+  const [mutationSuccess, setMutationSuccess] = useState<{ name: string; message: string } | null>(null)
+  const editorInputRef = useRef<HTMLInputElement | null>(null)
+  const editButtonRef = useRef<HTMLButtonElement | null>(null)
   const [pending, setPending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshResult, setRefreshResult] = useState<{
@@ -186,7 +211,6 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [refreshFailed, setRefreshFailed] = useState(false)
   const requestRef = useRef<AbortController | null>(null)
   const rowsRef = useRef<Row[] | null>(null)
-  const installed = rows?.find((row) => row.name === selected)
   const sorted = [...(rows ?? [])].sort((a, b) => a.name.localeCompare(b.name))
 
   const refresh = useCallback(async () => {
@@ -241,15 +265,31 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     }
   }, [refresh])
 
-  function choose(name: string) {
-    setSelected(name)
-    const row = rows?.find((entry) => entry.name === name)
-    if (row) setFields(initialFields(row))
+  useEffect(() => {
+    if (selected) editorInputRef.current?.focus()
+  }, [selected])
+
+  function closeEditor() {
+    setSelected('')
+    setMutationError(null)
+    editButtonRef.current?.focus()
+  }
+
+  function choose(row: Row) {
+    if (selected === row.name) {
+      closeEditor()
+      return
+    }
+    setMutationError(null)
+    setMutationSuccess(null)
+    setFields(initialFields(row))
+    setSelected(row.name)
   }
 
   async function update(row: Row, published: boolean, presentation?: FormFields) {
     setPending(true)
-    setError('')
+    setMutationError(null)
+    setMutationSuccess(null)
     try {
       const response = await fetch('/api/observatory/admin/plugins/' + encodeURIComponent(row.name), {
         method: 'PUT',
@@ -268,9 +308,16 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         }),
       })
       if (!response.ok) throw new Error(response.status === 409 ? t.conflict : t.error)
-      await refresh()
+      // Close the editor immediately after the successful PUT; GET may take longer.
+      setSelected('')
+      setMutationSuccess({ name: row.name, message: t.verifying })
+      const refreshed = await refresh()
+      setMutationSuccess({
+        name: row.name,
+        message: refreshed ? (published ? t.saved : t.hidden) : t.unverified,
+      })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t.error)
+      setMutationError({ name: row.name, message: cause instanceof Error ? cause.message : t.error })
     } finally {
       setPending(false)
     }
@@ -318,97 +365,6 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           {error}
         </p>
       )}
-      <section
-        className="mt-8 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-4 sm:p-6"
-        aria-labelledby="register-plugin"
-      >
-        <h2 id="register-plugin" className="text-xl font-semibold">
-          {t.formTitle}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-slate-400">{t.hint}</p>
-        <form
-          className="mt-5 grid gap-4"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (installed && installed.enabled && fields.capability_id) void update(installed, true, fields)
-          }}
-        >
-          <label className="grid min-w-0 gap-2 text-sm font-semibold">
-            {t.choose}
-            <select
-              className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-              value={selected}
-              onChange={(event) => choose(event.target.value)}
-              required
-            >
-              <option value="">{t.select}</option>
-              {sorted.map((row) => (
-                <option key={row.name} value={row.name}>
-                  {row.ui?.label || row.plugin_id || row.name} ({row.version})
-                </option>
-              ))}
-            </select>
-          </label>
-          {installed && (
-            <>
-              <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                {t.name}
-                <input
-                  className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                  value={fields.display_name}
-                  required
-                  minLength={2}
-                  maxLength={120}
-                  onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
-                />
-              </label>
-              <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                {t.description}
-                <textarea
-                  className="w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                  value={fields.description}
-                  rows={4}
-                  maxLength={2000}
-                  onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
-                />
-              </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                  {t.category}
-                  <select
-                    className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                    value={fields.category}
-                    onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
-                  >
-                    {categories.map((category) => (
-                      <option key={category}>{category}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid min-w-0 gap-2 text-sm font-semibold">
-                  {t.capability}
-                  <select
-                    className="min-h-11 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-slate-100"
-                    value={fields.capability_id}
-                    onChange={(event) => setFields((prev) => ({ ...prev, capability_id: event.target.value }))}
-                  >
-                    {installed.capabilities.map((capability) => (
-                      <option key={capability}>{capability}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <Button
-                type="submit"
-                disabled={pending || !installed.enabled || !fields.display_name.trim() || !fields.capability_id}
-              >
-                {pending ? t.busy : t.publish}
-              </Button>
-            </>
-          )}
-        </form>
-      </section>
-
       {rows?.length === 0 && <p className="mt-6 text-sm text-slate-400">{t.empty}</p>}
       <section className="mt-8 grid gap-4" aria-label={t.registered}>
         {sorted.map((row) => {
@@ -442,8 +398,16 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                 {t.version}: {row.version} · {demo ? t.demo : t.generic}
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-3">
-                <Button type="button" variant="secondary" disabled={pending} onClick={() => choose(row.name)}>
-                  {t.edit}
+                <Button
+                  ref={selected === row.name ? editButtonRef : undefined}
+                  type="button"
+                  variant="secondary"
+                  disabled={pending}
+                  aria-expanded={selected === row.name}
+                  aria-controls={selected === row.name ? `plugin-editor-${encodeURIComponent(row.name)}` : undefined}
+                  onClick={() => choose(row)}
+                >
+                  {selected === row.name ? t.close : t.edit}
                 </Button>
                 {published && (
                   <>
