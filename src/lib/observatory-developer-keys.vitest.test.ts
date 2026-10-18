@@ -170,6 +170,7 @@ describe('Generic developer plugin keys', () => {
     const fetchStub = vi.fn()
     vi.stubGlobal('fetch', fetchStub)
     await expect(issuePluginCredential('../invalid', ['sample.plan'])).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('GTM Lab', ['gtm-lab.demo'])).rejects.toMatchObject({ status: 422 })
     await expect(issuePluginCredential('sample', ['*'])).rejects.toMatchObject({ status: 422 })
     await expect(issuePluginCredential('sample', ['sample.plan', 'sample.plan'])).rejects.toMatchObject({ status: 422 })
     expect(fetchStub).not.toHaveBeenCalled()
