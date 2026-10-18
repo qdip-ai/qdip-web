@@ -35,6 +35,7 @@ const vhv: PluginCatalogEntry = {
   capability_id: 'secretary.plan',
   ui: { label: 'VHV — Decision Assistant', category: 'Decision support' },
   revision: 3,
+  application_url: 'https://vhv.qdip.ai',
 }
 
 const catalog = vi.mocked(publishedPlugins)
@@ -56,18 +57,29 @@ describe('published plugin detail application launcher', () => {
     ['pl', 'Otwórz aplikację'],
   ])('renders the visible, translated VHV launch CTA in %s', async (locale, label) => {
     const html = await markup(locale, 'vhv')
-    expect(html).toContain(label + ' VHV')
+    expect(html).toContain(label)
     expect(html).toContain('href="https://vhv.qdip.ai"')
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noopener noreferrer"')
+    expect(html).toContain('vhv.qdip.ai')
+    expect(html).not.toContain('↗')
     expect(html).toContain('secretary.plan')
   })
 
   it('does not show an outbound VHV launch for a different published plugin', async () => {
-    catalog.mockResolvedValue([{ ...vhv, name: 'remote-unrelated', plugin_id: 'other', slug: 'other' }])
+    catalog.mockResolvedValue([{ ...vhv, name: 'remote-unrelated', plugin_id: 'other', slug: 'other', application_url: null }])
     const html = await markup('uk', 'other')
     expect(html).not.toContain('https://vhv.qdip.ai')
-    expect(html).not.toContain('Відкрити застосунок VHV')
+    expect(html).not.toContain('Відкрити застосунок')
+  })
+
+  it('shows the hosted application URL of a different developer without a code change', async () => {
+    catalog.mockResolvedValue([{ ...vhv, name: 'remote-third-party', plugin_id: 'third-party',
+      slug: 'third-party', application_url: 'https://console.example.org/start' }])
+    const html = await markup('uk', 'third-party')
+    expect(html).toContain('href="https://console.example.org/start"')
+    expect(html).toContain('console.example.org')
+    expect(html).not.toContain('https://vhv.qdip.ai')
   })
 
   it('does not show a launch link when the catalog has no published VHV', async () => {
