@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle, RefreshCw } from 'lucide-react'
-import { Badge, Button } from '@/design-system'
+import { Button } from '@/design-system'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 import styles from './plugin-experience.module.css'
