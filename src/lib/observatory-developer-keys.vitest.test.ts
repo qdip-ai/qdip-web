@@ -64,8 +64,13 @@ describe('Generic developer plugin keys', () => {
         if (path.endsWith('/plugin-publications'))
           return Response.json([
             vhv,
-            { name: 'GTM Lab', plugin_id: 'GTM Lab', enabled: true,
-              capabilities: ['gtm-lab.demo'], ui: { label: 'GTM Lab' } },
+            {
+              name: 'GTM Lab',
+              plugin_id: 'GTM Lab',
+              enabled: true,
+              capabilities: ['gtm-lab.demo'],
+              ui: { label: 'GTM Lab' },
+            },
             plugin,
           ])
         if (path.endsWith('/organizations')) return Response.json([vhvOrg])
