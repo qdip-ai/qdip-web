@@ -444,13 +444,14 @@ export function RRProductionOperatorPanel({ locale = 'en' }: { locale?: Locale }
         reason instanceof TypeError ||
         reason instanceof SyntaxError ||
         (reason instanceof OperatorRequestError && reason.kind === 'UNAVAILABLE')
-      const attempted = ambiguous && method === 'POST'
-        ? recoverableRRSubmission(
-            label === 'Create execution' ? 'create' : 'replan',
-            body,
-            { preflight, predecessorExecutionId: executionId, decisionId }
-          )
-        : null
+      const attempted =
+        ambiguous && method === 'POST'
+          ? recoverableRRSubmission(label === 'Create execution' ? 'create' : 'replan', body, {
+              preflight,
+              predecessorExecutionId: executionId,
+              decisionId,
+            })
+          : null
       if (
         attempted &&
         (label === 'Create execution' || label === 'Replan execution') &&
@@ -458,7 +459,10 @@ export function RRProductionOperatorPanel({ locale = 'en' }: { locale?: Locale }
       ) {
         try {
           const recovered: unknown = await checkedJson(
-            await fetch(`${prefix}/executions/${encodeURIComponent(attempted.executionId)}/presentation`, { cache: 'no-store', signal })
+            await fetch(`${prefix}/executions/${encodeURIComponent(attempted.executionId)}/presentation`, {
+              cache: 'no-store',
+              signal,
+            })
           )
           if (!requestGuard.current.current(epoch)) return
           if (
@@ -468,7 +472,9 @@ export function RRProductionOperatorPanel({ locale = 'en' }: { locale?: Locale }
             recovered.predecessor_execution_id !== attempted.predecessorExecutionId ||
             (attempted.payloadDigest !== null && recovered.payload_digest !== attempted.payloadDigest) ||
             (attempted.sourceSnapshotId !== null && recovered.source_snapshot_id !== attempted.sourceSnapshotId)
-          ) throw new Error('Core evidence does not match the attempted execution')
+          ) {
+            throw new Error('Core evidence does not match the attempted execution')
+          }
           setExecutionId(recovered.execution_id)
           setDecisionId(recovered.decision_id)
           setPresentation(recovered)
@@ -925,7 +931,12 @@ export function RRProductionOperatorPanel({ locale = 'en' }: { locale?: Locale }
             </p>
             <button
               type="button"
-              disabled={busy || !preflight || validatedBody !== requestBody || (uncertainWrite?.kind === 'create' && uncertainWrite.body === requestBody)}
+              disabled={
+                busy ||
+                !preflight ||
+                validatedBody !== requestBody ||
+                (uncertainWrite?.kind === 'create' && uncertainWrite.body === requestBody)
+              }
               onClick={() =>
                 void execute(
                   'Create execution',
@@ -973,7 +984,12 @@ export function RRProductionOperatorPanel({ locale = 'en' }: { locale?: Locale }
             />
             <button
               type="button"
-              disabled={busy || !validId(executionId) || !replanBody.trim() || (uncertainWrite?.kind === 'replan' && uncertainWrite.body === replanBody)}
+              disabled={
+                busy ||
+                !validId(executionId) ||
+                !replanBody.trim() ||
+                (uncertainWrite?.kind === 'replan' && uncertainWrite.body === replanBody)
+              }
               onClick={() =>
                 void execute(
                   'Replan execution',
