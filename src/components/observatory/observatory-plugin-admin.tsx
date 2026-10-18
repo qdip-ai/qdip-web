@@ -90,7 +90,8 @@ const copy = {
     securityApprove: 'Надати ручний допуск',
     securityReference: 'Посилання на звіт перевірки (мін. 8 символів)',
     securityRisk: 'Підтверджую відповідальне прийняття ризику: фактичний код Worker не засвідчений.',
-    securityRiskWarning: 'Поки плагін не допущений адміністратором, виклики через QDIP заблоковані.',
+    securityRiskWarning: 'Без допуску виконання заблоковане. Ручний дозвіл можливий лише для внутрішнього Worker з ідентичністю у дозволеному списку Core; сторонні плагіни очікують перевірки артефактів.',
+    securityFirstPartyOnly: 'Цей Worker не входить до дозволеного списку внутрішніх плагінів. Потрібна атестація артефакту.',
     securityReleaseHint: 'Зняття карантину переводить плагін у стан очікування перевірки, а не відкриває доступ.',
     cancel: 'Скасувати',
     collapse: 'Згорнути',
@@ -164,7 +165,8 @@ const copy = {
     securityApprove: 'Accept risk and authorize',
     securityReference: 'Review evidence reference (min. 8 characters)',
     securityRisk: 'I accept the residual risk: actual Worker source code is not attested.',
-    securityRiskWarning: 'Core blocks this plugin until an administrator explicitly authorizes this Worker manifest.',
+    securityRiskWarning: 'Calls are blocked until admission. Manual approval is only for deployed first-party allowlisted Workers; external plugins require artifact verification.',
+    securityFirstPartyOnly: 'Worker is not on the vetted first-party allowlist; verified artifact admission is required.',
     securityReleaseHint: 'Releasing quarantine returns to pending review, never grants execution.',
     cancel: 'Cancel',
     collapse: 'Collapse',
@@ -238,7 +240,8 @@ const copy = {
     securityApprove: 'Zaakceptuj ryzyko i dopuść',
     securityReference: 'Odnośnik do przeglądu (min. 8 znaków)',
     securityRisk: 'Akceptuję ryzyko: rzeczywisty kod Workera nie został poświadczony.',
-    securityRiskWarning: 'Core blokuje wywołania, dopóki administrator nie dopuści manifestu Workera.',
+    securityRiskWarning: 'Wykonywanie jest blokowane. Ręczne dopuszczenie dotyczy tylko wewnętrznych Workerów z listy Core; zewnętrzne wymagają weryfikacji artefaktu.',
+    securityFirstPartyOnly: 'Worker nie znajduje się na zatwierdzonej liście wewnętrznej; wymagana jest weryfikacja artefaktu.',
     securityReleaseHint: 'Zdjęcie kwarantanny przywraca oczekiwanie na ocenę, bez zgody na wykonywanie.',
     cancel: 'Anuluj',
     collapse: 'Zwiń',
@@ -475,7 +478,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
               : { quarantined, reason: securityReason.trim() }),
         }),
       })
-      if (!response.ok) throw new Error(t.securityError)
+      if (!response.ok)
+        throw new Error(response.status === 403 ? t.securityFirstPartyOnly : t.securityError)
       const result = (await response.json()) as {
         security: { state: string; last_scan?: { result: string } | null }
       }
@@ -492,8 +496,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       if (action === 'scan') setSourceCode('')
       if (action === 'approve') setRiskAcknowledged(false)
       await refresh()
-    } catch {
-      setSecurityFeedback({ name: row.name, message: t.securityError, failed: true })
+    } catch (cause) {
+      setSecurityFeedback({
+        name: row.name,
+        message: cause instanceof Error ? cause.message : t.securityError,
+        failed: true,
+      })
     } finally {
       setPending(false)
     }
@@ -818,7 +826,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     <Button
                       type="button"
                       disabled={
-                        pending || !sourceCode.trim() || new TextEncoder().encode(sourceCode).length > 32768
+                        pending ||
+                        row.security?.state === 'revoked' ||
+                        !sourceCode.trim() ||
+                        new TextEncoder().encode(sourceCode).length > 32768
                       }
                       onClick={() => void reviewSecurity(row, 'scan')}
                     >
