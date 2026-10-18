@@ -67,3 +67,35 @@ the QDIP platform root key in VHV.
 
 The admin page is currently an internal bootstrap interface; broader
 developer self-service registration and app ownership remain future work.
+
+
+## Route Optimizer (RO): той самий екран створення ключів
+
+На `https://observatory.qdip.ai/uk/admin/apps` виберіть у списку застосунків
+**Route Optimizer (RO)**, а потім натисніть **Створити ключ для RO**.
+
+На відміну від VHV, для RO створюється **лише один ключ виклику**
+з внутрішньою організацією `qdip-sdk-app:ro`:
+
+- `environment: production` (поточна політика адміністративного інтерфейсу)
+- `scopes: ["plugins:execute"]`
+- `allowed_capabilities: ["route-optimizer.customer-coordinate-vrp.v1", "route-optimizer.customer-address-vrp.v1"]`
+- строк дії 30 днів; перевіряється відповідь Core **та** збережена політика
+- немає `plugins:register` та другого ключа SDK-02: приватний Route Worker не реєструється через SDK-02
+
+Ключ показується лише один раз адміністратору. Збережіть його в
+серверній змінній `QDIP_ROUTE_ORG_API_KEY` того backend-застосунку, яке
+викликає `@qdip/client` через `routes.solveAddresses()` або
+`routes.solveCoordinates()`. Не вставляйте цей ключ у браузер,
+публічний SDK, GitHub чи код клієнтського інтерфейсу.
+
+Тут **не відбувається автоматична передача секрету до Railway**:
+інтерфейс не знає, в якому саме застосунку буде використовуватися RO.
+Інтерфейс не активує приватний Worker, не створює публічний Gateway і не
+публікує плагін в Observatory. Ключ має силу лише в межах зазначених
+двох capabilities; якщо Core поверне ширші права, інтерфейс не
+покаже секрет і намагатиметься відкликати щойно створений ключ.
+
+Створення вимагає реальної сесії адміністратора Observatory з Zitadel.
+Без цієї сесії API повертає 401/403; обхід через технічний ключ
+платформи або вставлення ключа в чат не допускається.
