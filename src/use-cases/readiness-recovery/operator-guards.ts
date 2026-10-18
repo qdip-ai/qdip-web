@@ -79,8 +79,7 @@ export function recoverableRRSubmission(
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
   const doc = parsed as Record<string, unknown>
-  const validId = (id: unknown): id is string =>
-    typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(id)
+  const validId = (id: unknown): id is string => typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(id)
 
   if (kind === 'create') {
     const preflight = options.preflight
