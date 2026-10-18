@@ -209,9 +209,7 @@ function initialFields(row: Row): FormFields {
     description: row.description || '',
     category: row.ui?.category || 'Other',
     capability_id: row.capability_id || row.capabilities[0] || '',
-    slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '')
-      ? row.plugin_id || ''
-      : ''),
+    slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
   }
 }
 
@@ -566,7 +564,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
                         >
                           {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
-                            (category) => <option key={category}>{category}</option>
+                            (category) => (
+                              <option key={category}>{category}</option>
+                            )
                           )}
                         </select>
                       </label>
@@ -587,17 +587,26 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     <div className="flex flex-wrap items-center gap-3">
                       <Button
                         type="submit"
-                        disabled={pending || !row.enabled || !fields.display_name.trim() || !fields.capability_id ||
+                        disabled={
+                          pending ||
+                          !row.enabled ||
+                          !fields.display_name.trim() ||
+                          !fields.capability_id ||
                           !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
                           fields.slug.includes('--') ||
-                          ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)}
+                          ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(fields.slug)
+                        }
                       >
                         {pending ? (
                           <>
                             <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
                             {t.busy}
                           </>
-                        ) : published ? t.saveChanges : t.publish}
+                        ) : published ? (
+                          t.saveChanges
+                        ) : (
+                          t.publish
+                        )}
                       </Button>
                       <Button type="button" variant="secondary" disabled={pending} onClick={closeEditor}>
                         {t.cancel}

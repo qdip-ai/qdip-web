@@ -66,16 +66,21 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
       return NextResponse.json({ error: 'Invalid description' }, { status: 422 })
     if (category !== undefined && (typeof category !== 'string' || !/^[A-Za-z0-9 _.-]{1,64}$/.test(category)))
       return NextResponse.json({ error: 'Invalid category' }, { status: 422 })
-    if (slug !== undefined &&
-        (typeof slug !== 'string' || !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(slug) ||
-        slug.includes('--') || ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(slug)))
+    if (
+      slug !== undefined &&
+      (typeof slug !== 'string' ||
+        !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(slug) ||
+        slug.includes('--') ||
+        ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(slug))
+    )
       return NextResponse.json({ error: 'Invalid URL slug' }, { status: 422 })
-    const conflicting = typeof slug === 'string' &&
-      (await readCorePublications()).some((other) =>
-        other.name !== name && (other.name === slug || other.slug === slug ||
-          other.slug_aliases?.includes(slug)))
-    if (conflicting)
-      return NextResponse.json({ error: 'Public URL already in use' }, { status: 409 })
+    const conflicting =
+      typeof slug === 'string' &&
+      (await readCorePublications()).some(
+        (other) =>
+          other.name !== name && (other.name === slug || other.slug === slug || other.slug_aliases?.includes(slug))
+      )
+    if (conflicting) return NextResponse.json({ error: 'Public URL already in use' }, { status: 409 })
     const updated = await coreCatalogClient().catalog.publish(name, {
       published: update.published,
       expectedRevision: update.expected_revision,

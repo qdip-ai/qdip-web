@@ -65,20 +65,20 @@ describe('Observatory inline plugin editing', () => {
     await loaded()
     expect(screen.queryByText('Публікація плагіна')).not.toBeInTheDocument()
     fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
-    expect(card('VHV — Decision Assistant').getByRole('heading', {
-      name: 'Редагування плагіна: VHV — Decision Assistant',
-    })).toHaveFocus()
+    expect(
+      card('VHV — Decision Assistant').getByRole('heading', {
+        name: 'Редагування плагіна: VHV — Decision Assistant',
+      })
+    ).toHaveFocus()
     expect(card('VHV — Decision Assistant').getByRole('textbox', { name: 'Назва' })).toHaveValue(
       'VHV — Decision Assistant'
     )
-    expect(card('VHV — Decision Assistant').getByRole('combobox', { name: 'Категорія' })).toHaveValue(
-      'Productivity'
+    expect(card('VHV — Decision Assistant').getByRole('combobox', { name: 'Категорія' })).toHaveValue('Productivity')
+    expect(card('VHV — Decision Assistant').getByRole('textbox', { name: 'Коротка адреса (URL)' })).toHaveValue(
+      'secretary'
     )
-    expect(card('VHV — Decision Assistant').getByRole('textbox', { name: 'Коротка адреса (URL)' }))
-      .toHaveValue('secretary')
     expect(card('VHV — Decision Assistant').getByText(/\/uk\/plugins\/secretary/)).toBeInTheDocument()
-    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
-      .toBeEnabled()
+    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeEnabled()
     expect(screen.queryByLabelText('Зареєстрований через SDK плагін')).not.toBeInTheDocument()
   })
 
@@ -109,7 +109,8 @@ describe('Observatory inline plugin editing', () => {
 
   it('publishes from the same card and displays confirmation without a page jump', async () => {
     const published = { ...secretary, published: true, published_version: '0.1.0', revision: 2 }
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(reply({ plugins: [secretary] }))
       .mockResolvedValueOnce(reply({ updated: true }))
       .mockResolvedValueOnce(reply({ plugins: [published] }))
@@ -118,13 +119,17 @@ describe('Observatory inline plugin editing', () => {
     await loaded()
     fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
     fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
-    await waitFor(() => expect(card('VHV — Decision Assistant').getByRole('status'))
-      .toHaveTextContent('Плагін опубліковано'))
+    await waitFor(() =>
+      expect(card('VHV — Decision Assistant').getByRole('status')).toHaveTextContent('Плагін опубліковано')
+    )
     const request = fetchMock.mock.calls.find((args) => args[1]?.method === 'PUT')
     expect(request?.[0]).toContain('remote-qa-secretary')
     expect(JSON.parse(request?.[1].body as string)).toMatchObject({
-      published: true, expected_revision: 1, capability_id: 'secretary.plan',
-      category: 'Productivity', slug: 'secretary',
+      published: true,
+      expected_revision: 1,
+      capability_id: 'secretary.plan',
+      category: 'Productivity',
+      slug: 'secretary',
     })
     expect(screen.queryByRole('heading', { name: /Редагування плагіна:/ })).not.toBeInTheDocument()
     expect(card('VHV — Decision Assistant').getByText('Опубліковано')).toBeInTheDocument()
@@ -132,10 +137,16 @@ describe('Observatory inline plugin editing', () => {
 
   it('closes the editor as soon as PUT succeeds and confirms status in the card while refreshing', async () => {
     let resolveRefresh!: (value: ReturnType<typeof reply>) => void
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(reply({ plugins: [secretary] }))
       .mockResolvedValueOnce(reply({ updated: true }))
-      .mockImplementationOnce(() => new Promise<ReturnType<typeof reply>>((done) => { resolveRefresh = done }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<ReturnType<typeof reply>>((done) => {
+            resolveRefresh = done
+          })
+      )
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
     await loaded()
@@ -144,8 +155,9 @@ describe('Observatory inline plugin editing', () => {
     await waitFor(() =>
       expect(card('VHV — Decision Assistant').getByRole('status')).toHaveTextContent('Перевіряю статус')
     )
-    expect(card('VHV — Decision Assistant').queryByRole('heading', { name: /Редагування плагіна/ }))
-      .not.toBeInTheDocument()
+    expect(
+      card('VHV — Decision Assistant').queryByRole('heading', { name: /Редагування плагіна/ })
+    ).not.toBeInTheDocument()
     expect(card('VHV — Decision Assistant').getByRole('status')).toHaveFocus()
     resolveRefresh(reply({ plugins: [{ ...secretary, published: true, published_version: '0.1.0' }] }))
     await waitFor(() =>
@@ -154,7 +166,8 @@ describe('Observatory inline plugin editing', () => {
   })
 
   it('keeps the editor closed but shows a local warning when verification fails after a successful save', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(reply({ plugins: [secretary] }))
       .mockResolvedValueOnce(reply({ updated: true }))
       .mockResolvedValueOnce(reply({ error: 'Core unavailable' }, 503))
@@ -166,14 +179,17 @@ describe('Observatory inline plugin editing', () => {
     await waitFor(() =>
       expect(card('VHV — Decision Assistant').getByRole('alert')).toHaveTextContent('Збережено, але не вдалося')
     )
-    expect(card('VHV — Decision Assistant').queryByRole('heading', { name: /Редагування плагіна/ }))
-      .not.toBeInTheDocument()
+    expect(
+      card('VHV — Decision Assistant').queryByRole('heading', { name: /Редагування плагіна/ })
+    ).not.toBeInTheDocument()
     expect(card('VHV — Decision Assistant').queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('updates the canonical public URL without changing the SDK registry plugin ID', async () => {
     const changed = { ...secretary, slug: 'vhv-planner', published: true, published_version: '0.1.0' }
-    const fetchMock = vi.fn().mockResolvedValueOnce(reply({ plugins: [secretary] }))
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply({ plugins: [secretary] }))
       .mockResolvedValueOnce(reply({ updated: true }))
       .mockResolvedValueOnce(reply({ plugins: [changed] }))
     vi.stubGlobal('fetch', fetchMock)
@@ -190,8 +206,10 @@ describe('Observatory inline plugin editing', () => {
     const put = fetchMock.mock.calls.find((args) => args[1]?.method === 'PUT')
     expect(put?.[0]).toContain('remote-qa-secretary')
     expect(JSON.parse(put?.[1].body as string).slug).toBe('vhv-planner')
-    expect(card('VHV — Decision Assistant').getByRole('link', { name: /Переглянути сторінку/ }))
-      .toHaveAttribute('href', '/uk/plugins/vhv-planner')
+    expect(card('VHV — Decision Assistant').getByRole('link', { name: /Переглянути сторінку/ })).toHaveAttribute(
+      'href',
+      '/uk/plugins/vhv-planner'
+    )
   })
 
   it('disables publishing an invalid reserved URL slug', async () => {
@@ -202,12 +220,12 @@ describe('Observatory inline plugin editing', () => {
     fireEvent.change(card('VHV — Decision Assistant').getByRole('textbox', { name: 'Коротка адреса (URL)' }), {
       target: { value: 'admin' },
     })
-    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
-      .toBeDisabled()
+    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
   })
 
   it('keeps editor and previously loaded data visible after rejected publication', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(reply({ plugins: [secretary] }))
       .mockResolvedValueOnce(reply({ error: 'Registry changed' }, 409))
     vi.stubGlobal('fetch', fetchMock)
@@ -215,8 +233,7 @@ describe('Observatory inline plugin editing', () => {
     await loaded()
     fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
     fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
-    await waitFor(() => expect(card('VHV — Decision Assistant').getByRole('alert'))
-      .toHaveTextContent('Запис змінився'))
+    await waitFor(() => expect(card('VHV — Decision Assistant').getByRole('alert')).toHaveTextContent('Запис змінився'))
     expect(card('VHV — Decision Assistant').getByRole('textbox', { name: 'Назва' })).toBeInTheDocument()
   })
 
@@ -225,9 +242,7 @@ describe('Observatory inline plugin editing', () => {
     render(<ObservatoryPluginAdmin locale="uk" />)
     await loaded()
     fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
-    expect(card('VHV — Decision Assistant').getByText(/поки Remote Worker не підключений/))
-      .toBeInTheDocument()
-    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
-      .toBeDisabled()
+    expect(card('VHV — Decision Assistant').getByText(/поки Remote Worker не підключений/)).toBeInTheDocument()
+    expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
   })
 })
