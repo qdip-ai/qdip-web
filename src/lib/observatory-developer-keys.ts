@@ -171,10 +171,14 @@ async function metadata(): Promise<{
     !Array.isArray(orgs) ||
     catalog.length > 1000 ||
     orgs.length > 500 ||
-    catalog.some((p) => !p || !PLUGIN_ID.test(p.name) || !Array.isArray(p.capabilities)) ||
+
     orgs.some((o) => !o || typeof o.id !== 'string' || !UUID.test(o.id) || typeof o.name !== 'string')
   )
     throw new DeveloperKeyError(502, 'Invalid Core plugin or organization catalog')
+  const validCatalog = catalog.filter((p) => p && typeof p.name === 'string' && PLUGIN_ID.test(p.name) &&
+    Array.isArray(p.capabilities) && p.capabilities.every((c) => typeof c === 'string' && CAPABILITY.test(c)))
+  if (validCatalog.length < catalog.length)
+    console.warn('observatory_plugin_keys: incompatible Core plugin identifiers', catalog.length - validCatalog.length)
   const managed = orgs.filter((o) => PREFIXES.some((prefix) => o.name.startsWith(prefix)))
   // No key values are ever fetched from this read-only Core endpoint.
   const stored: Array<{ org: CoreOrg; keys: CoreKey[] }> = []
@@ -190,7 +194,7 @@ async function metadata(): Promise<{
     )
     stored.push(...group)
   }
-  return { catalog, orgs, stored }
+  return { catalog: validCatalog, orgs, stored }
 }
 
 function isActive(key: CoreKey): boolean {
