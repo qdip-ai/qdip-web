@@ -153,8 +153,12 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
   }, [])
 
   useEffect(() => {
-    void refresh()
+    let mounted = true
+    queueMicrotask(() => {
+      if (mounted) void refresh()
+    })
     return () => {
+      mounted = false
       sessionRequest.current?.abort()
       executionRequest.current?.abort()
     }
