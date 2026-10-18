@@ -139,7 +139,11 @@ const translations = {
 
 // Presentation only: keep the exact capability ID in a separate secondary line.
 function capabilityTitle(capability: string): string {
-  return capability.replace(/[-_.]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^\w/, (first) => first.toUpperCase())
+  return capability
+    .replace(/[-_.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\w/, (first) => first.toUpperCase())
 }
 
 const endpoint = '/api/observatory/admin/applications'
