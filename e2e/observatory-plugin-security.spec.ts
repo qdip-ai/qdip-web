@@ -64,7 +64,6 @@ test('Observatory admin scans remote code and quarantines through its own SDK pr
   await expect(card.getByText(/remote-shell/)).toBeVisible()
 })
 
-
 test('unreviewed Worker cannot publish until the administrator explicitly accepts risk', async ({ page }) => {
   await page.context().clearCookies()
   await page.context().addCookies(oidcTestCookies(['observatory_admin']))

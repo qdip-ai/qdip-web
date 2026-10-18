@@ -78,7 +78,8 @@ const copy = {
     securityScan: 'Перевірити фрагмент коду',
     securityReason: 'Причина рішення (не менше 12 символів)',
     sourceCode: 'Вихідний код для перевірки',
-    securityCaveat: 'Перевіряється тільки наданий snapshot, а не фактичний код запущеного Worker. Відсутність збігів не означає, що плагін безпечний.',
+    securityCaveat:
+      'Перевіряється тільки наданий snapshot, а не фактичний код запущеного Worker. Відсутність збігів не означає, що плагін безпечний.',
     securityQuarantined: 'ЗАБЛОКОВАНО',
     securityClear: 'Збігів у перевіреному фрагменті не знайдено; безпеку Worker не підтверджено.',
     securityReviewNeeded: 'Знайдено підозрілі конструкції. Потрібна ручна перевірка.',
@@ -90,8 +91,10 @@ const copy = {
     securityApprove: 'Надати ручний допуск',
     securityReference: 'Посилання на звіт перевірки (мін. 8 символів)',
     securityRisk: 'Підтверджую відповідальне прийняття ризику: фактичний код Worker не засвідчений.',
-    securityRiskWarning: 'Без допуску виконання заблоковане. Ручний дозвіл можливий лише для внутрішнього Worker з ідентичністю у дозволеному списку Core; сторонні плагіни очікують перевірки артефактів.',
-    securityFirstPartyOnly: 'Цей Worker не входить до дозволеного списку внутрішніх плагінів. Потрібна атестація артефакту.',
+    securityRiskWarning:
+      'Без допуску виконання заблоковане. Ручний дозвіл можливий лише для внутрішнього Worker з ідентичністю у дозволеному списку Core; сторонні плагіни очікують перевірки артефактів.',
+    securityFirstPartyOnly:
+      'Цей Worker не входить до дозволеного списку внутрішніх плагінів. Потрібна атестація артефакту.',
     securityReleaseHint: 'Зняття карантину переводить плагін у стан очікування перевірки, а не відкриває доступ.',
     cancel: 'Скасувати',
     collapse: 'Згорнути',
@@ -153,7 +156,8 @@ const copy = {
     securityScan: 'Scan code snapshot',
     securityReason: 'Reason (at least 12 characters)',
     sourceCode: 'Source snapshot to review',
-    securityCaveat: 'Only the submitted snapshot is checked, not the running Worker. No matches do not prove that the plugin is safe.',
+    securityCaveat:
+      'Only the submitted snapshot is checked, not the running Worker. No matches do not prove that the plugin is safe.',
     securityQuarantined: 'QUARANTINED',
     securityClear: 'No matching signatures in the submitted snapshot; Worker safety is unverified.',
     securityReviewNeeded: 'Suspicious primitives found; manual review required.',
@@ -165,8 +169,10 @@ const copy = {
     securityApprove: 'Accept risk and authorize',
     securityReference: 'Review evidence reference (min. 8 characters)',
     securityRisk: 'I accept the residual risk: actual Worker source code is not attested.',
-    securityRiskWarning: 'Calls are blocked until admission. Manual approval is only for deployed first-party allowlisted Workers; external plugins require artifact verification.',
-    securityFirstPartyOnly: 'Worker is not on the vetted first-party allowlist; verified artifact admission is required.',
+    securityRiskWarning:
+      'Calls are blocked until admission. Manual approval is only for deployed first-party allowlisted Workers; external plugins require artifact verification.',
+    securityFirstPartyOnly:
+      'Worker is not on the vetted first-party allowlist; verified artifact admission is required.',
     securityReleaseHint: 'Releasing quarantine returns to pending review, never grants execution.',
     cancel: 'Cancel',
     collapse: 'Collapse',
@@ -228,7 +234,8 @@ const copy = {
     securityScan: 'Sprawdź kod źródłowy',
     securityReason: 'Powód (minimum 12 znaków)',
     sourceCode: 'Kod źródłowy do sprawdzenia',
-    securityCaveat: 'Sprawdzany jest wyłącznie przekazany fragment, nie kod działającego Workera. Brak trafień nie potwierdza bezpieczeństwa.',
+    securityCaveat:
+      'Sprawdzany jest wyłącznie przekazany fragment, nie kod działającego Workera. Brak trafień nie potwierdza bezpieczeństwa.',
     securityQuarantined: 'ZABLOKOWANO',
     securityClear: 'Brak dopasowań w dostarczonym kodzie; bezpieczeństwo Workera niepotwierdzone.',
     securityReviewNeeded: 'Wykryto podejrzane elementy; wymagana ręczna kontrola.',
@@ -240,8 +247,10 @@ const copy = {
     securityApprove: 'Zaakceptuj ryzyko i dopuść',
     securityReference: 'Odnośnik do przeglądu (min. 8 znaków)',
     securityRisk: 'Akceptuję ryzyko: rzeczywisty kod Workera nie został poświadczony.',
-    securityRiskWarning: 'Wykonywanie jest blokowane. Ręczne dopuszczenie dotyczy tylko wewnętrznych Workerów z listy Core; zewnętrzne wymagają weryfikacji artefaktu.',
-    securityFirstPartyOnly: 'Worker nie znajduje się na zatwierdzonej liście wewnętrznej; wymagana jest weryfikacja artefaktu.',
+    securityRiskWarning:
+      'Wykonywanie jest blokowane. Ręczne dopuszczenie dotyczy tylko wewnętrznych Workerów z listy Core; zewnętrzne wymagają weryfikacji artefaktu.',
+    securityFirstPartyOnly:
+      'Worker nie znajduje się na zatwierdzonej liście wewnętrznej; wymagana jest weryfikacja artefaktu.',
     securityReleaseHint: 'Zdjęcie kwarantanny przywraca oczekiwanie na ocenę, bez zgody na wykonywanie.',
     cancel: 'Anuluj',
     collapse: 'Zwiń',
@@ -478,8 +487,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
               : { quarantined, reason: securityReason.trim() }),
         }),
       })
-      if (!response.ok)
-        throw new Error(response.status === 403 ? t.securityFirstPartyOnly : t.securityError)
+      if (!response.ok) throw new Error(response.status === 403 ? t.securityFirstPartyOnly : t.securityError)
       const result = (await response.json()) as {
         security: { state: string; last_scan?: { result: string } | null }
       }
@@ -849,9 +857,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         type="button"
                         variant="secondary"
                         disabled={pending || securityReason.trim().length < 12}
-                        onClick={() =>
-                          void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')
-                        }
+                        onClick={() => void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')}
                       >
                         {row.security?.state === 'quarantined' ? t.release : t.quarantine}
                       </Button>
@@ -899,9 +905,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   {securityFeedback?.name === row.name && (
                     <p
                       role={securityFeedback.failed ? 'alert' : 'status'}
-                      className={
-                        securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'
-                      }
+                      className={securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'}
                     >
                       {securityFeedback.message}
                     </p>
