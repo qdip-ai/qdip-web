@@ -17,6 +17,7 @@ const copy = {
     demo: 'Відкрити демонстрацію',
     launch: 'Відкрити застосунок',
     launchNote: 'Зовнішній сайт розробника. Відкриється в новій вкладці; може знадобитися авторизація.',
+    headless: 'Цей плагін надає можливість через QDIP SDK. Вебзастосунок не вказано; для виконання потрібен авторизований клієнт.',
     note: 'Публікація в каталозі не надає доступу до виконання плагіна.',
   },
   en: {
@@ -27,6 +28,7 @@ const copy = {
     demo: 'Open demo',
     launch: 'Open application',
     launchNote: 'External developer website. Opens in a new tab; sign-in may be required.',
+    headless: 'This plugin provides a capability via the QDIP SDK. No web app is listed; execution requires an authorized client.',
     note: 'Catalog publication does not grant plugin execution permissions.',
   },
   pl: {
@@ -37,6 +39,7 @@ const copy = {
     demo: 'Otwórz demo',
     launch: 'Otwórz aplikację',
     launchNote: 'Zewnętrzna strona dewelopera. Otwiera się w nowej karcie; może być wymagane logowanie.',
+    headless: 'Wtyczka udostępnia funkcję przez QDIP SDK. Nie podano aplikacji internetowej; wykonanie wymaga autoryzowanego klienta.',
     note: 'Publikacja w katalogu nie nadaje uprawnień do wykonania wtyczki.',
   },
 } as const
@@ -80,6 +83,7 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
             </p>
           </div>
         )}
+        {!launch && <p className="mt-7 text-sm leading-6 text-slate-400">{t.headless}</p>}
         <dl className="mt-8 grid gap-4 rounded-xl border border-white/15 bg-slate-900 p-5 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-slate-400">{t.version}</dt>
