@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { oidcTestCookies } from './oidc-test-session'
 
-test('admin edits SDK-registered plugin directly inside its card and closes the form after publishing', async ({ page }) => {
+test('admin edits plugin inline and closes the form after publishing', async ({ page }) => {
   await page.context().clearCookies()
   await page.context().addCookies(oidcTestCookies(['observatory_admin']))
   const plugin = {
