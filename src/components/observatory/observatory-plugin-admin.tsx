@@ -11,6 +11,15 @@ type Row = {
   plugin_id?: string
   slug?: string | null
   slug_aliases?: string[]
+  security?: {
+    state: 'active' | 'quarantined'
+    reason?: string | null
+    last_scan?: {
+      result: 'critical' | 'review' | 'no_signatures'
+      source_sha256: string
+      findings: Array<{ id: string; severity: 'critical' | 'review'; line: number }>
+    } | null
+  }
   source?: 'embedded' | 'remote'
   description: string
   version: string
@@ -62,6 +71,20 @@ const copy = {
     publish: 'Зберегти й опублікувати',
     saveChanges: 'Зберегти зміни',
     edit: 'Редагувати',
+    securityReview: 'Перевірка безпеки',
+    securityClose: 'Закрити перевірку',
+    quarantine: 'Заблокувати виконання',
+    release: 'Зняти блокування',
+    securityScan: 'Перевірити фрагмент коду',
+    securityReason: 'Причина рішення (не менше 12 символів)',
+    sourceCode: 'Вихідний код для перевірки',
+    securityCaveat: 'Перевіряється тільки наданий snapshot, а не фактичний код запущеного Worker. Відсутність збігів не означає, що плагін безпечний.',
+    securityQuarantined: 'ЗАБЛОКОВАНО',
+    securityClear: 'Збігів у перевіреному фрагменті не знайдено; безпеку Worker не підтверджено.',
+    securityReviewNeeded: 'Знайдено підозрілі конструкції. Потрібна ручна перевірка.',
+    securityCritical: 'Знайдено критичну сигнатуру. Плагін заблоковано в Core.',
+    securityError: 'Не вдалося виконати перевірку. Повторіть після оновлення.',
+    securityChanged: 'Стан безпеки оновлено.',
     cancel: 'Скасувати',
     collapse: 'Згорнути',
     editing: 'Редагування плагіна',
@@ -115,6 +138,20 @@ const copy = {
     publish: 'Save and publish',
     saveChanges: 'Save changes',
     edit: 'Edit',
+    securityReview: 'Security review',
+    securityClose: 'Close review',
+    quarantine: 'Block execution',
+    release: 'Release quarantine',
+    securityScan: 'Scan code snapshot',
+    securityReason: 'Reason (at least 12 characters)',
+    sourceCode: 'Source snapshot to review',
+    securityCaveat: 'Only the submitted snapshot is checked, not the running Worker. No matches do not prove that the plugin is safe.',
+    securityQuarantined: 'QUARANTINED',
+    securityClear: 'No matching signatures in the submitted snapshot; Worker safety is unverified.',
+    securityReviewNeeded: 'Suspicious primitives found; manual review required.',
+    securityCritical: 'Critical signature found. The Core has quarantined the plugin.',
+    securityError: 'Security action failed. Refresh and retry.',
+    securityChanged: 'Security status updated.',
     cancel: 'Cancel',
     collapse: 'Collapse',
     editing: 'Edit plugin',
@@ -168,6 +205,20 @@ const copy = {
     publish: 'Zapisz i opublikuj',
     saveChanges: 'Zapisz zmiany',
     edit: 'Edytuj',
+    securityReview: 'Kontrola bezpieczeństwa',
+    securityClose: 'Zamknij kontrolę',
+    quarantine: 'Zablokuj wykonywanie',
+    release: 'Odblokuj',
+    securityScan: 'Sprawdź kod źródłowy',
+    securityReason: 'Powód (minimum 12 znaków)',
+    sourceCode: 'Kod źródłowy do sprawdzenia',
+    securityCaveat: 'Sprawdzany jest wyłącznie przekazany fragment, nie kod działającego Workera. Brak trafień nie potwierdza bezpieczeństwa.',
+    securityQuarantined: 'ZABLOKOWANO',
+    securityClear: 'Brak dopasowań w dostarczonym kodzie; bezpieczeństwo Workera niepotwierdzone.',
+    securityReviewNeeded: 'Wykryto podejrzane elementy; wymagana ręczna kontrola.',
+    securityCritical: 'Krytyczna sygnatura. Wtyczka została zablokowana w Core.',
+    securityError: 'Kontrola nie powiodła się. Odśwież i spróbuj ponownie.',
+    securityChanged: 'Zaktualizowano status bezpieczeństwa.',
     cancel: 'Anuluj',
     collapse: 'Zwiń',
     editing: 'Edytowanie wtyczki',
@@ -217,6 +268,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const t = copy[locale]
   const [rows, setRows] = useState<Row[] | null>(null)
   const [selected, setSelected] = useState('')
+  const [securityOpen, setSecurityOpen] = useState('')
+  const [sourceCode, setSourceCode] = useState('')
+  const [sourceLanguage, setSourceLanguage] = useState<'python' | 'javascript' | 'typescript' | 'shell'>('python')
+  const [securityReason, setSecurityReason] = useState('')
+  const [securityFeedback, setSecurityFeedback] = useState<{ name: string; message: string; failed: boolean } | null>(null)
   const [fields, setFields] = useState<FormFields>({
     display_name: '',
     description: '',
@@ -369,6 +425,47 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     }
   }
 
+  async function reviewSecurity(row: Row, action: 'scan' | 'quarantine', quarantined?: boolean) {
+    setPending(true)
+    setSecurityFeedback(null)
+    try {
+      const response = await fetch(
+        '/api/observatory/admin/plugins/' + encodeURIComponent(row.name) + '/security',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            action,
+            expected_revision: row.revision,
+            ...(action === 'scan'
+              ? { source_code: sourceCode, language: sourceLanguage }
+              : { quarantined, reason: securityReason.trim() }),
+          }),
+        }
+      )
+      if (!response.ok) throw new Error(t.securityError)
+      const result: { security: { state: string; last_scan?: { result: string } | null } } =
+        await response.json()
+      const scanResult = result.security.last_scan?.result
+      const message =
+        action === 'scan'
+          ? scanResult === 'critical'
+            ? t.securityCritical
+            : scanResult === 'review'
+              ? t.securityReviewNeeded
+              : t.securityClear
+          : t.securityChanged
+      setSecurityFeedback({ name: row.name, message, failed: false })
+      if (action === 'scan') setSourceCode('')
+      await refresh()
+    } catch {
+      setSecurityFeedback({ name: row.name, message: t.securityError, failed: true })
+    } finally {
+      setPending(false)
+    }
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 text-slate-100 md:px-8 md:py-12">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -432,8 +529,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   )}
                 </div>
                 <Badge variant={published ? 'emerald' : 'neutral'}>
-                  {published
-                    ? t.published
+                  {row.security?.state === 'quarantined'
+                    ? t.securityQuarantined
+                    : published
+                      ? t.published
                     : row.enabled
                       ? t.unpublished
                       : row.source === 'remote'
@@ -456,7 +555,23 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                 >
                   {selected === row.name ? t.collapse : t.edit}
                 </Button>
-                {published && (
+                {row.source === 'remote' && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={pending}
+                    aria-expanded={securityOpen === row.name}
+                    onClick={() => {
+                      setSecurityOpen(securityOpen === row.name ? '' : row.name)
+                      setSecurityFeedback(null)
+                      setSourceCode('')
+                      setSecurityReason('')
+                    }}
+                  >
+                    {securityOpen === row.name ? t.securityClose : t.securityReview}
+                  </Button>
+                )}
+                {published && row.security?.state !== 'quarantined' && (
                   <>
                     <a
                       className="text-sm font-semibold text-cyan-300"
@@ -591,6 +706,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         disabled={
                           pending ||
                           !row.enabled ||
+                          row.security?.state === 'quarantined' ||
                           !fields.display_name.trim() ||
                           !fields.capability_id ||
                           !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(fields.slug) ||
@@ -614,6 +730,77 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       </Button>
                     </div>
                   </form>
+                </section>
+              )}
+              {securityOpen === row.name && row.source === 'remote' && (
+                <section className="mt-5 min-w-0 border-t border-white/15 pt-5" aria-label={t.securityReview}>
+                  <h4 className="text-base font-semibold">{t.securityReview}</h4>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{t.securityCaveat}</p>
+                  {row.security?.reason && (
+                    <p className="mt-3 break-words text-sm text-rose-300">{row.security.reason}</p>
+                  )}
+                  {row.security?.last_scan && (
+                    <div className="mt-3 text-sm text-slate-300">
+                      <p>{row.security.last_scan.result} · SHA-256: {row.security.last_scan.source_sha256}</p>
+                      {row.security.last_scan.findings.map((finding) => (
+                        <p key={finding.id}>{finding.severity}: {finding.id} · line {finding.line}</p>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-4 grid gap-3">
+                    <label className="grid gap-2 text-sm">
+                      {t.sourceCode}
+                      <textarea
+                        className="min-h-32 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm"
+                        value={sourceCode}
+                        maxLength={32768}
+                        onChange={(event) => setSourceCode(event.target.value)}
+                      />
+                    </label>
+                    <select
+                      aria-label="Code language"
+                      className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                      value={sourceLanguage}
+                      onChange={(event) => setSourceLanguage(event.target.value as typeof sourceLanguage)}
+                    >
+                      <option value="python">Python</option>
+                      <option value="javascript">JavaScript</option>
+                      <option value="typescript">TypeScript</option>
+                      <option value="shell">Shell</option>
+                    </select>
+                    <Button
+                      type="button"
+                      disabled={pending || !sourceCode.trim() || new TextEncoder().encode(sourceCode).length > 32768}
+                      onClick={() => void reviewSecurity(row, 'scan')}
+                    >
+                      {pending ? t.busy : t.securityScan}
+                    </Button>
+                    <label className="grid gap-2 text-sm">
+                      {t.securityReason}
+                      <textarea
+                        className="min-h-20 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                        value={securityReason}
+                        maxLength={1000}
+                        onChange={(event) => setSecurityReason(event.target.value)}
+                      />
+                    </label>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={pending || securityReason.trim().length < 12}
+                      onClick={() => void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')}
+                    >
+                      {row.security?.state === 'quarantined' ? t.release : t.quarantine}
+                    </Button>
+                  </div>
+                  {securityFeedback?.name === row.name && (
+                    <p
+                      role={securityFeedback.failed ? 'alert' : 'status'}
+                      className={securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'}
+                    >
+                      {securityFeedback.message}
+                    </p>
+                  )}
                 </section>
               )}
             </article>
