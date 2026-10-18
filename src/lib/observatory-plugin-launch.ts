@@ -7,6 +7,22 @@ export type PluginLaunchLink = Readonly<{ href: string; host: string }>
  * Core accepts this field only through audited platform-admin publication.
  * Reject unsafe/invalid URLs again at the public rendering boundary.
  */
+/** A browser must not follow a private, credential-bearing or non-HTTPS destination. */
+export function validPublicApplicationUrl(value: string): boolean {
+  if (!value || value.length > 512 || value !== value.trim() || /[\\\\\x00-\x1f\x7f]/.test(value)) return false
+  try {
+    const url = new URL(value)
+    const labels = url.hostname.toLowerCase().split('.')
+    return url.protocol === 'https:' && !url.username && !url.password &&
+      !url.search && !url.hash && !url.port && !url.hostname.endsWith('.') &&
+      labels.length >= 2 &&
+      labels.every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)) &&
+      /^[a-z]{2,63}$/.test(labels[labels.length - 1] ?? '')
+  } catch {
+    return false
+  }
+}
+
 export function launchLinkForPlugin(plugin: PluginCatalogEntry): PluginLaunchLink | null {
   if (
     plugin.published !== true ||
@@ -16,19 +32,6 @@ export function launchLinkForPlugin(plugin: PluginCatalogEntry): PluginLaunchLin
     typeof plugin.application_url !== 'string'
   ) return null
   const value = plugin.application_url
-  if (!value || value.length > 512 || value !== value.trim() || /[\\\\\x00-\x1f\x7f]/.test(value)) return null
-  try {
-    const url = new URL(value)
-    const labels = url.hostname.toLowerCase().split('.')
-    if (
-      url.protocol !== 'https:' || url.username || url.password ||
-      url.search || url.hash || url.port || url.hostname.endsWith('.') ||
-      labels.length < 2 ||
-      !labels.every((label) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)) ||
-      !/^[a-z]{2,63}$/.test(labels[labels.length - 1] ?? '')
-    ) return null
-    return { href: value, host: url.hostname }
-  } catch {
-    return null
-  }
+  if (!validPublicApplicationUrl(value)) return null
+  return { href: value, host: new URL(value).hostname }
 }
