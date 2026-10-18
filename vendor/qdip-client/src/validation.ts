@@ -194,11 +194,13 @@ export function parsePluginSecurityState(input: unknown): import('./types.js').P
       findings, result: scan.result as 'critical' | 'review' | 'no_signatures', coverage: scan.coverage
     };
   }
+  if (v.critical_block !== undefined && typeof v.critical_block !== 'boolean') return fail();
   return {
     state: v.state as import('./types.js').PluginSecurityState['state'],
     ...(v.reason !== undefined ? { reason: v.reason as string | null } : {}),
     ...(v.review_reference !== undefined ? { review_reference: v.review_reference as string | null } : {}),
     ...(v.approval_source !== undefined ? { approval_source: v.approval_source as string | null } : {}),
+    ...(v.critical_block !== undefined ? { critical_block: v.critical_block as boolean } : {}),
     ...(v.last_scan !== undefined ? { last_scan: lastScan } : {}),
   };
 }

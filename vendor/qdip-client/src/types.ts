@@ -128,6 +128,7 @@ export interface PluginSecurityState {
   reason?: string | null;
   review_reference?: string | null;
   approval_source?: string | null;
+  critical_block?: boolean;
   last_scan?: {
     source_sha256: string;
     source_kind: 'reviewer_supplied_unverified';
@@ -170,6 +171,16 @@ export interface PluginApprovalInput {
   reason: string;
   reviewReference: string;
   riskAcknowledged: true;
+  signal?: AbortSignal;
+  deadlineMs?: number;
+}
+
+/** Terminal and audited removal of a Worker identity's execution grant. */
+export interface PluginRevokeInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  reason: string;
   signal?: AbortSignal;
   deadlineMs?: number;
 }
