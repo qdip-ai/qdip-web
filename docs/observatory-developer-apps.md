@@ -53,7 +53,7 @@ VHV). Key scope and capability restrictions remain enforced by **Core**.
 
 ## Important separation
 
-An API key authorizes *access*; it does not install or register a plugin,
+An API key authorizes _access_; it does not install or register a plugin,
 start a Worker, publish an Observatory catalog entry or prove the
 Kernel produced a result. Registered plugins appear automatically through
 their SDK manifests; private Route Optimizer uses its existing private
