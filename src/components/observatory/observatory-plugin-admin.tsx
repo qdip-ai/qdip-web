@@ -13,6 +13,7 @@ type Row = {
   slug_aliases?: string[]
   security?: {
     state: 'pending_review' | 'approved' | 'quarantined' | 'revoked'
+    critical_block?: boolean
     reason?: string | null
     last_scan?: {
       result: 'critical' | 'review' | 'no_signatures'
@@ -77,6 +78,10 @@ const copy = {
     release: 'Зняти блокування',
     securityScan: 'Перевірити фрагмент коду',
     securityReason: 'Причина рішення (не менше 12 символів)',
+    securityRevoke: 'Відкликати назавжди',
+    securityRevokeConfirm: 'Введіть повний внутрішній ID плагіна для підтвердження відкликання',
+    securityRevoked: 'ВІДКЛИКАНО — відновлення неможливе',
+    securityCriticalBlocked: 'Виявлено критичну сигнатуру. Новий snapshot не скасовує блокування; потрібна перевірена процедура усунення загрози.',
     sourceCode: 'Вихідний код для перевірки',
     securityCaveat:
       'Перевіряється тільки наданий snapshot, а не фактичний код запущеного Worker. Відсутність збігів не означає, що плагін безпечний.',
@@ -155,6 +160,10 @@ const copy = {
     release: 'Release quarantine',
     securityScan: 'Scan code snapshot',
     securityReason: 'Reason (at least 12 characters)',
+    securityRevoke: 'Permanently revoke',
+    securityRevokeConfirm: 'Enter the full internal plugin ID to confirm revocation',
+    securityRevoked: 'REVOKED — cannot be restored',
+    securityCriticalBlocked: 'A critical finding remains unresolved. A new snapshot cannot clear the block; verified remediation is required.',
     sourceCode: 'Source snapshot to review',
     securityCaveat:
       'Only the submitted snapshot is checked, not the running Worker. No matches do not prove that the plugin is safe.',
@@ -233,6 +242,10 @@ const copy = {
     release: 'Odblokuj',
     securityScan: 'Sprawdź kod źródłowy',
     securityReason: 'Powód (minimum 12 znaków)',
+    securityRevoke: 'Trwale cofnij dostęp',
+    securityRevokeConfirm: 'Wpisz pełny wewnętrzny identyfikator wtyczki, aby potwierdzić',
+    securityRevoked: 'COFNIĘTO — nieodwracalne',
+    securityCriticalBlocked: 'Krytyczne ustalenie nadal blokuje dostęp. Nowy fragment kodu nie usuwa blokady; wymagane jest potwierdzone rozwiązanie problemu.',
     sourceCode: 'Kod źródłowy do sprawdzenia',
     securityCaveat:
       'Sprawdzany jest wyłącznie przekazany fragment, nie kod działającego Workera. Brak trafień nie potwierdza bezpieczeństwa.',
@@ -306,6 +319,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [sourceCode, setSourceCode] = useState('')
   const [sourceLanguage, setSourceLanguage] = useState<'python' | 'javascript' | 'typescript' | 'shell'>('python')
   const [securityReason, setSecurityReason] = useState('')
+  const [revokeConfirmation, setRevokeConfirmation] = useState('')
   const [securityReference, setSecurityReference] = useState('')
   const [riskAcknowledged, setRiskAcknowledged] = useState(false)
   const [securityFeedback, setSecurityFeedback] = useState<{
@@ -465,7 +479,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     }
   }
 
-  async function reviewSecurity(row: Row, action: 'scan' | 'quarantine' | 'approve', quarantined?: boolean) {
+  async function reviewSecurity(row: Row, action: 'scan' | 'quarantine' | 'approve' | 'revoke', quarantined?: boolean) {
     setPending(true)
     setSecurityFeedback(null)
     try {
@@ -484,7 +498,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   review_reference: securityReference.trim(),
                   risk_acknowledged: riskAcknowledged,
                 }
-              : { quarantined, reason: securityReason.trim() }),
+              : action === 'revoke'
+                ? { reason: securityReason.trim() }
+                : { quarantined, reason: securityReason.trim() }),
         }),
       })
       if (!response.ok) throw new Error(response.status === 403 ? t.securityFirstPartyOnly : t.securityError)
@@ -503,6 +519,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       setSecurityFeedback({ name: row.name, message, failed: false })
       if (action === 'scan') setSourceCode('')
       if (action === 'approve') setRiskAcknowledged(false)
+      if (action === 'revoke') setRevokeConfirmation('')
       await refresh()
     } catch (cause) {
       setSecurityFeedback({
@@ -795,6 +812,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   {row.security?.state === 'approved' && (
                     <p className="mt-2 text-sm text-emerald-300">{t.securityApproved}</p>
                   )}
+                  {row.security?.state === 'revoked' && (
+                    <p className="mt-2 text-sm text-rose-300">{t.securityRevoked}</p>
+                  )}
+                  {row.security?.critical_block && (
+                    <p className="mt-2 text-sm text-rose-300">{t.securityCriticalBlocked}</p>
+                  )}
                   {row.security?.reason && (
                     <p className="mt-3 break-words text-sm text-rose-300">{row.security.reason}</p>
                   )}
@@ -865,9 +888,35 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     {row.security?.state === 'quarantined' && (
                       <p className="text-sm text-slate-400">{t.securityReleaseHint}</p>
                     )}
+                    {row.security?.state !== 'revoked' && (
+                      <div className="grid gap-3 border-t border-white/15 pt-4">
+                        <label className="grid gap-2 text-sm">
+                          {t.securityRevokeConfirm}
+                          <input
+                            className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                            value={revokeConfirmation}
+                            onChange={(event) => setRevokeConfirmation(event.target.value)}
+                            autoComplete="off"
+                          />
+                        </label>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={
+                            pending ||
+                            securityReason.trim().length < 20 ||
+                            revokeConfirmation !== row.name
+                          }
+                          onClick={() => void reviewSecurity(row, 'revoke')}
+                        >
+                          {t.securityRevoke}
+                        </Button>
+                      </div>
+                    )}
                     {row.security?.state !== 'approved' &&
                       row.security?.state !== 'quarantined' &&
-                      row.security?.state !== 'revoked' && (
+                      row.security?.state !== 'revoked' &&
+                      !row.security?.critical_block && (
                         <>
                           <label className="grid gap-2 text-sm">
                             {t.securityReference}
