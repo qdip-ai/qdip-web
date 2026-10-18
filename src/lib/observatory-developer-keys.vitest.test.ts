@@ -66,7 +66,8 @@ describe('Generic developer plugin keys', () => {
       if (url.endsWith('/plugin-publications')) return Response.json([plugin])
       if (method === 'GET' && url.endsWith('/organizations')) return Response.json([org])
       if (method === 'GET' && url.endsWith('/keys')) {
-        const { key: _ignored, ...rest } = created
+        const rest = { ...created }
+        delete (rest as { key?: string }).key
         return Response.json(calls.length ? [rest] : [])
       }
       if (method === 'POST' && url.endsWith('/keys')) {
