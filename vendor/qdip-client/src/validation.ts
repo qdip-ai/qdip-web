@@ -154,11 +154,57 @@ export function parsePluginCatalogEntry(input: unknown): PluginCatalogEntry {
     published: v.published, revision: v.revision as number,
     capability_id: v.capability_id, published_version: v.published_version,
     ...(v.slug !== undefined ? { slug: v.slug as string | null } : {}),
-    ...(v.slug_aliases !== undefined ? { slug_aliases: v.slug_aliases as string[] } : {})
+    ...(v.slug_aliases !== undefined ? { slug_aliases: v.slug_aliases as string[] } : {}),
+    ...(v.security !== undefined ? { security: parsePluginSecurityState(v.security) } : {})
   };
 }
 
 export function parsePluginCatalog(value: unknown): PluginCatalogEntry[] {
   if (!Array.isArray(value) || value.length > 1000) return fail();
   return value.map(parsePluginCatalogEntry);
+}
+
+/** Strict parsing of administrative security evidence: never display opaque HTML. */
+export function parsePluginSecurityState(input: unknown): import('./types.js').PluginSecurityState {
+  const v = obj(input);
+  if (v.state !== 'active' && v.state !== 'quarantined') return fail();
+  if (v.reason != null && (typeof v.reason !== 'string' || v.reason.length > 1000)) return fail();
+  let lastScan: import('./types.js').PluginSecurityState['last_scan'] = null;
+  if (v.last_scan != null) {
+    const scan = obj(v.last_scan);
+    if (typeof scan.source_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(scan.source_sha256) ||
+        scan.source_kind !== 'reviewer_supplied_unverified' ||
+        !['python','javascript','typescript','shell'].includes(String(scan.language)) ||
+        !['critical','review','no_signatures'].includes(String(scan.result)) ||
+        typeof scan.coverage !== 'string' || scan.coverage.length > 128 ||
+        !Array.isArray(scan.findings) || scan.findings.length > 12) return fail();
+    const findings = scan.findings.map((entry: unknown) => {
+      const f = obj(entry);
+      if (typeof f.id !== 'string' || f.id.length > 64 ||
+          (f.severity !== 'critical' && f.severity !== 'review') ||
+          !Number.isSafeInteger(f.line) || (f.line as number) < 1) return fail();
+      return { id: f.id as string, severity: f.severity as 'critical' | 'review', line: f.line as number };
+    });
+    lastScan = {
+      source_sha256: scan.source_sha256,
+      source_kind: 'reviewer_supplied_unverified',
+      language: scan.language as 'python' | 'javascript' | 'typescript' | 'shell',
+      findings, result: scan.result as 'critical' | 'review' | 'no_signatures', coverage: scan.coverage
+    };
+  }
+  return {
+    state: v.state,
+    ...(v.reason !== undefined ? { reason: v.reason as string | null } : {}),
+    ...(v.last_scan !== undefined ? { last_scan: lastScan } : {}),
+  };
+}
+
+export function parsePluginSecurityResult(value: unknown): import('./types.js').PluginSecurityResult {
+  const v = obj(value);
+  if (!Number.isSafeInteger(v.revision) || (v.revision as number) < 0 || typeof v.published !== 'boolean')
+    return fail();
+  return {
+    name: str(v.name), revision: v.revision as number,
+    published: v.published, security: parsePluginSecurityState(v.security)
+  };
 }
