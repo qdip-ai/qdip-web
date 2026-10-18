@@ -120,13 +120,14 @@ export function parseInvokeResponse(value: unknown): InvokeResponse {
 /** External URLs are navigation destinations only, never trusted API endpoints. */
 export function validExternalApplicationUrl(value: string): boolean {
   if (typeof value !== 'string' || !value || value.length > 512 ||
-      value.trim() !== value || /[\\\\\x00-\x1f\x7f]/.test(value)) return false;
+      value.trim() !== value || (value.includes(String.fromCharCode(92)) || /[\x00-\x1f\x7f]/.test(value))) return false;
   try {
     const url = new URL(value);
     const labels = url.hostname.toLowerCase().split('.');
     return url.protocol === 'https:' && !url.username && !url.password &&
       !url.port && !url.search && !url.hash && !url.hostname.endsWith('.') &&
       labels.length >= 2 &&
+      !['localhost', 'local', 'internal', 'lan', 'test', 'invalid', 'example'].includes(labels[labels.length - 1] ?? '') &&
       labels.every((part) => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(part)) &&
       /^[a-z]{2,63}$/.test(labels[labels.length - 1] ?? '');
   } catch {
