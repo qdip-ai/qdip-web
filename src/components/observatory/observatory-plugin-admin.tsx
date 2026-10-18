@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/design-system'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
-import { DIP_USE_CASES } from '@/use-cases/registry'
 import styles from './plugin-experience.module.css'
 
 type Row = {
@@ -426,9 +425,6 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         <section className={styles.adminList} aria-label={t.registered}>
           {sorted.map((row) => {
             const published = isPublished(row)
-            const demo = DIP_USE_CASES.find(
-              (item) => item.plugin.id === row.name && row.capabilities.includes(item.plugin.capability)
-            )
             const offline = !row.enabled
             return (
               <article key={row.name} className={`${styles.card} ${styles.adminCard}`}>
@@ -439,7 +435,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       {row.description || t.noDescription}
                     </p>
                     <p className={styles.note} style={{ marginTop: '0.75rem' }}>
-                      {t.version}: {row.version} · {demo ? t.demo : t.generic}
+                      {t.version}: {row.version}
                     </p>
                   </div>
                   <div className={styles.meta} style={{ marginTop: 0 }}>
