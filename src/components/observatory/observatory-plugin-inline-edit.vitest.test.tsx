@@ -245,4 +245,55 @@ describe('Observatory inline plugin editing', () => {
     expect(card('VHV — Decision Assistant').getByText(/поки Remote Worker не підключений/)).toBeInTheDocument()
     expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
   })
+
+  it('renders a registered singleton capability as technical information, never an empty-choice dropdown', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply({ plugins: [secretary] })))
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
+    const editor = card('VHV — Decision Assistant')
+    expect(editor.queryByRole('combobox', { name: 'Можливість SDK' })).not.toBeInTheDocument()
+    expect(editor.getByRole('combobox', { name: 'Категорія' })).toBeInTheDocument()
+    expect(editor.getByText('secretary.plan')).toBeInTheDocument()
+    expect(editor.getByText(/Визначено розробником через SDK/)).toBeInTheDocument()
+  })
+
+  it('offers capability selection only when SDK registers multiple capabilities', async () => {
+    const multi = { ...secretary, capabilities: ['secretary.plan', 'secretary.check'] }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(reply({ plugins: [multi] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockResolvedValueOnce(reply({ plugins: [{
+        ...multi, capability_id: 'secretary.check', published: true, published_version: '0.1.0',
+      }] }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
+    const capability = card('VHV — Decision Assistant').getByRole('combobox', { name: 'Можливість SDK' })
+    fireEvent.change(capability, { target: { value: 'secretary.check' } })
+    expect(capability).toHaveValue('secretary.check')
+    fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' }))
+    await waitFor(() => expect(fetchMock.mock.calls.some((call) => call[1]?.method === 'PUT')).toBe(true))
+    const put = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
+    expect(JSON.parse(put?.[1].body as string).capability_id).toBe('secretary.check')
+  })
+
+  it('keeps an offline but published plugin visible as published and allows unpublishing', async () => {
+    const offline = { ...secretary, published: true, published_version: '0.1.0', enabled: false }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(reply({ plugins: [offline] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockResolvedValueOnce(reply({ plugins: [{ ...offline, published: false, published_version: null }] }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    const entry = card('VHV — Decision Assistant')
+    expect(entry.getByText('Опубліковано')).toBeInTheDocument()
+    expect(entry.getByText('Remote Worker не підключений')).toBeInTheDocument()
+    fireEvent.click(entry.getByRole('button', { name: 'Приховати з каталогу' }))
+    await waitFor(() => expect(fetchMock.mock.calls.some((call) => call[1]?.method === 'PUT')).toBe(true))
+    const put = fetchMock.mock.calls.find((call) => call[1]?.method === 'PUT')
+    expect(JSON.parse(put?.[1].body as string).published).toBe(false)
+  })
 })
