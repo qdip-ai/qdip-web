@@ -158,3 +158,102 @@ describe('Observatory developer keys: audited app+Worker bootstrap', () => {
     expect(fetchStub).not.toHaveBeenCalled()
   })
 })
+
+describe('Route Optimizer keys through the existing Observatory interface', () => {
+  it('issues just one org-scoped execute key for both RO capabilities and verifies persisted policy', async () => {
+    const captured: Array<{ name: string; scopes: string[]; allowed_capabilities: string[] }> = []
+    const record = {
+      id: APP,
+      key: appRaw,
+      org_id: ORG,
+      name: '',
+      environment: 'production',
+      scopes: ['plugins:execute'],
+      allowed_capabilities: ['route-optimizer.customer-coordinate-vrp.v1', 'route-optimizer.customer-address-vrp.v1'],
+      expires_at: expires(),
+      revoked_at: null,
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, options: RequestInit) => {
+        const path = new URL(input).pathname
+        const method = options.method ?? 'GET'
+        if (method === 'GET' && path.endsWith('/organizations'))
+          return Response.json([{ id: ORG, name: 'qdip-sdk-app:ro' }])
+        if (method === 'POST' && path.endsWith('/keys')) {
+          const body = JSON.parse(String(options.body))
+          captured.push(body)
+          record.name = body.name
+          return Response.json(record, { status: 201 })
+        }
+        if (method === 'GET' && path.endsWith('/keys')) {
+          const stored = { ...record }
+          delete (stored as { key?: string }).key
+          return Response.json([stored])
+        }
+        throw Error('Unexpected request')
+      })
+    )
+    const result = await createDeveloperCredentials('RO', 'route-optimizer.customer-address-vrp.v1')
+    expect(result.application).toBe('RO')
+    expect(result.worker).toBeNull()
+    expect(result.app.key).toBe(appRaw)
+    expect(result.capabilities).toEqual([
+      'route-optimizer.customer-coordinate-vrp.v1',
+      'route-optimizer.customer-address-vrp.v1',
+    ])
+    expect(captured).toHaveLength(1)
+    expect(captured[0].scopes).toEqual(['plugins:execute'])
+    expect(captured[0].allowed_capabilities).toEqual(result.capabilities)
+    expect(captured[0].name.startsWith('app/RO/')).toBe(true)
+  })
+
+  it('refuses and revokes a RO key if Core drops either capability', async () => {
+    const issued = {
+      id: APP,
+      key: appRaw,
+      org_id: ORG,
+      name: '',
+      environment: 'production',
+      scopes: ['plugins:execute'],
+      allowed_capabilities: ['route-optimizer.customer-coordinate-vrp.v1'],
+      expires_at: expires(),
+      revoked_at: null,
+    }
+    let revoked = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, options: RequestInit) => {
+        const path = new URL(input).pathname
+        const method = options.method ?? 'GET'
+        if (method === 'GET' && path.endsWith('/organizations'))
+          return Response.json([{ id: ORG, name: 'qdip-sdk-app:ro' }])
+        if (method === 'POST' && path.endsWith('/keys')) {
+          issued.name = JSON.parse(String(options.body)).name
+          return Response.json(issued, { status: 201 })
+        }
+        if (method === 'GET' && path.endsWith('/keys')) return Response.json([issued])
+        if (method === 'POST' && path.endsWith('/revoke')) {
+          revoked++
+          return Response.json({})
+        }
+        throw Error('Unexpected request')
+      })
+    )
+    await expect(createDeveloperCredentials('RO', 'route-optimizer.customer-address-vrp.v1')).rejects.toMatchObject({
+      status: 503,
+    })
+    expect(revoked).toBe(1)
+  })
+
+  it('blocks arbitrary application/capability combinations before Core is contacted', async () => {
+    const fetchStub = vi.fn()
+    vi.stubGlobal('fetch', fetchStub)
+    await expect(createDeveloperCredentials('RO', 'secretary.plan')).rejects.toMatchObject({ status: 422 })
+    await expect(createDeveloperCredentials('VHV', 'route-optimizer.customer-address-vrp.v1')).rejects.toMatchObject({
+      status: 422,
+    })
+    await expect(createDeveloperCredentials('SomeOtherApp', 'secretary.plan')).rejects.toMatchObject({ status: 422 })
+    expect(fetchStub).not.toHaveBeenCalled()
+  })
+})
