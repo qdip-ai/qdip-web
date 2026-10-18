@@ -60,6 +60,8 @@
   background: linear-gradient(145deg, rgba(44, 22, 34, 0.89), rgba(19, 14, 23, 0.92));
   box-shadow: 0 18px 40px rgba(3, 1, 6, 0.22), inset 0 1px rgba(255, 241, 246, 0.055);
 }
+.publicCard { display: flex; flex-direction: column; min-height: 17.5rem; }
+.publicCard .actionRow { margin-top: auto; padding-top: 1.3rem; }
 .cardLink {
   display: flex;
   min-height: 15rem;
