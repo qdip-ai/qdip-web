@@ -1,0 +1,33 @@
+name: Temporary Doctor evidence formatter
+on:
+  push:
+    branches:
+      - fix/model-doctor-evidence-session-hardening
+    paths:
+      - .github/workflows/temporary-doctor-evidence-format.yml
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          pnpm exec prettier --write src/components/observatory/model-doctor-workspace.tsx src/lib/model-doctor-evidence.ts src/lib/model-doctor-evidence.vitest.test.ts e2e/model-doctor-native-adapter.spec.ts
+          git add src/components/observatory/model-doctor-workspace.tsx src/lib/model-doctor-evidence.ts src/lib/model-doctor-evidence.vitest.test.ts e2e/model-doctor-native-adapter.spec.ts
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'style(doctor): apply evidence-review Prettier formatting'
+            git push origin HEAD:fix/model-doctor-evidence-session-hardening
+          fi
