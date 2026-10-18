@@ -57,6 +57,30 @@ const copy = {
   },
 } as const
 
+const demoTitles: Record<Locale, Record<string, string>> = {
+  uk: {
+    'resource-allocation': 'Розподіл ресурсів',
+    'supply-network-optimization': 'Оптимізація мережі постачання',
+    'contractor-allocation': 'Розподіл підрядників',
+    'readiness-recovery': 'Відновлення готовності',
+    'gtm-lab': 'GTM Lab',
+  },
+  en: {
+    'resource-allocation': 'Resource allocation',
+    'supply-network-optimization': 'Supply network optimization',
+    'contractor-allocation': 'Contractor allocation',
+    'readiness-recovery': 'Readiness recovery',
+    'gtm-lab': 'GTM Lab',
+  },
+  pl: {
+    'resource-allocation': 'Alokacja zasobów',
+    'supply-network-optimization': 'Optymalizacja sieci dostaw',
+    'contractor-allocation': 'Alokacja wykonawców',
+    'readiness-recovery': 'Przywracanie gotowości',
+    'gtm-lab': 'GTM Lab',
+  },
+}
+
 export default async function PluginDirectoryPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   if (!isSupportedLocale(locale)) notFound()
@@ -143,7 +167,7 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
                     className={`${styles.card} ${styles.cardLink}`}
                     href={buildLocalePath(demo.route, locale)}
                   >
-                    <h3 className={styles.cardTitle}>{demo.id}</h3>
+                    <h3 className={styles.cardTitle}>{demoTitles[locale][demo.id] || demo.id}</h3>
                     <span className={`${styles.link} ${styles.cardFooter}`}>
                       {t.demo} <span aria-hidden="true">→</span>
                     </span>
