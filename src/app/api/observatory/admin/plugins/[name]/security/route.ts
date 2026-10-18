@@ -64,6 +64,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
         quarantined: payload.quarantined,
         reason: payload.reason,
       })
+    } else if (payload.action === 'revoke') {
+      if (typeof payload.reason !== 'string' || payload.reason.trim().length < 20)
+        return NextResponse.json({ error: 'Revocation reason required (at least 20 characters)' }, { status: 422 })
+      outcome = await client.catalog.revoke(name, {
+        ...input,
+        reason: payload.reason.trim(),
+      })
     } else if (payload.action === 'approve') {
       if (
         typeof payload.reason !== 'string' ||
