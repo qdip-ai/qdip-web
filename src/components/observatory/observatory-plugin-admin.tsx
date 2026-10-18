@@ -225,7 +225,12 @@ function initialFields(row: Row): FormFields {
     category: row.ui?.category || 'Other',
     capability_id: row.capability_id || row.capabilities[0] || '',
     slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
-    application_url: row.application_url || '',
+    // Temporary migration default for the previously hardcoded VHV catalog CTA.
+    // Saving the editor writes this destination to Core like any other plugin.
+    application_url: row.application_url ??
+      (row.name === 'remote-04e7c87d7b72111c-secretary' && row.plugin_id === 'secretary'
+        ? 'https://vhv.qdip.ai'
+        : ''),
   }
 }
 
