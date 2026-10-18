@@ -409,7 +409,9 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
               )}
               <div>
                 <h4 className="font-medium">{t.diagnosis}</h4>
-                <p className="mt-2 break-words text-slate-300">{report.invalidProof ? t.badProof : safeLabel(report.diagnosisKind)}</p>
+                <p className="mt-2 break-words text-slate-300">
+                  {report.invalidProof ? t.badProof : safeLabel(report.diagnosisKind)}
+                </p>
                 {report.assumptions.length > 0 && (
                   <ol className="mt-2 list-inside list-decimal space-y-1 text-slate-300">
                     {report.assumptions.map((item) => (
@@ -431,8 +433,13 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
                 <div>
                   <h4 className="font-medium">{t.repair}</h4>
                   {report.repairs.map((candidate, index) => (
-                    <div key={candidate.candidateHash} className="mt-3 rounded-lg border border-white/10 p-3 text-slate-300">
-                      <p>{index + 1}. {candidate.label} ({candidate.literal})</p>
+                    <div
+                      key={candidate.candidateHash}
+                      className="mt-3 rounded-lg border border-white/10 p-3 text-slate-300"
+                    >
+                      <p>
+                        {index + 1}. {candidate.label} ({candidate.literal})
+                      </p>
                       <p>{candidate.solverStatus} · INDEPENDENT_CP_SAT_SOLVE</p>
                       <p className="break-all text-xs">{candidate.candidateHash}</p>
                     </div>

@@ -49,7 +49,9 @@ async function mockDoctor(page: import('@playwright/test').Page, authenticated: 
         operation: 'diagnose',
         execution_status: 'COMPLETED',
         solver_status: 'INFEASIBLE',
-        model_wire_sha256: createHash('sha256').update(Buffer.from([1, 2, 3])).digest('hex'),
+        model_wire_sha256: createHash('sha256')
+          .update(Buffer.from([1, 2, 3]))
+          .digest('hex'),
         error_code: null,
         validation_error: null,
         objective_value: null,
@@ -98,7 +100,14 @@ test('Doctor works inside Observatory using a pre-existing Doctor session', asyn
   const output = page.locator('[data-testid="doctor-result"]')
   await expect(output.getByText('INFEASIBLE', { exact: true })).toBeVisible()
   await expect(output.getByText('VERIFIED_SUFFICIENT_ASSUMPTION_CORE', { exact: true })).toBeVisible()
-  await expect(output.getByText(createHash('sha256').update(Buffer.from([1, 2, 3])).digest('hex'), { exact: true })).toBeVisible()
+  await expect(
+    output.getByText(
+      createHash('sha256')
+        .update(Buffer.from([1, 2, 3]))
+        .digest('hex'),
+      { exact: true }
+    )
+  ).toBeVisible()
 })
 
 test('Doctor adapter rejects oversized files before upload', async ({ page }) => {
@@ -127,7 +136,9 @@ test('session refresh revokes previously visible diagnostic evidence', async ({ 
   await expect(page.locator('[data-testid="doctor-result"]').getByText('INFEASIBLE', { exact: true })).toBeVisible()
   await page.route('https://doctor.qdip.ai/api/observatory/session', async (route) =>
     route.fulfill({
-      status: 200, contentType: 'application/json', headers: cors,
+      status: 200,
+      contentType: 'application/json',
+      headers: cors,
       body: JSON.stringify({ authenticated: false, web_auth_configured: true }),
     })
   )

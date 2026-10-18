@@ -32,7 +32,10 @@ function proposal(literal: number, hash: string) {
   return {
     operation: 'REMOVE_ASSUMPTION',
     assumption: {
-      literal, variable_index: literal, variable_name: literal === 1 ? 'A' : 'B', negated: false,
+      literal,
+      variable_index: literal,
+      variable_name: literal === 1 ? 'A' : 'B',
+      negated: false,
     },
     candidate_wire_sha256: hash,
     candidate_solver_status: 'FEASIBLE',
