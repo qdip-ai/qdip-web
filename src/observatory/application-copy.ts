@@ -19,7 +19,8 @@ const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake' | 'mo
     },
     'model-doctor': {
       title: 'Model Doctor',
-      description: 'Inspect native CP-SAT models, validate solutions, diagnose conflicts and review verified repair proposals in an isolated QDIP workspace.',
+      description:
+        'Inspect native CP-SAT models, validate solutions, diagnose conflicts and review verified repair proposals in an isolated QDIP workspace.',
       tag: 'SEPARATE WORKSPACE',
       pattern: 'DIAGNOSE',
     },
@@ -41,7 +42,8 @@ const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake' | 'mo
     },
     'model-doctor': {
       title: 'Model Doctor',
-      description: 'Перевірка нативних CP-SAT моделей, діагностика конфліктів і пропозиції виправлень з перевіреним результатом в окремому середовищі QDIP.',
+      description:
+        'Перевірка нативних CP-SAT моделей, діагностика конфліктів і пропозиції виправлень з перевіреним результатом в окремому середовищі QDIP.',
       tag: 'ОКРЕМИЙ ЗАСТОСУНОК',
       pattern: 'ДІАГНОСТИКА',
     },
@@ -63,7 +65,8 @@ const copy: Record<Locale, Record<'decision-challenge' | 'decision-intake' | 'mo
     },
     'model-doctor': {
       title: 'Model Doctor',
-      description: 'Sprawdzanie natywnych modeli CP-SAT, diagnozowanie konfliktów i zweryfikowane propozycje napraw w odizolowanej aplikacji QDIP.',
+      description:
+        'Sprawdzanie natywnych modeli CP-SAT, diagnozowanie konfliktów i zweryfikowane propozycje napraw w odizolowanej aplikacji QDIP.',
       tag: 'OSOBNA APLIKACJA',
       pattern: 'DIAGNOSTYKA',
     },
