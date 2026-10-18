@@ -224,7 +224,7 @@ test('forged repair/core proof cannot be opened as technical raw evidence', asyn
     buffer: Buffer.from([1, 2, 3]),
   })
   await page.getByRole('button', { name: 'Run in Doctor' }).click()
-  await expect(page.getByRole('alert')).toContainText('Evidence validation failed')
+  await expect(page.getByRole('alert').filter({ hasText: 'Evidence validation failed' })).toBeVisible()
   await expect(page.locator('[data-testid="doctor-result"]').getByText('INFEASIBLE', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Doctor technical response')).toHaveCount(0)
 })
