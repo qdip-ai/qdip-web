@@ -1,25 +1,32 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ObservatoryDeveloperKeys } from './observatory-developer-keys'
+
+function stubCatalog(capabilities: string[]) {
+  const inventory = {
+    available: [
+      {
+        id: 'customer-opportunity',
+        label: 'Customer opportunity',
+        registered: true,
+        enabled: true,
+        keys: [],
+        capabilities,
+      },
+    ],
+    connected: [],
+  }
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json(inventory)))
+}
 
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe('Observatory mobile SDK key form', () => {
-  it('keeps each long capability ID attached to its own checkbox and supports toggling', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
-      available: [{
-        id: 'customer-opportunity',
-        label: 'Customer opportunity',
-        registered: true,
-        enabled: true,
-        keys: [],
-        capabilities: ['customer-opportunity-evaluation', 'outreach-prioritization'],
-      }],
-      connected: [],
-    })))
+  it('keeps each long capability ID attached to its checkbox and supports toggling', async () => {
+    stubCatalog(['customer-opportunity-evaluation', 'outreach-prioritization'])
     const user = userEvent.setup()
     render(<ObservatoryDeveloperKeys locale="uk" />)
 
@@ -48,16 +55,11 @@ describe('Observatory mobile SDK key form', () => {
     expect((manual as HTMLInputElement).checked).toBe(true)
   })
 
-  it('does not collapse capability titles when a slug is very long', async () => {
+  it('keeps a very long capability slug in the same label as its checkbox', async () => {
     const slug = 'very-long-capability-identifier-for-an-unusually-long-third-party-plugin-integration'
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
-      available: [{
-        id: 'external-plugin', label: 'External Plugin',
-        registered: true, enabled: true, keys: [], capabilities: [slug],
-      }],
-      connected: [],
-    })))
+    stubCatalog([slug])
     render(<ObservatoryDeveloperKeys locale="en" />)
+
     const slugNode = await screen.findByText(slug)
     expect(slugNode.closest('label')?.querySelector('input[type="checkbox"]')).toBeTruthy()
     expect(slugNode.closest('label')?.querySelector('span')).toBeTruthy()
