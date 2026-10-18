@@ -272,7 +272,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const [sourceCode, setSourceCode] = useState('')
   const [sourceLanguage, setSourceLanguage] = useState<'python' | 'javascript' | 'typescript' | 'shell'>('python')
   const [securityReason, setSecurityReason] = useState('')
-  const [securityFeedback, setSecurityFeedback] = useState<{ name: string; message: string; failed: boolean } | null>(null)
+  const [securityFeedback, setSecurityFeedback] = useState<{
+    name: string
+    message: string
+    failed: boolean
+  } | null>(null)
   const [fields, setFields] = useState<FormFields>({
     display_name: '',
     description: '',
@@ -429,24 +433,22 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     setPending(true)
     setSecurityFeedback(null)
     try {
-      const response = await fetch(
-        '/api/observatory/admin/plugins/' + encodeURIComponent(row.name) + '/security',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({
-            action,
-            expected_revision: row.revision,
-            ...(action === 'scan'
-              ? { source_code: sourceCode, language: sourceLanguage }
-              : { quarantined, reason: securityReason.trim() }),
-          }),
-        }
-      )
+      const response = await fetch('/api/observatory/admin/plugins/' + encodeURIComponent(row.name) + '/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          action,
+          expected_revision: row.revision,
+          ...(action === 'scan'
+            ? { source_code: sourceCode, language: sourceLanguage }
+            : { quarantined, reason: securityReason.trim() }),
+        }),
+      })
       if (!response.ok) throw new Error(t.securityError)
-      const result: { security: { state: string; last_scan?: { result: string } | null } } =
-        await response.json()
+      const result = (await response.json()) as {
+        security: { state: string; last_scan?: { result: string } | null }
+      }
       const scanResult = result.security.last_scan?.result
       const message =
         action === 'scan'
@@ -741,9 +743,13 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   )}
                   {row.security?.last_scan && (
                     <div className="mt-3 text-sm text-slate-300">
-                      <p>{row.security.last_scan.result} · SHA-256: {row.security.last_scan.source_sha256}</p>
+                      <p>
+                        {row.security.last_scan.result} · SHA-256: {row.security.last_scan.source_sha256}
+                      </p>
                       {row.security.last_scan.findings.map((finding) => (
-                        <p key={finding.id}>{finding.severity}: {finding.id} · line {finding.line}</p>
+                        <p key={finding.id}>
+                          {finding.severity}: {finding.id} · line {finding.line}
+                        </p>
                       ))}
                     </div>
                   )}
@@ -770,7 +776,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     </select>
                     <Button
                       type="button"
-                      disabled={pending || !sourceCode.trim() || new TextEncoder().encode(sourceCode).length > 32768}
+                      disabled={
+                        pending || !sourceCode.trim() || new TextEncoder().encode(sourceCode).length > 32768
+                      }
                       onClick={() => void reviewSecurity(row, 'scan')}
                     >
                       {pending ? t.busy : t.securityScan}
@@ -788,7 +796,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       type="button"
                       variant="secondary"
                       disabled={pending || securityReason.trim().length < 12}
-                      onClick={() => void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')}
+                      onClick={() =>
+                        void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')
+                      }
                     >
                       {row.security?.state === 'quarantined' ? t.release : t.quarantine}
                     </Button>
@@ -796,7 +806,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   {securityFeedback?.name === row.name && (
                     <p
                       role={securityFeedback.failed ? 'alert' : 'status'}
-                      className={securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'}
+                      className={
+                        securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'
+                      }
                     >
                       {securityFeedback.message}
                     </p>
