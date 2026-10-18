@@ -18,14 +18,18 @@ async function mockDoctor(page: import('@playwright/test').Page, authenticated: 
     }
     if (request.url().endsWith('/session')) {
       await route.fulfill({
-        status: 200, contentType: 'application/json', headers: cors,
+        status: 200,
+        contentType: 'application/json',
+        headers: cors,
         body: JSON.stringify({ authenticated, web_auth_configured: true }),
       })
       return
     }
     if (!authenticated) {
       await route.fulfill({
-        status: 401, contentType: 'application/json', headers: cors,
+        status: 401,
+        contentType: 'application/json',
+        headers: cors,
         body: JSON.stringify({ error: 'authentication_required' }),
       })
       return
@@ -36,16 +40,16 @@ async function mockDoctor(page: import('@playwright/test').Page, authenticated: 
     expect(payload.time_limit_seconds).toBe(2)
     expect(request.headers()['cookie']).toBeUndefined()
     await route.fulfill({
-      status: 200, contentType: 'application/json', headers: cors,
+      status: 200,
+      contentType: 'application/json',
+      headers: cors,
       body: JSON.stringify({
         contract_version: 'doctor.native-cpsat.v0.1',
         operation: 'diagnose',
         execution_status: 'COMPLETED',
         solver_status: 'INFEASIBLE',
         model_wire_sha256: 'a'.repeat(64),
-        diagnosis: { kind: 'VERIFIED_SUFFICIENT_ASSUMPTION_CORE', assumption_core: [
-          { literal: 1 }, { literal: 2 },
-        ] },
+        diagnosis: { kind: 'VERIFIED_SUFFICIENT_ASSUMPTION_CORE', assumption_core: [{ literal: 1 }, { literal: 2 }] },
         repair: { kind: 'NOT_APPLICABLE', proposals: [] },
         solution: null,
       }),
@@ -58,7 +62,8 @@ test('Model Doctor adapter stays unauthorized until Doctor session is verified',
   await page.goto(origin + '/uk/model-doctor')
   await expect(page.getByText('Увійдіть у Doctor через Zitadel')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Увійти в Doctor' })).toHaveAttribute(
-    'href', 'https://doctor.qdip.ai/auth/login?lang=uk'
+    'href',
+    'https://doctor.qdip.ai/auth/login?lang=uk'
   )
   await page.locator('[data-testid="doctor-file"]').setInputFiles({
     name: 'native.cpmodel',
