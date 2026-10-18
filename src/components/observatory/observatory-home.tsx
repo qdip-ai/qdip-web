@@ -1,4 +1,4 @@
-import { ArrowRight, BrainCircuit, FileUp, Network, Route, Scale } from 'lucide-react'
+import { ArrowRight, BrainCircuit, FileUp, Network, Route, Scale, Stethoscope } from 'lucide-react'
 
 import { DecisionWorkflow } from '@/components/product/decision-workflow'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
@@ -9,6 +9,7 @@ import { observableApplications } from '@/observatory/applications'
 const demoIcons = {
   'decision-challenge': Scale,
   'decision-intake': FileUp,
+  'model-doctor': Stethoscope,
   'resource-allocation': Route,
   'supply-network-optimization': Network,
 } as const
@@ -78,7 +79,7 @@ export function ObservatoryHome({ locale, visibleIds }: { locale: Locale; visibl
               const systemCopy =
                 application.kind === 'use-case'
                   ? null
-                  : systemApplicationCopy(locale, application.id as 'decision-challenge' | 'decision-intake')
+                  : systemApplicationCopy(locale, application.id as 'decision-challenge' | 'decision-intake' | 'model-doctor')
               const title = systemCopy?.title ?? caseMessages(`${application.useCaseId}.title`)
               const description = systemCopy?.description ?? caseMessages(`${application.useCaseId}.description`)
               const tag = systemCopy?.tag ?? caseMessages(`${application.useCaseId}.tag`)
