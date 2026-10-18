@@ -574,7 +574,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           >
                             {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
                               (category) => (
-                                <option key={category} value={category}>{pluginCategoryLabel(category, locale)}</option>
+                                <option key={category} value={category}>
+                                  {pluginCategoryLabel(category, locale)}
+                                </option>
                               )
                             )}
                           </select>
