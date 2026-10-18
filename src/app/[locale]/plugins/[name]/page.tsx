@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { PrototypeShell } from '@/features/observatory'
 import { publishedPlugins } from '@/lib/observatory-plugin-catalog'
 import { launchLinkForPlugin } from '@/lib/observatory-plugin-launch'
+import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
 import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 import styles from '@/components/observatory/plugin-experience.module.css'
@@ -93,7 +94,7 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
             <h1 className={styles.title}>{plugin.ui?.label || plugin.name}</h1>
             {plugin.ui?.category && (
               <div className={styles.meta}>
-                <span className={styles.pill}>{plugin.ui.category}</span>
+                <span className={styles.pill}>{pluginCategoryLabel(plugin.ui.category, locale)}</span>
               </div>
             )}
             <p className={styles.lead}>{plugin.description || t.noDescription}</p>
@@ -131,7 +132,7 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
               </div>
               <div>
                 <dt>{t.category}</dt>
-                <dd>{plugin.ui?.category || '—'}</dd>
+                <dd>{pluginCategoryLabel(plugin.ui?.category, locale)}</dd>
               </div>
               <div>
                 <dt>{t.capability}</dt>
