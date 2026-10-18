@@ -21,7 +21,11 @@ test('Observatory admin scans remote code and quarantines through its own SDK pr
     security: { state: 'pending_review', reason: null, last_scan: null },
   }
   await page.route('**/api/observatory/admin/plugins', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plugins: [plugin] }) })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ plugins: [plugin] }),
+    })
   })
   let requested: Record<string, unknown> | undefined
   await page.route('**/api/observatory/admin/plugins/remote-test-worker/security', async (route) => {
@@ -85,7 +89,11 @@ test('unreviewed Worker cannot publish until the administrator explicitly accept
     },
   }
   await page.route('**/api/observatory/admin/plugins', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plugins: [plugin] }) })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ plugins: [plugin] }),
+    })
   })
   let accepted: Record<string, unknown> | undefined
   await page.route('**/api/observatory/admin/plugins/remote-pending-worker/security', async (route) => {
@@ -104,7 +112,9 @@ test('unreviewed Worker cannot publish until the administrator explicitly accept
   await card.getByRole('button', { name: 'Редагувати' }).click()
   await expect(card.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
   await card.getByRole('button', { name: 'Перевірка безпеки' }).click()
-  await card.getByLabel('Причина рішення (не менше 12 символів').fill('Internal risk assessment accepted for this exact manifest')
+  await card
+    .getByLabel('Причина рішення (не менше 12 символів')
+    .fill('Internal risk assessment accepted for this exact manifest')
   await card.getByLabel('Посилання на звіт перевірки (мін. 8 символів)').fill('review-2026-001')
   await card.getByLabel(/Підтверджую відповідальне прийняття ризику/).check()
   await card.getByRole('button', { name: 'Надати ручний допуск' }).click()
