@@ -207,8 +207,7 @@ export function parseDoctorEvidence(
     !raw ||
     raw.contract_version !== 'doctor.native-cpsat.v0.1' ||
     raw.operation !== operation ||
-    !validHash(expectedHash) ||
-    raw.model_wire_sha256 !== expectedHash
+    !validHash(expectedHash)
   )
     return null
 
@@ -217,6 +216,10 @@ export function parseDoctorEvidence(
   if (typeof execution !== 'string') return null
   const completed = execution === 'COMPLETED' && typeof solver === 'string' && VALID_STATUS.has(solver)
   if (!completed && !FAILURES.has(execution)) return null
+  // A malformed binary may fail before Doctor can derive a model digest.
+  // Only surface its error code; never accept a success/proof for another model.
+  if (raw.model_wire_sha256 !== expectedHash && (completed || raw.model_wire_sha256 != null)) return null
+  if (!completed && (typeof raw.error_code !== 'string' || !raw.error_code)) return null
   if (completed && (operation === 'validate') !== ['VALID', 'MODEL_INVALID'].includes(solver)) return null
   if (completed && raw.error_code !== null) return null
   if (completed && solver === 'MODEL_INVALID' && (typeof raw.validation_error !== 'string' || !raw.validation_error))
