@@ -508,7 +508,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         aria-busy={pending}
                         disabled={pending || !row.enabled || !fields.display_name.trim() || !fields.capability_id}
                       >
-                        {pending && <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />}
+                        {pending && (
+                          <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
+                        )}
                         {pending ? t.busy : t.publish}
                       </Button>
                       <Button type="button" variant="secondary" disabled={pending} onClick={closeEditor}>
