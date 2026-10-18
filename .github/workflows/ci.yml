@@ -8,7 +8,38 @@ on:
     branches:
       - dev
 
+permissions:
+  contents: write
+
 jobs:
+  format-ro-once:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/observatory-route-optimizer-keys'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout RO branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/observatory-route-optimizer-keys
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write src/components/observatory/observatory-developer-keys.tsx src/lib/observatory-developer-keys.ts src/lib/observatory-developer-keys.vitest.test.ts docs/observatory-developer-apps.md
+      - name: Save formatting on feature branch
+        run: |
+          git config user.name "qdip-formatter"
+          git config user.email "qdip-formatter@users.noreply.github.com"
+          git add src/components/observatory/observatory-developer-keys.tsx src/lib/observatory-developer-keys.ts src/lib/observatory-developer-keys.vitest.test.ts docs/observatory-developer-apps.md
+          if ! git diff --cached --quiet; then
+            git commit -m "style(observatory): format RO key UI"
+            git push origin HEAD:feat/observatory-route-optimizer-keys
+          fi
+
   quality:
     runs-on: ubuntu-latest
 
