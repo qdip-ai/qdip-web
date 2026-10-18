@@ -8,7 +8,36 @@ on:
     branches:
       - dev
 
+permissions:
+  contents: write
+
 jobs:
+  format-plugin-key-ui:
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/observatory-generic-plugin-keys'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/observatory-generic-plugin-keys
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write src/lib/observatory-developer-keys.ts src/components/observatory/observatory-developer-keys.tsx src/lib/observatory-developer-keys.vitest.test.ts src/app/api/observatory/admin/applications/route.ts docs/observatory-developer-apps.md
+      - run: |
+          git config user.name "qdip-formatter"
+          git config user.email "qdip-formatter@users.noreply.github.com"
+          git add src/lib/observatory-developer-keys.ts src/components/observatory/observatory-developer-keys.tsx src/lib/observatory-developer-keys.vitest.test.ts src/app/api/observatory/admin/applications/route.ts docs/observatory-developer-apps.md
+          if ! git diff --cached --quiet; then
+            git commit -m "style(observatory): format generic plugin credentials"
+            git push origin HEAD:feat/observatory-generic-plugin-keys
+          fi
+
   quality:
     runs-on: ubuntu-latest
 
