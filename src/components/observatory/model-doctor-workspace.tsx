@@ -5,7 +5,7 @@ import { ArrowUpRight, FileUp, RefreshCcw, ShieldCheck } from 'lucide-react'
 
 import type { Locale } from '@/lib/observatory-i18n'
 import { MODEL_DOCTOR_BRIDGE, modelDoctorSignInHref } from '@/lib/model-doctor-url'
-import { parseDoctorEvidence, type DoctorEvidence } from '@/lib/model-doctor-evidence'
+import { asObject, parseDoctorEvidence, type DoctorEvidence } from '@/lib/model-doctor-evidence'
 
 type Operation = 'validate' | 'solve' | 'diagnose' | 'propose_repair'
 type SessionState = 'checking' | 'authenticated' | 'signed-out' | 'unavailable'
@@ -172,7 +172,7 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
       if (!response.ok) throw new Error('session_unavailable')
       const info: unknown = await response.json()
       if (controller.signal.aborted) return
-      const payload = objectOf(info)
+      const payload = asObject(info)
       setSession(payload?.authenticated === true ? 'authenticated' : 'signed-out')
     } catch {
       if (!controller.signal.aborted) setSession('unavailable')
