@@ -15,7 +15,7 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
     published: null as boolean | null,
     published_version: null as string | null,
     slug: null as string | null,
-    capability_id: null,
+    capability_id: null as string | null,
     revision: 0,
   }
   await page.route('**/api/observatory/admin/plugins', async (route) => {
@@ -28,6 +28,7 @@ test('admin publishes SDK-registered plugin metadata without a compiled Observat
     plugin.published_version = '1.0.0'
     plugin.revision = 1
     plugin.slug = 'delivery-routes'
+    plugin.capability_id = 'routes.optimize'
     await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
   })
   await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
