@@ -221,7 +221,9 @@ function initialFields(row: Row): FormFields {
     display_name: row.ui?.label || row.name,
     description: row.description || '',
     category: row.ui?.category || 'Other',
-    capability_id: (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) || '',
+    capability_id:
+      (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) ||
+      '',
     slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
   }
 }
@@ -421,7 +423,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
             </div>
           </div>
         </header>
-        {error && <p role="alert" className={styles.error}>{error}</p>}
+        {error && (
+          <p role="alert" className={styles.error}>
+            {error}
+          </p>
+        )}
         {rows?.length === 0 && <p className={styles.empty}>{t.empty}</p>}
         <section className={styles.adminList} aria-label={t.registered}>
           {sorted.map((row) => {
@@ -432,9 +438,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                 <div className={styles.adminTop}>
                   <div className={styles.adminSummary}>
                     <h3 className={styles.cardTitle}>{row.ui?.label || row.name}</h3>
-                    <p className={styles.description}>
-                      {row.description || t.noDescription}
-                    </p>
+                    <p className={styles.description}>{row.description || t.noDescription}</p>
                     <p className={styles.note} style={{ marginTop: '0.75rem' }}>
                       {t.version}: {row.version}
                     </p>
@@ -465,10 +469,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   </Button>
                   {published && (
                     <>
-                      <a
-                        className={styles.link}
-                        href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}
-                      >
+                      <a className={styles.link} href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}>
                         {t.details} <span aria-hidden="true">→</span>
                       </a>
                       <Button
@@ -489,12 +490,22 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   </p>
                 )}
                 {mutationError?.name === row.name && (
-                  <p role="alert" className={styles.error}>{mutationError.message}</p>
+                  <p role="alert" className={styles.error}>
+                    {mutationError.message}
+                  </p>
                 )}
                 {selected === row.name && (
-                  <section id={`editor-${row.name}`} className={styles.editor} aria-labelledby={`editor-title-${row.name}`}>
-                    <h4 ref={editorTitleRef} tabIndex={-1} id={`editor-title-${row.name}`}
-                      className={styles.formHeading}>
+                  <section
+                    id={`editor-${row.name}`}
+                    className={styles.editor}
+                    aria-labelledby={`editor-title-${row.name}`}
+                  >
+                    <h4
+                      ref={editorTitleRef}
+                      tabIndex={-1}
+                      id={`editor-title-${row.name}`}
+                      className={styles.formHeading}
+                    >
                       {t.editing}: {row.ui?.label || row.plugin_id || row.name}
                     </h4>
                     <form
@@ -507,27 +518,47 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     >
                       <label className={styles.field}>
                         {t.name}
-                        <input className={styles.input} value={fields.display_name}
-                          required minLength={2} maxLength={120}
+                        <input
+                          className={styles.input}
+                          value={fields.display_name}
+                          required
+                          minLength={2}
+                          maxLength={120}
                           onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
                         />
                       </label>
                       <label className={styles.field}>
                         {t.slug}
-                        <input aria-label={t.slug} className={styles.input} value={fields.slug}
-                          type="text" placeholder="secretary" autoCapitalize="none" autoComplete="off"
-                          spellCheck={false} required minLength={2} maxLength={64}
+                        <input
+                          aria-label={t.slug}
+                          className={styles.input}
+                          value={fields.slug}
+                          type="text"
+                          placeholder="secretary"
+                          autoCapitalize="none"
+                          autoComplete="off"
+                          spellCheck={false}
+                          required
+                          minLength={2}
+                          maxLength={64}
                           pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
-                          onChange={(event) => setFields((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))}
+                          onChange={(event) =>
+                            setFields((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))
+                          }
                         />
                         <span className={styles.fieldHint}>{t.slugHint}</span>
                         {fields.slug && (
-                          <span className={styles.preview}>{t.slugPreview}: /{locale}/plugins/{fields.slug}</span>
+                          <span className={styles.preview}>
+                            {t.slugPreview}: /{locale}/plugins/{fields.slug}
+                          </span>
                         )}
                       </label>
                       <label className={styles.field}>
                         {t.description}
-                        <textarea className={styles.input} value={fields.description} rows={4}
+                        <textarea
+                          className={styles.input}
+                          value={fields.description}
+                          rows={4}
                           maxLength={2000}
                           onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
                         />
@@ -535,18 +566,28 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       <div className={styles.fieldRow}>
                         <label className={styles.field}>
                           {t.category}
-                          <select className={styles.input} value={fields.category}
-                            onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}>
+                          <select
+                            className={styles.input}
+                            value={fields.category}
+                            onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
+                          >
                             {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
-                              (category) => <option key={category}>{category}</option>
+                              (category) => (
+                                <option key={category}>{category}</option>
+                              )
                             )}
                           </select>
                         </label>
                         {row.capabilities.length > 1 && (
                           <label className={styles.field}>
                             {t.capability}
-                            <select className={styles.input} value={fields.capability_id}
-                              onChange={(event) => setFields((prev) => ({ ...prev, capability_id: event.target.value }))}>
+                            <select
+                              className={styles.input}
+                              value={fields.capability_id}
+                              onChange={(event) =>
+                                setFields((prev) => ({ ...prev, capability_id: event.target.value }))
+                              }
+                            >
                               {row.capabilities.map((capability) => (
                                 <option key={capability}>{capability}</option>
                               ))}
@@ -559,14 +600,20 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         <dl className={styles.definition} style={{ marginTop: '0.85rem' }}>
                           <div>
                             <dt>{t.registryId}</dt>
-                            <dd><code>{row.plugin_id || row.name}</code></dd>
+                            <dd>
+                              <code>{row.plugin_id || row.name}</code>
+                            </dd>
                           </div>
                           <div>
                             <dt>{t.capability}</dt>
-                            <dd><code>{fields.capability_id || '—'}</code></dd>
+                            <dd>
+                              <code>{fields.capability_id || '—'}</code>
+                            </dd>
                           </div>
                         </dl>
-                        <p className={styles.fieldHint} style={{ marginTop: '0.75rem' }}>{t.capabilityHint}</p>
+                        <p className={styles.fieldHint} style={{ marginTop: '0.75rem' }}>
+                          {t.capabilityHint}
+                        </p>
                       </details>
                       {!row.enabled && <p className={styles.notice}>{t.offlinePublish}</p>}
                       <div className={styles.actionRow} style={{ marginTop: '0.2rem' }}>
@@ -588,10 +635,19 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                               <LoaderCircle className="mr-2 inline-block h-4 w-4 animate-spin" aria-hidden="true" />
                               {t.busy}
                             </>
-                          ) : published ? t.saveChanges : t.publish}
+                          ) : published ? (
+                            t.saveChanges
+                          ) : (
+                            t.publish
+                          )}
                         </Button>
-                        <Button type="button" variant="secondary" className={styles.control}
-                          disabled={pending} onClick={closeEditor}>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className={styles.control}
+                          disabled={pending}
+                          onClick={closeEditor}
+                        >
                           {t.cancel}
                         </Button>
                       </div>
