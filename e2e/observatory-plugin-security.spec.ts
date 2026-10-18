@@ -137,3 +137,71 @@ test('unreviewed Worker cannot publish until the administrator explicitly accept
   await expect(card.getByText('Ручний допуск')).toBeVisible()
   await expect(card.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeEnabled()
 })
+
+
+test('terminal revocation requires typed plugin identity and disables further mutations', async ({ page }) => {
+  await page.context().clearCookies()
+  await page.context().addCookies(oidcTestCookies(['observatory_admin']))
+  const plugin = {
+    name: 'remote-trusted-worker',
+    plugin_id: 'trusted',
+    source: 'remote',
+    description: '',
+    version: '1.0.0',
+    enabled: true,
+    capabilities: ['trusted.plan'],
+    capability_versions: { 'trusted.plan': '1' },
+    ui: { label: 'Trusted Worker', category: 'Operations' },
+    published: true,
+    published_version: '1.0.0',
+    capability_id: 'trusted.plan',
+    revision: 4,
+    security: { state: 'approved', reason: null, last_scan: null },
+  }
+  await page.route('**/api/observatory/admin/plugins', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ plugins: [plugin] }),
+    })
+  })
+  let action: Record<string, unknown> | undefined
+  await page.route('**/api/observatory/admin/plugins/remote-trusted-worker/security', async (route) => {
+    action = route.request().postDataJSON() as Record<string, unknown>
+    plugin.security.state = 'revoked'
+    plugin.published = false
+    plugin.revision = 5
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        name: plugin.name,
+        revision: plugin.revision,
+        published: plugin.published,
+        security: plugin.security,
+      }),
+    })
+  })
+  await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
+  const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Trusted Worker' }) })
+  await card.getByRole('button', { name: 'Перевірка безпеки' }).click()
+  await card.getByLabel('Причина рішення (не менше 12 символів').fill(
+    'Confirmed credential compromise requires permanent revocation'
+  )
+  const revoke = card.getByRole('button', { name: 'Відкликати назавжди' })
+  await expect(revoke).toBeDisabled()
+  await card.getByLabel('Введіть повний внутрішній ID плагіна').fill('wrong-identity')
+  await expect(revoke).toBeDisabled()
+  await card.getByLabel('Введіть повний внутрішній ID плагіна').fill('remote-trusted-worker')
+  await expect(revoke).toBeEnabled()
+  await revoke.click()
+  await expect.poll(() => action?.action).toBe('revoke')
+  expect(action).toMatchObject({
+    action: 'revoke',
+    expected_revision: 4,
+    reason: 'Confirmed credential compromise requires permanent revocation',
+  })
+  await expect(card.getByText('ВІДКЛИКАНО — відновлення неможливе')).toBeVisible()
+  await expect(card.getByRole('button', { name: 'Перевірити фрагмент коду' })).toBeDisabled()
+  await expect(card.getByRole('button', { name: 'Відкликати назавжди' })).toHaveCount(0)
+})
