@@ -86,7 +86,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
       if (cause.httpStatus === 409) return NextResponse.json({ error: 'State changed; reload' }, { status: 409 })
       if (cause.httpStatus === 400 || cause.httpStatus === 422)
         return NextResponse.json({ error: 'Invalid security review request' }, { status: 422 })
-      if (cause.httpStatus === 401 || cause.httpStatus === 403)
+      if (cause.httpStatus === 403)
+        return NextResponse.json({ error: 'Worker is not allowlisted for first-party manual approval' }, { status: 403 })
+      if (cause.httpStatus === 401)
         return NextResponse.json({ error: 'Core admin access rejected' }, { status: 502 })
     }
     return NextResponse.json({ error: 'Core security service unavailable' }, { status: 503 })
