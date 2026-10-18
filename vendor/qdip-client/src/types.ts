@@ -103,6 +103,8 @@ export interface PluginCatalogEntry {
   slug?: string | null;
   /** Historical URL slugs kept for backward-compatible redirects. */
   slug_aliases?: string[];
+  /** Optional HTTPS navigation target approved for this catalog entry. */
+  application_url?: string | null;
 }
 
 export interface PluginCatalogUpdate {
@@ -115,6 +117,8 @@ export interface PluginCatalogUpdate {
   category?: string;
   /** Human-friendly public route. Never changes the immutable SDK plugin ID. */
   slug?: string;
+  /** External application entry point, or empty string to remove it. */
+  applicationUrl?: string;
   /** Verified user subject for server-side publication audit, not an API key. */
   actor: string;
   deadlineMs?: number;
