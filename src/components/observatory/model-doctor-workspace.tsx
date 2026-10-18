@@ -5,23 +5,10 @@ import { ArrowUpRight, FileUp, RefreshCcw, ShieldCheck } from 'lucide-react'
 
 import type { Locale } from '@/lib/observatory-i18n'
 import { MODEL_DOCTOR_BRIDGE, modelDoctorSignInHref } from '@/lib/model-doctor-url'
+import { parseDoctorEvidence, type DoctorEvidence } from '@/lib/model-doctor-evidence'
 
 type Operation = 'validate' | 'solve' | 'diagnose' | 'propose_repair'
 type SessionState = 'checking' | 'authenticated' | 'signed-out' | 'unavailable'
-type Evidence = {
-  contract_version?: string
-  operation?: string
-  execution_status?: string
-  solver_status?: string | null
-  model_wire_sha256?: string | null
-  error_code?: string | null
-  validation_error?: string | null
-  objective_value?: number | null
-  solution?: unknown
-  diagnosis?: unknown
-  repair?: unknown
-}
-
 const MAX_MODEL_BYTES = 256 * 1024
 const MAX_REPLY_CHARS = 1024 * 1024
 const OPERATIONS: Operation[] = ['validate', 'solve', 'diagnose', 'propose_repair']
@@ -57,6 +44,7 @@ const copy = {
     hash: 'SHA-256 оригінальної моделі',
     approval: 'Жодне виправлення не застосовується автоматично. Економічний ефект не визначений.',
     evidence: 'Технічна відповідь Doctor',
+    badProof: 'Доказ не пройшов перевірку. Пропозиції та ядро конфлікту приховано.',
     noData: 'Немає додаткового висновку',
     operations: ['Перевірити', 'Розв’язати', 'Діагностувати', 'Запропонувати виправлення'],
   },
@@ -90,6 +78,7 @@ const copy = {
     hash: 'Original model SHA-256',
     approval: 'No repair is applied automatically. Business impact is unknown.',
     evidence: 'Doctor technical response',
+    badProof: 'Evidence validation failed. Repair proposals and conflict proof are hidden.',
     noData: 'No further evidence available',
     operations: ['Validate', 'Solve', 'Diagnose', 'Propose repair'],
   },
@@ -123,16 +112,11 @@ const copy = {
     hash: 'SHA-256 modelu źródłowego',
     approval: 'Żadna zmiana nie jest stosowana automatycznie. Wpływ biznesowy jest nieznany.',
     evidence: 'Techniczna odpowiedź Doctor',
+    badProof: 'Weryfikacja dowodu nie powiodła się. Propozycje napraw są ukryte.',
     noData: 'Brak dodatkowych informacji',
     operations: ['Waliduj', 'Rozwiąż', 'Diagnozuj', 'Zaproponuj poprawkę'],
   },
 } as const
-
-function objectOf(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null
-}
 
 function safeLabel(value: unknown): string {
   if (value === null || value === undefined) return '—'
@@ -155,17 +139,26 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
   const [seconds, setSeconds] = useState<2 | 5>(2)
   const [model, setModel] = useState('')
   const [fileLabel, setFileLabel] = useState('')
+  const [modelHash, setModelHash] = useState('')
   const [error, setError] = useState('')
   const [running, setRunning] = useState(false)
-  const [report, setReport] = useState<Evidence | null>(null)
+  const [report, setReport] = useState<DoctorEvidence | null>(null)
   const sessionRequest = useRef<AbortController | null>(null)
   const executionRequest = useRef<AbortController | null>(null)
   const revision = useRef(0)
 
   const refresh = useCallback(async () => {
     sessionRequest.current?.abort()
+    executionRequest.current?.abort()
+    revision.current += 1
     const controller = new AbortController()
     sessionRequest.current = controller
+    setReport(null)
+    setError('')
+    setRunning(false)
+    setModel('')
+    setModelHash('')
+    setFileLabel('')
     setSession('checking')
     try {
       const response = await fetch(MODEL_DOCTOR_BRIDGE.session, {
@@ -206,6 +199,7 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
     setError('')
     setReport(null)
     setModel('')
+    setModelHash('')
     setFileLabel('')
     const file = event.currentTarget.files?.[0]
     if (!file) return
@@ -215,9 +209,12 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
       return
     }
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer())
+      const buffer = await file.arrayBuffer()
+      const bytes = new Uint8Array(buffer)
+      const digest = await crypto.subtle.digest('SHA-256', buffer)
       if (snapshot !== revision.current) return
       setModel(base64(bytes))
+      setModelHash(Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join(''))
       setFileLabel(file.name)
     } catch {
       if (snapshot === revision.current) setError(t.failed)
@@ -227,7 +224,7 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (running || session !== 'authenticated') return
-    if (!model) {
+    if (!model || !modelHash) {
       setError(t.chooseFirst)
       return
     }
@@ -251,8 +248,14 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
       })
       if (controller.signal.aborted || snapshot !== revision.current) return
       if (response.status === 401) {
+        revision.current += 1
         setSession('signed-out')
+        setReport(null)
+        setModel('')
+        setModelHash('')
+        setFileLabel('')
         setError(t.disconnected)
+        setRunning(false)
         return
       }
       if (!response.ok) {
@@ -264,30 +267,19 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
       const raw = await response.text()
       if (raw.length > MAX_REPLY_CHARS) throw new Error('response_too_large')
       const data: unknown = JSON.parse(raw)
-      const valid = objectOf(data)
       if (controller.signal.aborted || snapshot !== revision.current) return
-      if (
-        !valid ||
-        valid.contract_version !== 'doctor.native-cpsat.v0.1' ||
-        valid.operation !== operation ||
-        typeof valid.execution_status !== 'string'
-      ) {
+      const evidence = parseDoctorEvidence(data, operation, modelHash)
+      if (!evidence) {
         setError(t.badReply)
         return
       }
-      setReport(valid as Evidence)
+      setReport(evidence)
     } catch {
       if (!controller.signal.aborted && snapshot === revision.current) setError(t.network)
     } finally {
       if (!controller.signal.aborted && snapshot === revision.current) setRunning(false)
     }
   }
-
-  const diagnosis = objectOf(report?.diagnosis)
-  const repair = objectOf(report?.repair)
-  const proposals = Array.isArray(repair?.proposals) ? repair.proposals.slice(0, 3) : []
-  const solution = Array.isArray(report?.solution) ? report.solution.slice(0, 24) : []
-  const assumptionCore = Array.isArray(diagnosis?.assumption_core) ? diagnosis.assumption_core.slice(0, 24) : []
 
   return (
     <section className="mt-12" aria-labelledby="doctor-workspace-title">
@@ -346,6 +338,9 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
             id="doctor-operation"
             value={operation}
             onChange={(e) => {
+              revision.current += 1
+              executionRequest.current?.abort()
+              setRunning(false)
               setOperation(e.target.value as Operation)
               setReport(null)
             }}
@@ -363,7 +358,13 @@ export function ModelDoctorWorkspace({ locale }: { locale: Locale }) {
           <select
             id="doctor-seconds"
             value={seconds}
-            onChange={(event) => setSeconds(Number(event.target.value) as 2 | 5)}
+            onChange={(event) => {
+              revision.current += 1
+              executionRequest.current?.abort()
+              setRunning(false)
+              setReport(null)
+              setSeconds(Number(event.target.value) as 2 | 5)
+            }}
             className="mt-2 w-full rounded-lg border border-white/20 bg-slate-900 p-3 text-base"
           >
             <option value={2}>2 s</option>
