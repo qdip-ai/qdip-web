@@ -90,7 +90,7 @@ function coreOrigin(): { origin: string; key: string } {
     url.password ||
     url.search ||
     url.hash ||
-    url.pathname !== '/'
+    !['/', '/api/v1', '/api/v1/'].includes(url.pathname)
   )
     throw new DeveloperKeyError(503, 'QDIP Core origin misconfigured')
   return { origin: url.origin, key }
@@ -153,7 +153,7 @@ async function metadata(): Promise<{
     catalog.length > 1000 ||
     orgs.length > 500 ||
     catalog.some((p) => !p || !PLUGIN_ID.test(p.name) || !Array.isArray(p.capabilities)) ||
-    orgs.some((o) => !o || !UUID.test(o.id) || typeof o.name !== 'string')
+    orgs.some((o) => !o || typeof o.id !== 'string' || !UUID.test(o.id) || typeof o.name !== 'string')
   )
     throw new DeveloperKeyError(502, 'Invalid Core plugin or organization catalog')
   const managed = orgs.filter((o) => PREFIXES.some((prefix) => o.name.startsWith(prefix)))
@@ -162,9 +162,15 @@ async function metadata(): Promise<{
   for (let offset = 0; offset < managed.length; offset += 8) {
     const group = await Promise.all(
       managed.slice(offset, offset + 8).map(async (org) => {
-        const keys = await core<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
-        if (!Array.isArray(keys) || keys.length > 500) throw new DeveloperKeyError(502, 'Invalid Core key list')
-        return { org, keys }
+        try {
+          const keys = await core<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
+          if (!Array.isArray(keys) || keys.length > 500) throw new Error('Invalid key list')
+          return { org, keys }
+        } catch {
+          // Do not mistake an unreadable credential list for an unconnected plugin.
+          // Keep the catalog visible while blocking issuance until reconciliation.
+          return { org, keys: [] }
+        }
       })
     )
     stored.push(...group)
