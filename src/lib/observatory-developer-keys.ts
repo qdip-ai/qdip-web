@@ -194,7 +194,8 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
     const pluginId = plugin.name
     // A valid existing key means "credential issued", not proven runtime E2E.
     const keys = active.filter(k => k.capabilities.some(c => caps.includes(c))).map(
-      ({ name: _name, ...key }) => key
+      ({ id, orgId, role, expiresAt, capabilities }) =>
+        ({ id, orgId, role, expiresAt, capabilities })
     )
     items.set(pluginId, {
       id: pluginId, label: plugin.ui?.label || plugin.plugin_id || pluginId,
@@ -207,7 +208,8 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
     if (!match || items.has(match[1])) continue
     const id = match[1]
     const keys = active.filter(x => x.name.startsWith('access/' + id + '/')).map(
-      ({ name: _name, ...key }) => key
+      ({ id: keyId, orgId, role, expiresAt, capabilities }) =>
+        ({ id: keyId, orgId, role, expiresAt, capabilities })
     )
     items.set(id, {
       id, label: id, capabilities: [...new Set(keys.flatMap(k => k.capabilities))],
@@ -220,7 +222,7 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
 export async function listPluginCredentials(): Promise<PluginKeyInventory> {
   const entries = rows(await metadata())
   return {
-    available: entries.filter(p => p.keys.length === 0),
+    available: entries.filter(p => !p.keys.some(k => k.role === 'execute')),
     connected: entries.filter(p => p.keys.length > 0),
   }
 }
