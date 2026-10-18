@@ -67,6 +67,7 @@ describe('Observatory mobile SDK key form', () => {
     expect(slugNode.closest('label')?.querySelector('input[type="checkbox"]')).toBeTruthy()
     expect(slugNode.closest('label')?.querySelector('span')).toBeTruthy()
   })
+
   it('uses a full-width readable field and a separate two-button action row', async () => {
     const inventory = {
       available: [
@@ -112,5 +113,4 @@ describe('Observatory mobile SDK key form', () => {
     await user.click(within(actions).getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('textbox', { name: 'Active credential' })).toBeNull()
   })
-
 })
