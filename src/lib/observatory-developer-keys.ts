@@ -77,7 +77,16 @@ const exact = (actual: unknown, expected: readonly string[]): boolean =>
   Array.isArray(actual) && actual.length === expected.length && actual.every((item, i) => item === expected[i])
 
 function coreOrigin(): { origin: string; key: string } {
-  const { base, key } = corePluginConnection()
+  let base: string
+  let key: string
+  try {
+    const connection = corePluginConnection()
+    base = connection.base
+    key = connection.key
+  } catch {
+    console.error('observatory_plugin_keys: core connection not configured')
+    throw new DeveloperKeyError(503, 'QDIP Core connection is not configured')
+  }
   const url = new URL(base)
   if (
     (url.protocol !== 'https:' &&
@@ -98,6 +107,14 @@ function coreOrigin(): { origin: string; key: string } {
 
 async function core<T>(method: 'GET' | 'POST', path: string, payload?: Record<string, unknown>): Promise<T> {
   const { origin, key } = coreOrigin()
+  const stage =
+    path === 'plugin-publications'
+      ? 'catalog'
+      : path === 'organizations'
+        ? 'organizations'
+        : path.endsWith('/keys')
+          ? 'credentials'
+          : 'key-management'
   let response: Response
   try {
     response = await fetch(origin + '/api/v1/' + path, {
@@ -113,13 +130,15 @@ async function core<T>(method: 'GET' | 'POST', path: string, payload?: Record<st
       signal: AbortSignal.timeout(12_000),
     })
   } catch {
-    throw new DeveloperKeyError(503, 'QDIP Core unavailable')
+    console.error('observatory_plugin_keys: Core request failed', stage, 'network')
+    throw new DeveloperKeyError(503, `QDIP Core ${stage}: network error`)
   }
   if (!response.ok) {
     await response.body?.cancel().catch(() => undefined)
+    console.error('observatory_plugin_keys: Core request failed', stage, response.status)
     throw new DeveloperKeyError(
       response.status === 401 || response.status === 403 ? 502 : 503,
-      'QDIP administrative operation failed'
+      `QDIP Core ${stage}: HTTP ${response.status}`
     )
   }
   const length = response.headers.get('content-length')
@@ -162,15 +181,11 @@ async function metadata(): Promise<{
   for (let offset = 0; offset < managed.length; offset += 8) {
     const group = await Promise.all(
       managed.slice(offset, offset + 8).map(async (org) => {
-        try {
-          const keys = await core<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
-          if (!Array.isArray(keys) || keys.length > 500) throw new Error('Invalid key list')
-          return { org, keys }
-        } catch {
-          // Do not mistake an unreadable credential list for an unconnected plugin.
-          // Keep the catalog visible while blocking issuance until reconciliation.
-          return { org, keys: [] }
+        const keys = await core<CoreKey[]>('GET', 'organizations/' + org.id + '/keys')
+        if (!Array.isArray(keys) || keys.length > 500) {
+          throw new DeveloperKeyError(502, 'QDIP Core credentials: invalid key list')
         }
+        return { org, keys }
       })
     )
     stored.push(...group)
