@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation'
+import { ExternalLink } from 'lucide-react'
 import { PrototypeShell } from '@/features/observatory'
 import { publishedPlugins } from '@/lib/observatory-plugin-catalog'
 import { launchLinkForPlugin } from '@/lib/observatory-plugin-launch'
@@ -15,7 +16,7 @@ const copy = {
     category: 'Категорія',
     demo: 'Відкрити демонстрацію',
     launch: 'Відкрити застосунок',
-    launchNote: 'Відкриється у новій вкладці. Може знадобитися авторизація.',
+    launchNote: 'Зовнішній сайт розробника. Відкриється в новій вкладці; може знадобитися авторизація.',
     note: 'Публікація в каталозі не надає доступу до виконання плагіна.',
   },
   en: {
@@ -25,7 +26,7 @@ const copy = {
     category: 'Category',
     demo: 'Open demo',
     launch: 'Open application',
-    launchNote: 'Opens in a new tab. Sign-in may be required.',
+    launchNote: 'External developer website. Opens in a new tab; sign-in may be required.',
     note: 'Catalog publication does not grant plugin execution permissions.',
   },
   pl: {
@@ -35,7 +36,7 @@ const copy = {
     category: 'Kategoria',
     demo: 'Otwórz demo',
     launch: 'Otwórz aplikację',
-    launchNote: 'Otwiera się w nowej karcie. Może być wymagane logowanie.',
+    launchNote: 'Zewnętrzna strona dewelopera. Otwiera się w nowej karcie; może być wymagane logowanie.',
     note: 'Publikacja w katalogu nie nadaje uprawnień do wykonania wtyczki.',
   },
 } as const
@@ -68,11 +69,15 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
               href={launch.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-rose-500/60 bg-rose-950 px-6 py-3 text-base font-semibold text-white shadow-sm transition-colors hover:bg-rose-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300"
+              aria-label={`${t.launch}: ${plugin.ui?.label || plugin.name}`}
+              className="inline-flex min-h-11 max-w-full items-center justify-center gap-2 rounded-xl border border-[#893b50] bg-[#3b101f] px-5 py-2.5 text-sm font-medium text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_6px_18px_rgba(0,0,0,0.18)] transition-colors hover:border-[#b95473] hover:bg-[#54182d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-300"
             >
-              {t.launch} {launch.application} ↗
+              <span>{t.launch}</span>
+              <ExternalLink size={15} aria-hidden="true" className="shrink-0 text-rose-200" />
             </a>
-            <p className="text-xs text-slate-400">{t.launchNote}</p>
+            <p className="break-words text-xs leading-5 text-slate-400">
+              {t.launchNote} <span className="font-mono text-slate-300">{launch.host}</span>
+            </p>
           </div>
         )}
         <dl className="mt-8 grid gap-4 rounded-xl border border-white/15 bg-slate-900 p-5 sm:grid-cols-2">
