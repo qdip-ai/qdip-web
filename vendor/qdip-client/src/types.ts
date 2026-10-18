@@ -124,8 +124,10 @@ export interface PluginCatalogUpdate {
 
 /** Registry-level quarantine survives worker reconnect and version changes. */
 export interface PluginSecurityState {
-  state: 'active' | 'quarantined';
+  state: 'pending_review' | 'approved' | 'quarantined' | 'revoked';
   reason?: string | null;
+  review_reference?: string | null;
+  approval_source?: string | null;
   last_scan?: {
     source_sha256: string;
     source_kind: 'reviewer_supplied_unverified';
@@ -156,6 +158,18 @@ export interface PluginQuarantineInput {
   actor: string;
   quarantined: boolean;
   reason: string;
+  signal?: AbortSignal;
+  deadlineMs?: number;
+}
+
+/** Explicit manual risk acceptance, not a code/artifact safety attestation. */
+export interface PluginApprovalInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  reason: string;
+  reviewReference: string;
+  riskAcknowledged: true;
   signal?: AbortSignal;
   deadlineMs?: number;
 }
