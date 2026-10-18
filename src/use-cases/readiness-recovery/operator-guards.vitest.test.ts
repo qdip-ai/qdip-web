@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { OperatorRequestGuard, classifyOperatorHttpStatus, parsedExecutionIds, recoverableRRSubmission } from './operator-guards'
+import {
+  OperatorRequestGuard,
+  classifyOperatorHttpStatus,
+  parsedExecutionIds,
+  recoverableRRSubmission,
+} from './operator-guards'
 
 describe('Kernel operator authority and race controls', () => {
   it('invalidates old result completion after another request or logout', () => {
