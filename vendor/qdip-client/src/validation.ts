@@ -167,8 +167,10 @@ export function parsePluginCatalog(value: unknown): PluginCatalogEntry[] {
 /** Strict parsing of administrative security evidence: never display opaque HTML. */
 export function parsePluginSecurityState(input: unknown): import('./types.js').PluginSecurityState {
   const v = obj(input);
-  if (v.state !== 'active' && v.state !== 'quarantined') return fail();
+  if (!['pending_review', 'approved', 'quarantined', 'revoked'].includes(String(v.state))) return fail();
   if (v.reason != null && (typeof v.reason !== 'string' || v.reason.length > 1000)) return fail();
+  if (v.review_reference != null && (typeof v.review_reference !== 'string' || v.review_reference.length > 256)) return fail();
+  if (v.approval_source != null && (typeof v.approval_source !== 'string' || v.approval_source.length > 128)) return fail();
   let lastScan: import('./types.js').PluginSecurityState['last_scan'] = null;
   if (v.last_scan != null) {
     const scan = obj(v.last_scan);
@@ -195,6 +197,8 @@ export function parsePluginSecurityState(input: unknown): import('./types.js').P
   return {
     state: v.state,
     ...(v.reason !== undefined ? { reason: v.reason as string | null } : {}),
+    ...(v.review_reference !== undefined ? { review_reference: v.review_reference as string | null } : {}),
+    ...(v.approval_source !== undefined ? { approval_source: v.approval_source as string | null } : {}),
     ...(v.last_scan !== undefined ? { last_scan: lastScan } : {}),
   };
 }
