@@ -176,13 +176,17 @@ function capabilityTitle(capability: string): string {
 
 const endpoint = '/api/observatory/admin/applications'
 
-async function send<T>(method: 'GET' | 'POST' | 'DELETE', body?: object): Promise<T> {
-  const response = await fetch(endpoint, {
+async function send<T>(
+  method: 'GET' | 'POST' | 'DELETE', organizationId: string, body?: object
+): Promise<T> {
+  const url = method === 'GET' ? endpoint + '?organizationId=' + encodeURIComponent(organizationId) : endpoint
+  const payload = body ? { ...body, organizationId } : undefined
+  const response = await fetch(url, {
     method,
     credentials: 'same-origin',
     cache: 'no-store',
-    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
+    headers: { ...(payload ? { 'Content-Type': 'application/json' } : {}) },
+    body: payload ? JSON.stringify(payload) : undefined,
   })
   let data: unknown
   try {
@@ -242,21 +246,27 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   }, [])
 
   const load = useCallback(async () => {
-    const result = await send<Inventory>('GET')
+    if (!linkedOrg) throw new Error(t.ownerHelp)
+    const result = await send<Inventory>('GET', linkedOrg)
     setInventory(result)
     return result
-  }, [])
+  }, [linkedOrg, t.ownerHelp])
 
   useEffect(() => {
+    if (!linkedOrg) {
+      setInventory(null)
+      setLoading(false)
+      return
+    }
     let active = true
-    void send<Inventory>('GET')
+    setLoading(true)
+    setInventory(null)
+    void send<Inventory>('GET', linkedOrg)
       .then((result) => {
         if (!active) return
         setInventory(result)
-        if (result.available.length) {
-          setSelectedId(result.available[0].id)
-          setSelectedCapabilities(result.available[0].capabilities)
-        }
+        setSelectedId(result.available[0]?.id ?? '')
+        setSelectedCapabilities(result.available[0]?.capabilities ?? [])
       })
       .catch((cause: unknown) => {
         if (active) setError(cause instanceof Error ? cause.message : t.error)
@@ -267,7 +277,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
     return () => {
       active = false
     }
-  }, [load, t.error])
+  }, [linkedOrg, t.error])
 
   const selected = inventory?.available.find((p) => p.id === selectedId)
   const allowed = manual
@@ -306,6 +316,8 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
         result.organization.id !== org.id
       )
         throw new Error('Unexpected organization owner response')
+      setError('')
+      setIssued(null)
       setLinkedOrg(org.id)
     } catch {
       setLinkError(true)
@@ -320,7 +332,8 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
     setIssued(null)
     setPending(true)
     try {
-      const output = await send<Issued>('POST', {
+      if (!linkedOrg) throw new Error(t.ownerHelp)
+      const output = await send<Issued>('POST', linkedOrg, {
         pluginId: manual ? manualId.trim() : selectedId,
         capabilities: allowed,
         role,
@@ -345,7 +358,8 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
     setPending(true)
     setError('')
     try {
-      await send('DELETE', { orgId: key.orgId, keyId: key.id })
+      if (!linkedOrg) throw new Error(t.ownerHelp)
+      await send('DELETE', linkedOrg, { orgId: key.orgId, keyId: key.id })
       await load()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t.error)
@@ -509,7 +523,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
               </label>
               <button
                 type="submit"
-                disabled={pending || allowed.length === 0 || (!manual && !selected) || (manual && !manualId.trim())}
+                disabled={!linkedOrg || pending || allowed.length === 0 || (!manual && !selected) || (manual && !manualId.trim())}
                 className="min-h-11 justify-self-start rounded-lg bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 disabled:opacity-40"
               >
                 {pending ? t.creating : t.create}
