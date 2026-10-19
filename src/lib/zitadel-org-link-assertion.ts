@@ -30,14 +30,7 @@ function signOwnerAction(audience: string, issuer: string, organizationId: strin
   if (Buffer.byteLength(secret, 'utf8') < 32) throw new Error('Zitadel owner assertion not configured')
   const issued_at = Math.floor(Date.now() / 1000)
   const nonce = randomBytes(16).toString('hex')
-  const payload = [
-    audience,
-    issuer,
-    organizationId,
-    sub,
-    String(issued_at),
-    nonce,
-  ].join('\n')
+  const payload = [audience, issuer, organizationId, sub, String(issued_at), nonce].join('\n')
   return {
     issued_at,
     nonce,
