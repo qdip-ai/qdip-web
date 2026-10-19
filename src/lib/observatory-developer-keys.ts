@@ -423,10 +423,7 @@ export async function issuePluginCredential(
     // credential issuance. Never create or silently reuse pseudo-orgs.
     // Existing remote registrations remain resolvable for continuity only;
     // their ownership migration has a separate authoritative release gate.
-    throw new DeveloperKeyError(
-      409,
-      'Organization ownership must be verified in Zitadel before issuing plugin keys'
-    )
+    throw new DeveloperKeyError(409, 'Organization ownership must be verified in Zitadel before issuing plugin keys')
   }
   // The same capability can be present in multiple tenant organizations:
   // duplicate detection must be scoped to the resolved registration owner.
