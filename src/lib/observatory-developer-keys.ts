@@ -166,7 +166,7 @@ async function core<T>(method: 'GET' | 'POST', path: string, payload?: Record<st
   }
 }
 
-async function metadata(): Promise<{
+async function metadata(selected: VerifiedOrganization): Promise<{
   catalog: CatalogPlugin[]
   orgs: CoreOrg[]
   stored: Array<{ org: CoreOrg; keys: CoreKey[] }>
@@ -196,8 +196,14 @@ async function metadata(): Promise<{
   // Older independent SDK qualification organizations can use non-UUID IDs.
   // We never read their keys. Only plugin-managed organizations need the
   // strict UUID identity required by the key-management API.
+  // The platform service credential is broad; never enumerate keys of
+  // any tenant other than the actor's live-verified selected Zitadel org.
   const managed = orgs.filter(
-    (o) => PREFIXES.some((prefix) => o.name.startsWith(prefix)) || o.identity_provider === 'zitadel'
+    (o) =>
+      o.identity_provider === 'zitadel' &&
+      o.zitadel_organization_id === selected.id &&
+      o.zitadel_issuer === selected.issuer &&
+      o.status === 'active'
   )
   if (managed.some((org) => !UUID.test(org.id)))
     throw new DeveloperKeyError(502, 'Invalid managed plugin organization ID')
@@ -389,7 +395,7 @@ function rows(data: Awaited<ReturnType<typeof metadata>>, tenantId: string): Plu
 }
 
 export async function listPluginCredentials(selected: VerifiedOrganization): Promise<PluginKeyInventory> {
-  const data = await metadata()
+  const data = await metadata(selected)
   const tenant = verifiedCoreTenant(data, selected)
   const entries = rows(data, tenant.id)
   return {
@@ -406,7 +412,7 @@ export async function revokePluginCredential(
   orgId: string, keyId: string, selected: VerifiedOrganization
 ): Promise<void> {
   if (!UUID.test(orgId) || !UUID.test(keyId)) throw new DeveloperKeyError(422, 'Invalid key identity')
-  const data = await metadata()
+  const data = await metadata(selected)
   const tenant = verifiedCoreTenant(data, selected)
   if (orgId !== tenant.id) throw new DeveloperKeyError(403, 'Cross-organization key revoke denied')
   const found = data.stored.find(({ org }) => org.id === orgId)
@@ -434,7 +440,7 @@ export async function issuePluginCredential(
   )
     throw new DeveloperKeyError(422, 'Invalid plugin key policy')
 
-  const data = await metadata()
+  const data = await metadata(selected)
   const tenant = verifiedCoreTenant(data, selected)
   const direct = data.catalog.find((p) => p.name === pluginId)
   // Manual bootstrap of a plugin already registered under an opaque catalog
