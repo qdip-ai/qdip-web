@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -18,6 +19,13 @@ const ORG = '12345678-1234-4234-8234-123456789abc'
 const KEY_ID = '12345678-1234-4234-8234-123456789abd'
 const SECRET = 'dip-' + 'a'.repeat(32)
 const CAPS = ['sample.plan', 'sample.validate']
+const remoteId = (tenant: string, pluginId: string) => {
+  const fingerprint = createHash('sha256')
+    .update(tenant + '\0' + pluginId)
+    .digest('hex')
+    .slice(0, 16)
+  return 'remote-' + fingerprint + '-' + pluginId
+}
 const expires = () => new Date(Date.now() + 30 * 86_400_000).toISOString()
 const plugin = {
   name: 'sample',
@@ -45,8 +53,9 @@ afterEach(() => vi.unstubAllGlobals())
 describe('Generic developer plugin keys', () => {
   it('lists installed plugins dynamically and moves already keyed VHV out of available', async () => {
     const vhv = {
-      name: 'remote-vhv-secretary',
+      name: remoteId(ORG, 'secretary'),
       plugin_id: 'secretary',
+      source: 'remote',
       enabled: true,
       capabilities: ['secretary.plan'],
       ui: { label: 'VHV' },
@@ -181,5 +190,103 @@ describe('Generic developer plugin keys', () => {
     )
     await revokePluginCredential(ORG, KEY_ID)
     expect(count).toBe(1)
+  })
+  it('binds a registered remote plugin to its verified SDK tenant, not its catalog row or another matching capability', async () => {
+    const cap = 'route-optimizer.select-routes.v1'
+    const workerOrg = { id: ORG, name: 'qdip-sdk-plugin:route-optimizer-sdk02' }
+    const incorrectOrg = { id: '12345678-1234-4234-8234-123456789aee', name: 'qdip-sdk-plugin:remote-wrong' }
+    const remote = {
+      name: remoteId(ORG, 'route-optimizer-sdk02'),
+      plugin_id: 'route-optimizer-sdk02',
+      source: 'remote',
+      enabled: true,
+      capabilities: [cap],
+      ui: { label: 'Route Optimizer' },
+    }
+    const workerKey = {
+      ...key(),
+      id: '12345678-1234-4234-8234-123456789af1',
+      scopes: ['plugins:register'],
+      allowed_capabilities: [cap],
+      name: 'access/route-optimizer-sdk02/worker',
+    }
+    const wrongExecute = {
+      ...key(),
+      id: '12345678-1234-4234-8234-123456789af2',
+      org_id: incorrectOrg.id,
+      allowed_capabilities: [cap],
+      name: 'access/' + remote.name + '/wrong-execute',
+    }
+    const issued = {
+      ...key(),
+      id: '12345678-1234-4234-8234-123456789af3',
+      allowed_capabilities: [cap],
+      name: 'access/route-optimizer-sdk02/new-execute',
+    }
+    let createdIn = ''
+    const calls: Array<Record<string, unknown>> = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, options: RequestInit) => {
+        const path = new URL(input).pathname
+        const method = options.method ?? 'GET'
+        if (path.endsWith('/plugin-publications')) return Response.json([remote])
+        if (method === 'GET' && path.endsWith('/organizations')) return Response.json([workerOrg, incorrectOrg])
+        if (method === 'GET' && path.includes('/keys')) {
+          if (path.includes(workerOrg.id)) {
+            const publicIssued = { ...issued }
+            delete (publicIssued as { key?: string }).key
+            return Response.json(calls.length ? [workerKey, publicIssued] : [workerKey])
+          }
+          return Response.json([wrongExecute])
+        }
+        if (method === 'POST' && path.endsWith('/keys')) {
+          createdIn = path
+          const body = JSON.parse(String(options.body))
+          calls.push(body)
+          issued.name = body.name
+          return Response.json(issued, { status: 201 })
+        }
+        throw Error('Unexpected Core request')
+      })
+    )
+
+    const inventory = await listPluginCredentials()
+    const matching = inventory.available.find((item) => item.id === remote.name)
+    expect(matching?.keys).toHaveLength(1)
+    expect(matching?.keys[0].orgId).toBe(ORG)
+    const created = await issuePluginCredential(remote.name, [cap], 'execute')
+    expect(created.role).toBe('execute')
+    expect(created.pluginId).toBe(remote.name)
+    expect(createdIn).toContain('/organizations/' + ORG + '/keys')
+    expect(calls[0].scopes).toEqual(['plugins:read', 'plugins:execute'])
+    expect(calls[0].allowed_capabilities).toEqual([cap])
+    expect(String(calls[0].name)).toMatch(/^access\/route-optimizer-sdk02\//)
+  })
+
+  it('rejects a forged remote catalog identity without a matching managed registration tenant', async () => {
+    const cap = 'route-optimizer.select-routes.v1'
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) => {
+        const path = new URL(input).pathname
+        if (path.endsWith('/plugin-publications'))
+          return Response.json([
+            {
+              name: 'remote-fake-route-optimizer-sdk02',
+              plugin_id: 'route-optimizer-sdk02',
+              source: 'remote',
+              enabled: true,
+              capabilities: [cap],
+            },
+          ])
+        if (path.endsWith('/organizations')) return Response.json([org])
+        if (path.endsWith('/keys')) return Response.json([])
+        throw Error('Unexpected request')
+      })
+    )
+    await expect(issuePluginCredential('remote-fake-route-optimizer-sdk02', [cap], 'execute')).rejects.toMatchObject({
+      status: 409,
+    })
   })
 })

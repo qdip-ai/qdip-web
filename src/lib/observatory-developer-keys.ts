@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
 
 /** One generic, admin-only key manager. Plugin identity is data from Core. */
@@ -31,6 +31,7 @@ type CoreKey = {
 type CatalogPlugin = {
   name: string
   plugin_id?: string
+  source?: 'embedded' | 'remote'
   enabled: boolean
   capabilities: string[]
   ui?: { label?: string }
@@ -207,6 +208,34 @@ async function metadata(): Promise<{
   return { catalog: validCatalog, orgs, stored }
 }
 
+/**
+ * The public remote catalog name is derived by Core from the actual
+ * organization id and the developer's plugin id. Never infer tenancy from
+ * matching capability names, a display name, or an opaque catalog id.
+ * Match the Core-generated fingerprint against ONLY existing managed orgs.
+ */
+function registeredRemoteOrg(
+  plugin: CatalogPlugin,
+  data: Pick<Awaited<ReturnType<typeof metadata>>, 'orgs'>
+): CoreOrg | null {
+  if (plugin.source !== 'remote') return null
+  if (!plugin.plugin_id || !PLUGIN_ID.test(plugin.plugin_id)) return null
+  const slug = [...plugin.plugin_id]
+    .map((char) => (/^[A-Za-z0-9_.-]$/.test(char) ? char : '-'))
+    .join('')
+    .slice(0, 98)
+  const matches = data.orgs.filter((org) => {
+    if (!PREFIXES.some((prefix) => org.name.startsWith(prefix)) || !UUID.test(org.id)) return false
+    const fingerprint = createHash('sha256')
+      .update(org.id + '\0' + plugin.plugin_id)
+      .digest('hex')
+      .slice(0, 16)
+    return plugin.name === 'remote-' + fingerprint + '-' + slug
+  })
+  if (matches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous remote plugin tenant')
+  return matches[0] ?? null
+}
+
 function isActive(key: CoreKey): boolean {
   return (
     key.environment === 'production' &&
@@ -252,9 +281,12 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
   for (const plugin of data.catalog) {
     const caps = plugin.capabilities.filter((c): c is string => typeof c === 'string' && CAPABILITY.test(c))
     const pluginId = plugin.name
-    // Existing keys remain visible even if a remote Worker disconnected.
+    const remoteOrg = plugin.source === 'remote' ? registeredRemoteOrg(plugin, data) : null
+    // Do not advertise a remote plugin in the key-issuance form when its
+    // authenticated registration tenant cannot be verified.
+    if (plugin.source === 'remote' && !remoteOrg) continue
     const keys = active
-      .filter((k) => k.capabilities.some((c) => caps.includes(c)))
+      .filter((k) => (!remoteOrg || k.orgId === remoteOrg.id) && k.capabilities.some((c) => caps.includes(c)))
       .map(({ id, orgId, role, expiresAt, capabilities }) => ({ id, orgId, role, expiresAt, capabilities }))
     if (!caps.length || (!plugin.enabled && !keys.length)) continue
     items.set(pluginId, {
@@ -277,7 +309,30 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
     // Backward compatibility for VHV and earlier app keys, without hardcoded names.
     const legacy = data.stored.find(({ org }) => org.id === record.orgId)?.org.name
     const id = match?.[1] || (legacy?.startsWith('qdip-sdk-app:') ? legacy.slice('qdip-sdk-app:'.length) : '')
-    if (!id || items.has(id)) continue
+    if (!id) continue
+    if (items.has(id)) {
+      // An old key issued against an opaque catalog ID belongs to another
+      // tenant. Keep it visible for an administrator to revoke, but never
+      // treat it as authorization for the registered Worker.
+      const unmatchedId = 'unmatched-' + record.id
+      items.set(unmatchedId, {
+        id: unmatchedId,
+        label: 'Unmatched credential: ' + id,
+        capabilities: [...record.capabilities],
+        registered: false,
+        enabled: false,
+        keys: [
+          {
+            id: record.id,
+            orgId: record.orgId,
+            role: record.role,
+            expiresAt: record.expiresAt,
+            capabilities: record.capabilities,
+          },
+        ],
+      })
+      continue
+    }
     const keys = active
       .filter((x) => (match ? x.name.startsWith('access/' + id + '/') : x.orgId === record.orgId))
       .map(({ id: keyId, orgId, role, expiresAt, capabilities }) => ({
@@ -339,7 +394,12 @@ export async function issuePluginCredential(
     throw new DeveloperKeyError(422, 'Invalid plugin key policy')
 
   const data = await metadata()
-  const registered = data.catalog.find((p) => p.name === pluginId)
+  const direct = data.catalog.find((p) => p.name === pluginId)
+  // Manual bootstrap of a plugin already registered under an opaque catalog
+  // name must reuse that registration, not create a new tenant.
+  const remoteMatches = data.catalog.filter((p) => p.source === 'remote' && p.plugin_id === pluginId)
+  if (remoteMatches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous registered plugin ID')
+  const registered = direct ?? remoteMatches[0]
   if (registered) {
     if (!registered.enabled || capabilities.some((c) => !registered.capabilities.includes(c)))
       throw new DeveloperKeyError(422, 'Capabilities not registered or plugin disabled')
@@ -347,35 +407,37 @@ export async function issuePluginCredential(
     throw new DeveloperKeyError(422, 'Plugin is not registered; use explicit manual bootstrap')
   }
   const scopes = [...ROLE_SCOPES[role]]
-  const exactMatch = data.stored.some(({ org, keys }) =>
-    keys.some((key) => {
-      const row = keyView(org, key)
-      return (
-        row &&
-        row.role === role &&
-        exact(row.capabilities, capabilities) &&
-        (registered
-          ? capabilities.some((c) => registered.capabilities.includes(c))
-          : key.name.startsWith('access/' + pluginId + '/'))
-      )
-    })
+  let org: CoreOrg | undefined
+  let credentialPluginId = pluginId
+  if (registered?.source === 'remote') {
+    org = registeredRemoteOrg(registered, data) ?? undefined
+    if (!org) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
+    credentialPluginId = registered.plugin_id!
+  } else {
+    const orgName = 'qdip-sdk-plugin:' + pluginId
+    const candidates = data.orgs.filter((candidate) => candidate.name === orgName)
+    if (candidates.length > 1) throw new DeveloperKeyError(409, 'Ambiguous plugin organization')
+    org = candidates[0] ?? (await core<CoreOrg>('POST', 'organizations', { name: orgName }))
+    if (!org || !UUID.test(org.id) || org.name !== orgName)
+      throw new DeveloperKeyError(502, 'Could not verify plugin organization')
+  }
+  // The same capability can be present in multiple tenant organizations:
+  // duplicate detection must be scoped to the resolved registration owner.
+  const exactMatch = data.stored.some(
+    ({ org: storedOrg, keys }) =>
+      storedOrg.id === org!.id &&
+      keys.some((key) => {
+        const row = keyView(storedOrg, key)
+        return row && row.role === role && exact(row.capabilities, capabilities)
+      })
   )
   if (exactMatch) throw new DeveloperKeyError(409, 'A matching active key already exists')
-
-  // Old VHV organization and keys are left intact. New plugins use stable
-  // opaque internal organizations, independent of presentation labels.
-  const orgName = 'qdip-sdk-plugin:' + pluginId
-  const candidates = data.orgs.filter((org) => org.name === orgName)
-  if (candidates.length > 1) throw new DeveloperKeyError(409, 'Ambiguous plugin organization')
-  const org = candidates[0] ?? (await core<CoreOrg>('POST', 'organizations', { name: orgName }))
-  if (!org || !UUID.test(org.id) || org.name !== orgName)
-    throw new DeveloperKeyError(502, 'Could not verify plugin organization')
 
   const expiresAt = new Date(Date.now() + 30 * 86_400_000).toISOString()
   let created: CoreKey | null = null
   try {
     created = await core<CoreKey>('POST', 'organizations/' + org.id + '/keys', {
-      name: 'access/' + pluginId + '/' + randomUUID(),
+      name: 'access/' + credentialPluginId + '/' + randomUUID(),
       environment: 'production',
       scopes,
       allowed_capabilities: capabilities,
