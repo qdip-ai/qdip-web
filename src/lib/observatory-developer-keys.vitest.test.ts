@@ -11,6 +11,9 @@ vi.mock('@/lib/observatory-plugin-catalog', () => ({
 import { issuePluginCredential, listPluginCredentials, revokePluginCredential } from './observatory-developer-keys'
 
 const ORG = '12345678-1234-4234-8234-123456789abc'
+const ZITADEL_ID = '11111111111111111111'
+const OWNER = { id: ZITADEL_ID, issuer: 'https://zitadel.example.test' }
+const WRONG_OWNER = { id: '22222222222222222222', issuer: OWNER.issuer }
 const KEY_ID = '12345678-1234-4234-8234-123456789abd'
 const SECRET = 'dip-' + 'a'.repeat(32)
 const CAPS = ['sample.plan', 'sample.validate']
@@ -29,7 +32,10 @@ const plugin = {
   capabilities: CAPS,
   ui: { label: 'Sample Planner' },
 }
-const org = { id: ORG, name: 'qdip-sdk-plugin:sample' }
+const org = {
+  id: ORG, name: 'QDIP', status: 'active', identity_provider: 'zitadel',
+  zitadel_organization_id: ZITADEL_ID, zitadel_issuer: OWNER.issuer,
+}
 
 const key = () => ({
   id: KEY_ID,
@@ -55,7 +61,7 @@ describe('Generic developer plugin keys', () => {
       capabilities: ['secretary.plan'],
       ui: { label: 'VHV' },
     }
-    const vhvOrg = { id: ORG, name: 'qdip-sdk-app:vhv' }
+    const vhvOrg = { ...org }
     const legacyPlugin = { ...plugin, name: 'GTM Lab' }
     const unrelatedOrg = { id: 'sdk-gate-test-tenant', name: 'SDK qualification tenant' }
     const record = {
@@ -73,7 +79,7 @@ describe('Generic developer plugin keys', () => {
         throw Error('Unexpected Core path: ' + path)
       })
     )
-    const inventory = await listPluginCredentials()
+    const inventory = await listPluginCredentials(OWNER)
     expect(inventory.connected.map((p) => p.label)).toEqual(['VHV'])
     expect(inventory.available.map((p) => p.label)).toEqual(['Sample Planner'])
     expect(inventory.connected[0].keys).toHaveLength(1)
@@ -94,8 +100,8 @@ describe('Generic developer plugin keys', () => {
         throw Error('Unexpected Core request')
       })
     )
-    await expect(issuePluginCredential('sample', CAPS, 'execute')).rejects.toMatchObject({ status: 409 })
-    await expect(issuePluginCredential('sample', CAPS, 'worker')).rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('sample', CAPS, 'execute', WRONG_OWNER)).rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('sample', CAPS, 'worker', WRONG_OWNER)).rejects.toMatchObject({ status: 409 })
     expect(calls.every((call) => call.method === 'GET')).toBe(true)
   })
 
@@ -112,10 +118,10 @@ describe('Generic developer plugin keys', () => {
         throw Error('Unexpected Core request')
       })
     )
-    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', false)).rejects.toMatchObject({
+    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', OWNER, false)).rejects.toMatchObject({
       status: 422,
     })
-    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', true)).rejects.toMatchObject({
+    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', OWNER, true)).rejects.toMatchObject({
       status: 409,
     })
     expect(calls.every((call) => call.method === 'GET')).toBe(true)
@@ -124,10 +130,10 @@ describe('Generic developer plugin keys', () => {
   it('rejects invalid capabilities without network calls', async () => {
     const fetchStub = vi.fn()
     vi.stubGlobal('fetch', fetchStub)
-    await expect(issuePluginCredential('../invalid', ['sample.plan'])).rejects.toMatchObject({ status: 422 })
-    await expect(issuePluginCredential('GTM Lab', ['gtm-lab.demo'])).rejects.toMatchObject({ status: 422 })
-    await expect(issuePluginCredential('sample', ['*'])).rejects.toMatchObject({ status: 422 })
-    await expect(issuePluginCredential('sample', ['sample.plan', 'sample.plan'])).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('../invalid', ['sample.plan'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('GTM Lab', ['gtm-lab.demo'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('sample', ['*'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('sample', ['sample.plan', 'sample.plan'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
     expect(fetchStub).not.toHaveBeenCalled()
   })
 
@@ -147,12 +153,12 @@ describe('Generic developer plugin keys', () => {
         throw Error('Unexpected Core path: ' + path)
       })
     )
-    await revokePluginCredential(ORG, KEY_ID)
+    await revokePluginCredential(ORG, KEY_ID, OWNER)
     expect(count).toBe(1)
   })
   it('binds a registered remote plugin to its verified SDK tenant, not its catalog row or another matching capability', async () => {
     const cap = 'route-optimizer.select-routes.v1'
-    const workerOrg = { id: ORG, name: 'qdip-sdk-plugin:route-optimizer-sdk02' }
+    const workerOrg = { ...org }
     const incorrectOrg = { id: '12345678-1234-4234-8234-123456789aee', name: 'qdip-sdk-plugin:remote-wrong' }
     const remote = {
       name: remoteId(ORG, 'route-optimizer-sdk02'),
@@ -210,11 +216,11 @@ describe('Generic developer plugin keys', () => {
       })
     )
 
-    const inventory = await listPluginCredentials()
+    const inventory = await listPluginCredentials(OWNER)
     const matching = inventory.available.find((item) => item.id === remote.name)
     expect(matching?.keys).toHaveLength(1)
     expect(matching?.keys[0].orgId).toBe(ORG)
-    const created = await issuePluginCredential(remote.name, [cap], 'execute')
+    const created = await issuePluginCredential(remote.name, [cap], 'execute', OWNER)
     expect(created.role).toBe('execute')
     expect(created.pluginId).toBe(remote.name)
     expect(createdIn).toContain('/organizations/' + ORG + '/keys')
@@ -244,7 +250,7 @@ describe('Generic developer plugin keys', () => {
         throw Error('Unexpected request')
       })
     )
-    await expect(issuePluginCredential('remote-fake-route-optimizer-sdk02', [cap], 'execute')).rejects.toMatchObject({
+    await expect(issuePluginCredential('remote-fake-route-optimizer-sdk02', [cap], 'execute', OWNER)).rejects.toMatchObject({
       status: 409,
     })
   })
