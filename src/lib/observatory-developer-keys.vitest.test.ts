@@ -9,7 +9,6 @@ vi.mock('@/lib/observatory-plugin-catalog', () => ({
   }),
 }))
 import {
-  DeveloperKeyError,
   issuePluginCredential,
   listPluginCredentials,
   revokePluginCredential,
@@ -85,81 +84,45 @@ describe('Generic developer plugin keys', () => {
     expect(JSON.stringify(inventory)).not.toContain(SECRET)
   })
 
-  it('issues one key for arbitrary registered plugin with only selected capabilities', async () => {
-    const calls: Array<Record<string, unknown>> = []
-    const created = { ...key(), allowed_capabilities: ['sample.plan'] }
+  it('blocks issuance for embedded plugin until a verified Zitadel organization is selected', async () => {
+    const calls: Array<{ method: string; path: string }> = []
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string, options: RequestInit) => {
-        const url = new URL(input).pathname
+        const path = new URL(input).pathname
         const method = options.method || 'GET'
-        expect(options.redirect).toBe('error')
-        expect((options.headers as Record<string, string>)['x-api-key']).toBe('PRIVATE-PLATFORM-ADMIN')
-        if (url.endsWith('/plugin-publications')) return Response.json([plugin])
-        if (method === 'GET' && url.endsWith('/organizations')) return Response.json([org])
-        if (method === 'GET' && url.endsWith('/keys')) {
-          const rest = { ...created }
-          delete (rest as { key?: string }).key
-          return Response.json(calls.length ? [rest] : [])
-        }
-        if (method === 'POST' && url.endsWith('/keys')) {
-          const body = JSON.parse(String(options.body))
-          calls.push(body)
-          created.name = body.name
-          return Response.json(created, { status: 201 })
-        }
-        throw Error('Unexpected Core path: ' + url)
+        calls.push({ method, path })
+        if (path.endsWith('/plugin-publications')) return Response.json([plugin])
+        if (path.endsWith('/organizations')) return Response.json([org])
+        if (path.endsWith('/keys')) return Response.json([key()])
+        throw Error('Unexpected Core request')
       })
     )
-    const response = await issuePluginCredential('sample', ['sample.plan'])
-    expect(response.key).toBe(SECRET)
-    expect(response.capabilities).toEqual(['sample.plan'])
-    expect(calls).toHaveLength(1)
-    expect(calls[0].scopes).toEqual(['plugins:read', 'plugins:execute'])
-    expect(calls[0].allowed_capabilities).toEqual(['sample.plan'])
+    await expect(issuePluginCredential('sample', CAPS, 'execute')).rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('sample', CAPS, 'worker')).rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.method === 'GET')).toBe(true)
   })
 
-  it('refuses unknown capability and forbids duplicate active keys', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string) => {
-        const url = new URL(input).pathname
-        if (url.endsWith('/plugin-publications')) return Response.json([plugin])
-        if (url.endsWith('/organizations')) return Response.json([org])
-        if (url.endsWith('/keys')) return Response.json([key()])
-        throw Error('Unexpected Core path: ' + url)
-      })
-    )
-    await expect(issuePluginCredential('sample', ['other.execute'])).rejects.toMatchObject({ status: 422 })
-    await expect(issuePluginCredential('sample', CAPS)).rejects.toMatchObject({ status: 409 })
-  })
-
-  it('supports pre-registration bootstrap for arbitrary new SDK plugin', async () => {
-    const issued = { ...key(), name: '', allowed_capabilities: ['new-plugin.run'] }
-    const newOrg = { ...org, name: 'qdip-sdk-plugin:new-plugin' }
+  it('rejects arbitrary unregistered plugins even with manual bootstrap, without creating an organization', async () => {
+    const calls: Array<{ method: string; path: string }> = []
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string, options: RequestInit) => {
-        const url = new URL(input).pathname
+        const path = new URL(input).pathname
         const method = options.method || 'GET'
-        if (url.endsWith('/plugin-publications')) return Response.json([plugin])
-        if (method === 'GET' && url.endsWith('/organizations')) return Response.json([])
-        if (method === 'POST' && url.endsWith('/organizations')) return Response.json(newOrg)
-        if (method === 'POST' && url.endsWith('/keys')) {
-          issued.name = JSON.parse(String(options.body)).name
-          issued.scopes = ['plugins:register']
-          return Response.json(issued, { status: 201 })
-        }
-        if (method === 'GET' && url.endsWith('/keys')) return Response.json([issued])
-        throw Error('Unexpected Core path: ' + url)
+        calls.push({ method, path })
+        if (path.endsWith('/plugin-publications')) return Response.json([])
+        if (path.endsWith('/organizations')) return Response.json([])
+        throw Error('Unexpected Core request')
       })
     )
-    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', false)).rejects.toBeInstanceOf(
-      DeveloperKeyError
-    )
-    const result = await issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', true)
-    expect(result.role).toBe('worker')
-    expect(result.capabilities).toEqual(['new-plugin.run'])
+    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', false)).rejects.toMatchObject({
+      status: 422,
+    })
+    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', true)).rejects.toMatchObject({
+      status: 409,
+    })
+    expect(calls.every((call) => call.method === 'GET')).toBe(true)
   })
 
   it('rejects invalid capabilities without network calls', async () => {
