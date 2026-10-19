@@ -414,12 +414,19 @@ export async function issuePluginCredential(
     if (!org) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
     credentialPluginId = registered.plugin_id!
   } else {
-    const orgName = 'qdip-sdk-plugin:' + pluginId
-    const candidates = data.orgs.filter((candidate) => candidate.name === orgName)
-    if (candidates.length > 1) throw new DeveloperKeyError(409, 'Ambiguous plugin organization')
-    org = candidates[0] ?? (await core<CoreOrg>('POST', 'organizations', { name: orgName }))
-    if (!org || !UUID.test(org.id) || org.name !== orgName)
-      throw new DeveloperKeyError(502, 'Could not verify plugin organization')
+    // P0 (#425): the old bootstrap invented a separate QDIP Core organization
+    // for every plugin. This is NOT a Zitadel organization and carries no
+    // evidence that the logged-in developer owns it.
+    //
+    // Until the owner's selected Zitadel org and current membership/roles
+    // are verified server-side, reject new first-party / unregistered
+    // credential issuance. Never create or silently reuse pseudo-orgs.
+    // Existing remote registrations remain resolvable for continuity only;
+    // their ownership migration has a separate authoritative release gate.
+    throw new DeveloperKeyError(
+      409,
+      'Organization ownership must be verified in Zitadel before issuing plugin keys'
+    )
   }
   // The same capability can be present in multiple tenant organizations:
   // duplicate detection must be scoped to the resolved registration owner.
