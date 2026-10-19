@@ -19,7 +19,10 @@ vi.mock('@/lib/observatory-plugin-catalog', () => ({
 }))
 vi.mock('@/lib/zitadel-owned-organizations', () => ({
   ZitadelOwnerLookupError: class ZitadelOwnerLookupError extends Error {
-    constructor(public readonly status: number, message: string) {
+    constructor(
+      public readonly status: number,
+      message: string
+    ) {
       super(message)
     }
   },
@@ -115,12 +118,17 @@ describe('Zitadel organization owner-only API', () => {
   })
 
   it('fails closed when Core returns a different tenant identity', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
-      id: '12345678-1234-4234-8234-123456789abc',
-      status: 'active',
-      zitadel_issuer: 'https://zitadel.example.test',
-      zitadel_organization_id: '99999999999',
-    })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({
+          id: '12345678-1234-4234-8234-123456789abc',
+          status: 'active',
+          zitadel_issuer: 'https://zitadel.example.test',
+          zitadel_organization_id: '99999999999',
+        })
+      )
+    )
     const result = await POST(request({ organizationId: '11111111111' }))
     expect(result.status).toBe(502)
   })
