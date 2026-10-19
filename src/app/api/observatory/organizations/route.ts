@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
   if (!host || /[,\s@/?#]/.test(host) || !isSurfaceHost('observatory', host))
     return respond({ error: 'Not found' }, 404)
   const secure = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https'
-  if (!secure && !host.split(':')[0].endsWith('.localhost'))
-    return respond({ error: 'HTTPS required' }, 403)
+  if (!secure && !host.split(':')[0].endsWith('.localhost')) return respond({ error: 'HTTPS required' }, 403)
   const session = sessionFromRequest(request)
   if (!session) return respond({ error: 'Sign in required' }, 401)
   try {
@@ -37,8 +36,7 @@ export async function GET(request: NextRequest) {
     })
     return respond({ organizations }, 200)
   } catch (error) {
-    if (error instanceof ZitadelOwnerLookupError)
-      return respond({ error: error.message }, error.status)
+    if (error instanceof ZitadelOwnerLookupError) return respond({ error: error.message }, error.status)
     return respond({ error: 'Zitadel ownership unavailable' }, 503)
   }
 }
