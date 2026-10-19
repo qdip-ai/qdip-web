@@ -178,10 +178,7 @@ export async function listOwnedZitadelOrganizations(identity: Identity): Promise
             admin &&
             admin.user?.id === identity.sub &&
             admin.instance !== true &&
-            (
-              (admin.organization === undefined && admin.organizationId === undefined) ||
-              belongsToOrg(admin, id)
-            ) &&
+            ((admin.organization === undefined && admin.organizationId === undefined) || belongsToOrg(admin, id)) &&
             Array.isArray(admin.roles) &&
             admin.roles.includes('ORG_OWNER')
         )
@@ -202,8 +199,7 @@ export async function verifyOwnedZitadelOrganization(
   identity: Identity,
   organizationId: string
 ): Promise<ZitadelOwnerOrganization> {
-  if (!ID.test(organizationId))
-    throw new OwnerOrganizationError(422, 'Invalid Zitadel organization')
+  if (!ID.test(organizationId)) throw new OwnerOrganizationError(422, 'Invalid Zitadel organization')
   const settings = config(identity)
   const result = await query(settings, '/v2/organizations/_search', {
     query: { offset: 0, limit: 2, asc: true },
@@ -219,7 +215,8 @@ export async function verifyOwnedZitadelOrganization(
     matches.length !== 1 ||
     typeof matches[0].name !== 'string' ||
     !matches[0].name.trim()
-  ) throw new OwnerOrganizationError(403, 'Zitadel organization inactive or not found')
+  )
+    throw new OwnerOrganizationError(403, 'Zitadel organization inactive or not found')
 
   const owners = await query(
     settings,
@@ -234,21 +231,18 @@ export async function verifyOwnedZitadelOrganization(
     },
     true
   )
-  if (!Array.isArray(owners.administrators))
-    throw new OwnerOrganizationError(503, 'Zitadel owner verification invalid')
+  if (!Array.isArray(owners.administrators)) throw new OwnerOrganizationError(503, 'Zitadel owner verification invalid')
   exactCount(owners, owners.administrators.length, MAX_ADMINS)
-  const granted = (owners.administrators as Administrator[]).some((admin) =>
-    admin &&
-    admin.instance !== true &&
-    admin.user?.id === identity.sub &&
-    Array.isArray(admin.roles) &&
-    admin.roles.includes('ORG_OWNER') &&
-    // Zitadel can omit the resource in a reply to a resource-filtered query.
-    // Explicit mismatches must always fail closed.
-    (
-      (admin.organization === undefined && admin.organizationId === undefined) ||
-      belongsToOrg(admin, organizationId)
-    )
+  const granted = (owners.administrators as Administrator[]).some(
+    (admin) =>
+      admin &&
+      admin.instance !== true &&
+      admin.user?.id === identity.sub &&
+      Array.isArray(admin.roles) &&
+      admin.roles.includes('ORG_OWNER') &&
+      // Zitadel can omit the resource in a reply to a resource-filtered query.
+      // Explicit mismatches must always fail closed.
+      ((admin.organization === undefined && admin.organizationId === undefined) || belongsToOrg(admin, organizationId))
   )
   if (!granted) throw new OwnerOrganizationError(403, 'Current Zitadel ORG_OWNER role required')
   return { id: organizationId, name: matches[0].name.trim(), state: 'active' }
