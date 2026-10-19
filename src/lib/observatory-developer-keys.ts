@@ -16,7 +16,15 @@ const ROLE_SCOPES = {
 } as const
 
 type Role = keyof typeof ROLE_SCOPES
-type CoreOrg = { id: string; name: string }
+type CoreOrg = {
+  id: string
+  name: string
+  status?: string
+  identity_provider?: string | null
+  zitadel_organization_id?: string | null
+  zitadel_issuer?: string | null
+}
+export type VerifiedOrganization = { id: string; issuer: string }
 type CoreKey = {
   id: string
   key?: string
@@ -158,7 +166,7 @@ async function core<T>(method: 'GET' | 'POST', path: string, payload?: Record<st
   }
 }
 
-async function metadata(): Promise<{
+async function metadata(selected: VerifiedOrganization): Promise<{
   catalog: CatalogPlugin[]
   orgs: CoreOrg[]
   stored: Array<{ org: CoreOrg; keys: CoreKey[] }>
@@ -188,7 +196,15 @@ async function metadata(): Promise<{
   // Older independent SDK qualification organizations can use non-UUID IDs.
   // We never read their keys. Only plugin-managed organizations need the
   // strict UUID identity required by the key-management API.
-  const managed = orgs.filter((o) => PREFIXES.some((prefix) => o.name.startsWith(prefix)))
+  // The platform service credential is broad; never enumerate keys of
+  // any tenant other than the actor's live-verified selected Zitadel org.
+  const managed = orgs.filter(
+    (o) =>
+      o.identity_provider === 'zitadel' &&
+      o.zitadel_organization_id === selected.id &&
+      o.zitadel_issuer === selected.issuer &&
+      o.status === 'active'
+  )
   if (managed.some((org) => !UUID.test(org.id)))
     throw new DeveloperKeyError(502, 'Invalid managed plugin organization ID')
   // No key values are ever fetched from this read-only Core endpoint.
@@ -225,7 +241,11 @@ function registeredRemoteOrg(
     .join('')
     .slice(0, 98)
   const matches = data.orgs.filter((org) => {
-    if (!PREFIXES.some((prefix) => org.name.startsWith(prefix)) || !UUID.test(org.id)) return false
+    if (
+      !(PREFIXES.some((prefix) => org.name.startsWith(prefix)) || org.identity_provider === 'zitadel') ||
+      !UUID.test(org.id)
+    )
+      return false
     const fingerprint = createHash('sha256')
       .update(org.id + '\0' + plugin.plugin_id)
       .digest('hex')
@@ -234,6 +254,25 @@ function registeredRemoteOrg(
   })
   if (matches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous remote plugin tenant')
   return matches[0] ?? null
+}
+
+/** Only an already linked Zitadel organization is a valid issuance tenant. */
+function verifiedCoreTenant(
+  data: Pick<Awaited<ReturnType<typeof metadata>>, 'orgs'>,
+  selected: VerifiedOrganization
+): CoreOrg {
+  if (!/^[0-9]{1,32}$/.test(selected.id) || !selected.issuer.startsWith('https://'))
+    throw new DeveloperKeyError(403, 'Verified Zitadel organization required')
+  const matches = data.orgs.filter(
+    (org) =>
+      org.identity_provider === 'zitadel' &&
+      org.zitadel_organization_id === selected.id &&
+      org.zitadel_issuer === selected.issuer &&
+      org.status === 'active' &&
+      UUID.test(org.id)
+  )
+  if (matches.length !== 1) throw new DeveloperKeyError(409, 'Zitadel organization must be linked in Core')
+  return matches[0]
 }
 
 function isActive(key: CoreKey): boolean {
@@ -270,13 +309,15 @@ function keyView(org: CoreOrg, key: CoreKey): ConnectedKey | null {
   }
 }
 
-function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
-  const active: Array<ConnectedKey & { name: string }> = data.stored.flatMap(({ org, keys }) =>
-    keys.flatMap((key) => {
-      const row = keyView(org, key)
-      return row ? [{ ...row, name: key.name }] : []
-    })
-  )
+function rows(data: Awaited<ReturnType<typeof metadata>>, tenantId: string): PluginKeyEntry[] {
+  const active: Array<ConnectedKey & { name: string }> = data.stored
+    .filter(({ org }) => org.id === tenantId)
+    .flatMap(({ org, keys }) =>
+      keys.flatMap((key) => {
+        const row = keyView(org, key)
+        return row ? [{ ...row, name: key.name }] : []
+      })
+    )
   const items = new Map<string, PluginKeyEntry>()
   for (const plugin of data.catalog) {
     const caps = plugin.capabilities.filter((c): c is string => typeof c === 'string' && CAPABILITY.test(c))
@@ -284,7 +325,7 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
     const remoteOrg = plugin.source === 'remote' ? registeredRemoteOrg(plugin, data) : null
     // Do not advertise a remote plugin in the key-issuance form when its
     // authenticated registration tenant cannot be verified.
-    if (plugin.source === 'remote' && !remoteOrg) continue
+    if (plugin.source === 'remote' && remoteOrg?.id !== tenantId) continue
     const keys = active
       .filter((k) => (!remoteOrg || k.orgId === remoteOrg.id) && k.capabilities.some((c) => caps.includes(c)))
       .map(({ id, orgId, role, expiresAt, capabilities }) => ({ id, orgId, role, expiresAt, capabilities }))
@@ -354,8 +395,10 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
   return [...items.values()].sort((a, b) => a.label.localeCompare(b.label))
 }
 
-export async function listPluginCredentials(): Promise<PluginKeyInventory> {
-  const entries = rows(await metadata())
+export async function listPluginCredentials(selected: VerifiedOrganization): Promise<PluginKeyInventory> {
+  const data = await metadata(selected)
+  const tenant = verifiedCoreTenant(data, selected)
+  const entries = rows(data, tenant.id)
   return {
     available: entries.filter((p) => p.enabled && !p.keys.some((k) => k.role === 'execute')),
     connected: entries.filter((p) => p.keys.length > 0),
@@ -366,9 +409,15 @@ async function revoke(orgId: string, keyId: string): Promise<void> {
   await core('POST', 'organizations/' + orgId + '/keys/' + keyId + '/revoke', {})
 }
 
-export async function revokePluginCredential(orgId: string, keyId: string): Promise<void> {
+export async function revokePluginCredential(
+  orgId: string,
+  keyId: string,
+  selected: VerifiedOrganization
+): Promise<void> {
   if (!UUID.test(orgId) || !UUID.test(keyId)) throw new DeveloperKeyError(422, 'Invalid key identity')
-  const data = await metadata()
+  const data = await metadata(selected)
+  const tenant = verifiedCoreTenant(data, selected)
+  if (orgId !== tenant.id) throw new DeveloperKeyError(403, 'Cross-organization key revoke denied')
   const found = data.stored.find(({ org }) => org.id === orgId)
   if (!found || !found.keys.some((k) => k.id === keyId && keyView(found.org, k)))
     throw new DeveloperKeyError(404, 'Active managed key not found')
@@ -378,7 +427,8 @@ export async function revokePluginCredential(orgId: string, keyId: string): Prom
 export async function issuePluginCredential(
   pluginId: string,
   capabilities: string[],
-  role: Role = 'execute',
+  role: Role,
+  selected: VerifiedOrganization,
   manual = false
 ): Promise<IssuedPluginKey> {
   if (
@@ -393,7 +443,7 @@ export async function issuePluginCredential(
   )
     throw new DeveloperKeyError(422, 'Invalid plugin key policy')
 
-  const data = await metadata()
+  const data = await metadata(selected)
   const direct = data.catalog.find((p) => p.name === pluginId)
   // Manual bootstrap of a plugin already registered under an opaque catalog
   // name must reuse that registration, not create a new tenant.
@@ -406,26 +456,23 @@ export async function issuePluginCredential(
   } else if (!manual) {
     throw new DeveloperKeyError(422, 'Plugin is not registered; use explicit manual bootstrap')
   }
+  const tenant = verifiedCoreTenant(data, selected)
   const scopes = [...ROLE_SCOPES[role]]
-  let org: CoreOrg | undefined
+  const org: CoreOrg = tenant
   let credentialPluginId = pluginId
   if (registered?.source === 'remote') {
-    org = registeredRemoteOrg(registered, data) ?? undefined
-    if (!org) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
+    const registrationOrg = registeredRemoteOrg(registered, data)
+    if (!registrationOrg) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
+    // Old SDK per-plugin UUID orgs must be migrated before issuing new keys.
+    if (registrationOrg.id !== tenant.id)
+      throw new DeveloperKeyError(409, 'Remote plugin belongs to a legacy or different tenant; migration required')
     credentialPluginId = registered.plugin_id!
-  } else {
-    const orgName = 'qdip-sdk-plugin:' + pluginId
-    const candidates = data.orgs.filter((candidate) => candidate.name === orgName)
-    if (candidates.length > 1) throw new DeveloperKeyError(409, 'Ambiguous plugin organization')
-    org = candidates[0] ?? (await core<CoreOrg>('POST', 'organizations', { name: orgName }))
-    if (!org || !UUID.test(org.id) || org.name !== orgName)
-      throw new DeveloperKeyError(502, 'Could not verify plugin organization')
   }
   // The same capability can be present in multiple tenant organizations:
   // duplicate detection must be scoped to the resolved registration owner.
   const exactMatch = data.stored.some(
     ({ org: storedOrg, keys }) =>
-      storedOrg.id === org!.id &&
+      storedOrg.id === org.id &&
       keys.some((key) => {
         const row = keyView(storedOrg, key)
         return row && row.role === role && exact(row.capabilities, capabilities)

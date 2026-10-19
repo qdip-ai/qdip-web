@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminRequest } from '@/lib/observatory-plugin-admin'
+import { developerRequest } from '@/lib/observatory-plugin-admin'
+import { verifyOwnedZitadelOrganization, OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
+import type { VerifiedOrganization } from '@/lib/observatory-developer-keys'
 import {
   DeveloperKeyError,
   issuePluginCredential,
@@ -23,6 +25,7 @@ function noStore(body: Record<string, unknown>, status: number) {
 }
 
 function handle(error: unknown) {
+  if (error instanceof OwnerOrganizationError) return noStore({ error: error.message }, error.status)
   return error instanceof DeveloperKeyError
     ? noStore({ error: error.message }, error.status)
     : noStore({ error: 'Plugin key management unavailable' }, 503)
@@ -48,11 +51,22 @@ async function payload(request: NextRequest): Promise<Record<string, unknown>> {
   return value as Record<string, unknown>
 }
 
+async function verifySelection(
+  session: { issuer: string; sub: string },
+  organizationId: unknown
+): Promise<VerifiedOrganization> {
+  if (typeof organizationId !== 'string' || !/^[0-9]{1,32}$/.test(organizationId))
+    throw new DeveloperKeyError(422, 'Select a real Zitadel organization')
+  await verifyOwnedZitadelOrganization({ issuer: session.issuer, sub: session.sub }, organizationId)
+  return { id: organizationId, issuer: session.issuer }
+}
+
 export async function GET(request: NextRequest) {
-  const { error } = adminRequest(request)
+  const { error, session } = developerRequest(request)
   if (error) return error
   try {
-    const inventory = await listPluginCredentials()
+    const selected = await verifySelection(session!, request.nextUrl.searchParams.get('organizationId'))
+    const inventory = await listPluginCredentials(selected)
     return noStore(inventory, 200)
   } catch (cause) {
     return handle(cause)
@@ -60,12 +74,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { error } = adminRequest(request, true)
+  const { error, session } = developerRequest(request, true)
   if (error) return error
   try {
     const data = await payload(request)
     if (
-      Object.keys(data).some((k) => !['pluginId', 'capabilities', 'role', 'manual'].includes(k)) ||
+      Object.keys(data).some((k) => !['pluginId', 'capabilities', 'role', 'manual', 'organizationId'].includes(k)) ||
       typeof data.pluginId !== 'string' ||
       !Array.isArray(data.capabilities) ||
       !data.capabilities.every((c) => typeof c === 'string') ||
@@ -73,7 +87,8 @@ export async function POST(request: NextRequest) {
       typeof data.manual !== 'boolean'
     )
       throw new DeveloperKeyError(422, 'Invalid plugin key request')
-    const created = await issuePluginCredential(data.pluginId, data.capabilities, data.role, data.manual)
+    const selected = await verifySelection(session!, data.organizationId)
+    const created = await issuePluginCredential(data.pluginId, data.capabilities, data.role, selected, data.manual)
     return noStore(created, 201)
   } catch (cause) {
     return handle(cause)
@@ -81,17 +96,18 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { error } = adminRequest(request, true)
+  const { error, session } = developerRequest(request, true)
   if (error) return error
   try {
     const data = await payload(request)
     if (
-      Object.keys(data).some((k) => !['orgId', 'keyId'].includes(k)) ||
+      Object.keys(data).some((k) => !['orgId', 'keyId', 'organizationId'].includes(k)) ||
       typeof data.orgId !== 'string' ||
       typeof data.keyId !== 'string'
     )
       throw new DeveloperKeyError(422, 'Invalid key identity')
-    await revokePluginCredential(data.orgId, data.keyId)
+    const selected = await verifySelection(session!, data.organizationId)
+    await revokePluginCredential(data.orgId, data.keyId, selected)
     return noStore({ revoked: true }, 200)
   } catch (cause) {
     return handle(cause)

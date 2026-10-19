@@ -3,6 +3,23 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ObservatoryDeveloperKeys } from './observatory-developer-keys'
 
+const ZITADEL_ID = '11111111111111111111'
+const organizations = { organizations: [{ id: ZITADEL_ID, name: 'QDIP', state: 'active' }] }
+const linked = {
+  organization: organizations.organizations[0],
+  linked: true,
+  coreTenantId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  pluginMigrationComplete: false,
+}
+
+async function chooseOrganization(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    await screen.findByRole('button', {
+      name: /Використовувати цю організацію|Use this organization|Użyj tej organizacji/,
+    })
+  )
+}
+
 function stubCatalog(capabilities: string[]) {
   const inventory = {
     available: [
@@ -19,7 +36,12 @@ function stubCatalog(capabilities: string[]) {
   }
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => Response.json(inventory))
+    vi.fn(async (input: string, init?: RequestInit) => {
+      const path = new URL(input, 'https://observatory.qdip.ai').pathname
+      if (path.endsWith('/api/observatory/organizations'))
+        return Response.json(init?.method === 'POST' ? linked : organizations)
+      return Response.json(inventory)
+    })
   )
 }
 
@@ -32,6 +54,7 @@ describe('Observatory mobile SDK key form', () => {
     stubCatalog(['customer-opportunity-evaluation', 'outreach-prioritization'])
     const user = userEvent.setup()
     render(<ObservatoryDeveloperKeys locale="uk" />)
+    await chooseOrganization(user)
 
     const first = await screen.findByText('customer-opportunity-evaluation')
     const second = screen.getByText('outreach-prioritization')
@@ -61,7 +84,9 @@ describe('Observatory mobile SDK key form', () => {
   it('keeps a very long capability slug in the same label as its checkbox', async () => {
     const slug = 'very-long-capability-identifier-for-an-unusually-long-third-party-plugin-integration'
     stubCatalog([slug])
+    const user = userEvent.setup()
     render(<ObservatoryDeveloperKeys locale="en" />)
+    await chooseOrganization(user)
 
     const slugNode = await screen.findByText(slug)
     expect(slugNode.closest('label')?.querySelector('input[type="checkbox"]')).toBeTruthy()
@@ -84,8 +109,11 @@ describe('Observatory mobile SDK key form', () => {
     }
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (_input: string, options?: RequestInit) =>
-        Response.json(
+      vi.fn(async (input: string, options?: RequestInit) => {
+        const url = new URL(input, 'https://observatory.qdip.ai')
+        if (url.pathname.endsWith('/api/observatory/organizations'))
+          return Response.json(options?.method === 'POST' ? linked : organizations)
+        return Response.json(
           options?.method === 'POST'
             ? {
                 pluginId: 'sample-plugin',
@@ -97,10 +125,11 @@ describe('Observatory mobile SDK key form', () => {
               }
             : inventory
         )
-      )
+      })
     )
     const user = userEvent.setup()
     render(<ObservatoryDeveloperKeys locale="en" />)
+    await chooseOrganization(user)
     await screen.findByText('sample.process')
     await user.click(screen.getByRole('button', { name: 'Generate key' }))
     const field = (await screen.findByRole('textbox', { name: 'Active credential' })) as HTMLInputElement

@@ -20,6 +20,7 @@ type Plugin = {
   keys: ConnectedKey[]
 }
 type Inventory = { available: Plugin[]; connected: Plugin[] }
+type OwnedOrganization = { id: string; name: string; state: 'active' }
 type Issued = {
   pluginId: string
   key: string
@@ -31,6 +32,15 @@ type Issued = {
 
 const translations = {
   uk: {
+    ownerTitle: 'Мої організації Zitadel',
+    ownerHelp:
+      'Підтверджені організації, де ви маєте роль ORG_OWNER. Це перевірка власності, а не привʼязка плагінів. Міграцію чинних плагінів ще не виконано.',
+    ownerEmpty: 'Організацій з підтвердженими правами власника не знайдено.',
+    ownerUnavailable: 'Перевірка власності через Zitadel недоступна. Нову організацію QDIP автоматично не створюємо.',
+    ownerSelect: 'Використовувати цю організацію',
+    ownerSelecting: 'Перевірка…',
+    ownerLinked: 'Організацію підтверджено. Міграцію плагінів ще не виконано.',
+    ownerLinkError: 'Прив’язку організації відхилено. Ключі плагінів не змінено.',
     title: 'Ключі та підключення плагінів',
     description:
       'Виберіть будь-який зареєстрований плагін або підготуйте ключ для нового. Ключ обмежений обраними можливостями.',
@@ -66,6 +76,15 @@ const translations = {
     warning: 'Наявність ключа не підтверджує, що Worker запущений. Стан виконання перевіряється окремо.',
   },
   en: {
+    ownerTitle: 'My Zitadel organizations',
+    ownerHelp:
+      'Verified organizations where you hold ORG_OWNER. This is an ownership check, not a plugin assignment. Existing plugin migration is not complete.',
+    ownerEmpty: 'No organizations with verified owner permissions found.',
+    ownerUnavailable: 'Zitadel ownership verification is unavailable. QDIP will not invent an organization.',
+    ownerSelect: 'Use this organization',
+    ownerSelecting: 'Verifying…',
+    ownerLinked: 'Organization verified. Existing plugins have not yet been migrated.',
+    ownerLinkError: 'Organization linking was refused. No plugin keys were changed.',
     title: 'Plugin connections and keys',
     description:
       'Choose any registered plugin, or bootstrap a new one. Each key is restricted to selected capabilities.',
@@ -101,6 +120,15 @@ const translations = {
     warning: 'An issued key does not prove that the Worker is running; runtime status is separate.',
   },
   pl: {
+    ownerTitle: 'Moje organizacje Zitadel',
+    ownerHelp:
+      'Zweryfikowane organizacje, w których masz rolę ORG_OWNER. To odczyt, a nie przypisanie wtyczek. Migracja jeszcze nie została zakończona.',
+    ownerEmpty: 'Nie znaleziono organizacji z potwierdzonymi uprawnieniami właściciela.',
+    ownerUnavailable: 'Weryfikacja właściciela w Zitadel jest niedostępna. QDIP nie tworzy organizacji automatycznie.',
+    ownerSelect: 'Użyj tej organizacji',
+    ownerSelecting: 'Weryfikacja…',
+    ownerLinked: 'Organizacja potwierdzona. Wtyczki nie zostały jeszcze zmigrowane.',
+    ownerLinkError: 'Powiązanie organizacji odrzucone. Klucze wtyczek pozostały bez zmian.',
     title: 'Połączenia i klucze wtyczek',
     description:
       'Wybierz dowolną zarejestrowaną wtyczkę lub przygotuj klucz dla nowej. Klucz ma ograniczone uprawnienia.',
@@ -148,13 +176,15 @@ function capabilityTitle(capability: string): string {
 
 const endpoint = '/api/observatory/admin/applications'
 
-async function send<T>(method: 'GET' | 'POST' | 'DELETE', body?: object): Promise<T> {
-  const response = await fetch(endpoint, {
+async function send<T>(method: 'GET' | 'POST' | 'DELETE', organizationId: string, body?: object): Promise<T> {
+  const url = method === 'GET' ? endpoint + '?organizationId=' + encodeURIComponent(organizationId) : endpoint
+  const payload = body ? { ...body, organizationId } : undefined
+  const response = await fetch(url, {
     method,
     credentials: 'same-origin',
     cache: 'no-store',
-    headers: { ...(body ? { 'Content-Type': 'application/json' } : {}) },
-    body: body ? JSON.stringify(body) : undefined,
+    headers: { ...(payload ? { 'Content-Type': 'application/json' } : {}) },
+    body: payload ? JSON.stringify(payload) : undefined,
   })
   let data: unknown
   try {
@@ -175,6 +205,11 @@ async function send<T>(method: 'GET' | 'POST' | 'DELETE', body?: object): Promis
 export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   const t = translations[locale]
   const [inventory, setInventory] = useState<Inventory | null>(null)
+  const [ownedOrganizations, setOwnedOrganizations] = useState<OwnedOrganization[] | null>(null)
+  const [ownerError, setOwnerError] = useState(false)
+  const [linkingOrg, setLinkingOrg] = useState<string | null>(null)
+  const [linkedOrg, setLinkedOrg] = useState<string | null>(null)
+  const [linkError, setLinkError] = useState(false)
   const [selectedId, setSelectedId] = useState('')
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([])
   const [manual, setManual] = useState(false)
@@ -183,37 +218,37 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   const [role, setRole] = useState<'execute' | 'worker'>('execute')
   const [issued, setIssued] = useState<Issued | null>(null)
   const [copied, setCopied] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
-  const load = useCallback(async () => {
-    const result = await send<Inventory>('GET')
-    setInventory(result)
-    return result
-  }, [])
-
   useEffect(() => {
     let active = true
-    void send<Inventory>('GET')
-      .then((result) => {
-        if (!active) return
-        setInventory(result)
-        if (result.available.length) {
-          setSelectedId(result.available[0].id)
-          setSelectedCapabilities(result.available[0].capabilities)
-        }
+    void fetch('/api/observatory/organizations', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Zitadel owner verification unavailable')
+        const body: unknown = await response.json()
+        if (!body || typeof body !== 'object' || !('organizations' in body) || !Array.isArray(body.organizations))
+          throw new Error('Invalid organization verification')
+        return body.organizations as OwnedOrganization[]
       })
-      .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : t.error)
+      .then((value) => {
+        if (active) setOwnedOrganizations(value)
       })
-      .finally(() => {
-        if (active) setLoading(false)
+      .catch(() => {
+        if (active) setOwnerError(true)
       })
     return () => {
       active = false
     }
-  }, [load, t.error])
+  }, [])
+
+  const load = useCallback(async () => {
+    if (!linkedOrg) throw new Error(t.ownerHelp)
+    const result = await send<Inventory>('GET', linkedOrg)
+    setInventory(result)
+    return result
+  }, [linkedOrg, t.ownerHelp])
 
   const selected = inventory?.available.find((p) => p.id === selectedId)
   const allowed = manual
@@ -227,13 +262,63 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       ]
     : selectedCapabilities
 
+  async function linkOwner(org: OwnedOrganization) {
+    setLinkError(false)
+    setLinkingOrg(org.id)
+    try {
+      const response = await fetch('/api/observatory/organizations', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ organizationId: org.id }),
+      })
+      if (!response.ok) throw new Error('Organization ownership verification refused')
+      const result: unknown = await response.json()
+      if (
+        !result ||
+        typeof result !== 'object' ||
+        !('linked' in result) ||
+        result.linked !== true ||
+        !('organization' in result) ||
+        !result.organization ||
+        typeof result.organization !== 'object' ||
+        !('id' in result.organization) ||
+        result.organization.id !== org.id
+      )
+        throw new Error('Unexpected organization owner response')
+      setError('')
+      setIssued(null)
+      setInventory(null)
+      setSelectedId('')
+      setSelectedCapabilities([])
+      setLinkedOrg(org.id)
+      setLoading(true)
+      try {
+        const result = await send<Inventory>('GET', org.id)
+        setInventory(result)
+        setSelectedId(result.available[0]?.id ?? '')
+        setSelectedCapabilities(result.available[0]?.capabilities ?? [])
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : t.error)
+      } finally {
+        setLoading(false)
+      }
+    } catch {
+      setLinkError(true)
+    } finally {
+      setLinkingOrg(null)
+    }
+  }
+
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
     setIssued(null)
     setPending(true)
     try {
-      const output = await send<Issued>('POST', {
+      if (!linkedOrg) throw new Error(t.ownerHelp)
+      const output = await send<Issued>('POST', linkedOrg, {
         pluginId: manual ? manualId.trim() : selectedId,
         capabilities: allowed,
         role,
@@ -258,7 +343,8 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
     setPending(true)
     setError('')
     try {
-      await send('DELETE', { orgId: key.orgId, keyId: key.id })
+      if (!linkedOrg) throw new Error(t.ownerHelp)
+      await send('DELETE', linkedOrg, { orgId: key.orgId, keyId: key.id })
       await load()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t.error)
@@ -282,6 +368,40 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       <p className="text-xs uppercase tracking-widest text-slate-400">QDIP / Observatory / SDK</p>
       <h1 className="mt-3 text-3xl font-semibold">{t.title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{t.description}</p>
+      <section className="mt-6 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-5" aria-label={t.ownerTitle}>
+        <h2 className="text-base font-semibold">{t.ownerTitle}</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-300">{t.ownerHelp}</p>
+        {linkError ? (
+          <p role="alert" className="mt-3 text-sm text-red-300">
+            {t.ownerLinkError}
+          </p>
+        ) : null}
+        {ownerError ? (
+          <p role="status" className="mt-3 text-sm text-amber-200">
+            {t.ownerUnavailable}
+          </p>
+        ) : null}
+        {ownedOrganizations?.length === 0 ? <p className="mt-3 text-sm text-slate-400">{t.ownerEmpty}</p> : null}
+        {ownedOrganizations?.map((org) => (
+          <div key={org.id} className="mt-3 min-w-0 rounded-md border border-white/10 p-3">
+            <p className="break-words font-medium">{org.name}</p>
+            <p className="mt-1 break-all text-xs text-slate-400">{org.id}</p>
+            <button
+              className="mt-3 rounded-md border border-white/25 px-3 py-2 text-sm hover:bg-white/10 disabled:opacity-50"
+              type="button"
+              disabled={linkingOrg !== null}
+              onClick={() => void linkOwner(org)}
+            >
+              {linkingOrg === org.id ? t.ownerSelecting : t.ownerSelect}
+            </button>
+            {linkedOrg === org.id ? (
+              <p role="status" className="mt-2 text-sm text-slate-300">
+                {t.ownerLinked}
+              </p>
+            ) : null}
+          </div>
+        ))}
+      </section>
 
       {loading ? <p className="mt-6 text-sm text-slate-400">{t.loading}</p> : null}
       {error ? (
@@ -388,7 +508,13 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
               </label>
               <button
                 type="submit"
-                disabled={pending || allowed.length === 0 || (!manual && !selected) || (manual && !manualId.trim())}
+                disabled={
+                  !linkedOrg ||
+                  pending ||
+                  allowed.length === 0 ||
+                  (!manual && !selected) ||
+                  (manual && !manualId.trim())
+                }
                 className="min-h-11 justify-self-start rounded-lg bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 disabled:opacity-40"
               >
                 {pending ? t.creating : t.create}
