@@ -1,10 +1,9 @@
 import 'server-only'
 
-import { rrCoreApiKey } from '@/lib/rr-core-credential'
-
 import { createHash, createHmac, createPublicKey, randomBytes, timingSafeEqual, verify } from 'node:crypto'
 import type { JsonWebKey as NodeJsonWebKey } from 'node:crypto'
 import type { NextRequest, NextResponse } from 'next/server'
+import { rrCoreApiKey } from '@/lib/rr-core-credential'
 import { PLATFORM_ORIGINS } from '@/routing-config'
 
 type Role = 'studio' | 'rr_operator' | 'observatory_admin'
