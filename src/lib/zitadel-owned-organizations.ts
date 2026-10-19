@@ -20,7 +20,10 @@ export type ZitadelOwnerPrincipal = { issuer: string; sub: string }
 export type OwnedZitadelOrganization = { id: string; name: string }
 
 export class ZitadelOwnerLookupError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string
+  ) {
     super(message)
   }
 }
@@ -89,8 +92,7 @@ async function readZitadel<T>(
   } catch {
     throw new ZitadelOwnerLookupError(503, 'Zitadel organization lookup unavailable')
   }
-  if (raw.length > LIMIT_BYTES)
-    throw new ZitadelOwnerLookupError(502, 'Zitadel organization response too large')
+  if (raw.length > LIMIT_BYTES) throw new ZitadelOwnerLookupError(502, 'Zitadel organization response too large')
   try {
     return JSON.parse(raw) as T
   } catch {
@@ -109,18 +111,26 @@ export async function listOwnedZitadelOrganizations(
     result?: unknown
     details?: { totalResult?: unknown }
   }>(connection, '/v2/organizations/_search', { query: { offset: 0, limit: MAX_ORGANIZATIONS } })
-  if (!Array.isArray(catalog.result) ||
+  if (
+    !Array.isArray(catalog.result) ||
     catalog.result.length > MAX_ORGANIZATIONS ||
     (typeof catalog.details?.totalResult === 'number' && catalog.details.totalResult > MAX_ORGANIZATIONS)
-  ) throw new ZitadelOwnerLookupError(503, 'Zitadel organization list requires pagination')
+  )
+    throw new ZitadelOwnerLookupError(503, 'Zitadel organization list requires pagination')
 
   const organizations: OwnedZitadelOrganization[] = []
   const seen = new Set<string>()
   for (const candidate of catalog.result as OrgRecord[]) {
-    if (!candidate || typeof candidate.id !== 'string' ||
-      !ORG_ID.test(candidate.id) || typeof candidate.name !== 'string' ||
-      candidate.name.length < 1 || candidate.name.length > 120 ||
-      seen.has(candidate.id)) throw new ZitadelOwnerLookupError(502, 'Invalid Zitadel organization identity')
+    if (
+      !candidate ||
+      typeof candidate.id !== 'string' ||
+      !ORG_ID.test(candidate.id) ||
+      typeof candidate.name !== 'string' ||
+      candidate.name.length < 1 ||
+      candidate.name.length > 120 ||
+      seen.has(candidate.id)
+    )
+      throw new ZitadelOwnerLookupError(502, 'Invalid Zitadel organization identity')
     seen.add(candidate.id)
     if (candidate.state !== 'ORGANIZATION_STATE_ACTIVE') continue
     // Filter by the organization resource on the trusted Zitadel side. Do
@@ -128,19 +138,27 @@ export async function listOwnedZitadelOrganizations(
     const membership = await readZitadel<{
       administrators?: unknown
       pagination?: { totalResult?: unknown }
-    }>(connection, '/zitadel.internal_permission.v2.InternalPermissionService/ListAdministrators', {
-      pagination: { offset: 0, limit: MAX_ADMINS_PER_ORG, asc: true },
-      filters: [{ resource: { organizationId: candidate.id } }],
-    }, true)
-    if (!Array.isArray(membership.administrators) ||
+    }>(
+      connection,
+      '/zitadel.internal_permission.v2.InternalPermissionService/ListAdministrators',
+      {
+        pagination: { offset: 0, limit: MAX_ADMINS_PER_ORG, asc: true },
+        filters: [{ resource: { organizationId: candidate.id } }],
+      },
+      true
+    )
+    if (
+      !Array.isArray(membership.administrators) ||
       membership.administrators.length > MAX_ADMINS_PER_ORG ||
-      (typeof membership.pagination?.totalResult === 'number' &&
-        membership.pagination.totalResult > MAX_ADMINS_PER_ORG)
-    ) throw new ZitadelOwnerLookupError(503, 'Zitadel administrator list requires pagination')
+      (typeof membership.pagination?.totalResult === 'number' && membership.pagination.totalResult > MAX_ADMINS_PER_ORG)
+    )
+      throw new ZitadelOwnerLookupError(503, 'Zitadel administrator list requires pagination')
 
     const isOwner = (membership.administrators as AdminRecord[]).some(
-      (entry) => entry?.user?.id === principal.sub &&
-        Array.isArray(entry.roles) && entry.roles.includes('ORG_OWNER') &&
+      (entry) =>
+        entry?.user?.id === principal.sub &&
+        Array.isArray(entry.roles) &&
+        entry.roles.includes('ORG_OWNER') &&
         // Some Zitadel revisions omit resource from returned rows once the
         // server-side resource filter is applied. If present it must match.
         (entry.organizationId === undefined || entry.organizationId === candidate.id)
@@ -154,8 +172,7 @@ export async function verifyZitadelOrganizationOwner(
   principal: ZitadelOwnerPrincipal,
   organizationId: string
 ): Promise<OwnedZitadelOrganization> {
-  if (!ORG_ID.test(organizationId))
-    throw new ZitadelOwnerLookupError(422, 'Invalid Zitadel organization ID')
+  if (!ORG_ID.test(organizationId)) throw new ZitadelOwnerLookupError(422, 'Invalid Zitadel organization ID')
   const organizations = await listOwnedZitadelOrganizations(principal)
   const owned = organizations.find((org) => org.id === organizationId)
   if (!owned) throw new ZitadelOwnerLookupError(403, 'Zitadel organization owner permission required')
