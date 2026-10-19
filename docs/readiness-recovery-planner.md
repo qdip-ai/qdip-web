@@ -21,7 +21,7 @@ The precise server contract is
   `POST /api/rr-operator/kernel/economic-v2/preflight`, forwarding JSON to
   `POST /api/v1/readiness-recovery/economic-v2/preflight` in Core.
   Existing Zitadel RR role, same-origin, HTTPS/localhost and server-only
-  org-scoped `DIP_API_KEY` guards are reused. Arbitrary economic-v2
+  org-scoped `RR_ORG_API_KEY` guard (legacy `DIP_API_KEY` fixture fallback) is reused. Arbitrary economic-v2
   execution, ordering or commit paths stay outside the proxy allowlist.
 - The browser sends user-supplied versioned `RREconomicInput` unmodified.
   Only Core validates the complete model and returns
