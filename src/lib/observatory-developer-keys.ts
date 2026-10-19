@@ -418,9 +418,9 @@ export async function revokePluginCredential(
 export async function issuePluginCredential(
   pluginId: string,
   capabilities: string[],
-  role: Role = 'execute',
-  manual = false,
-  selected: VerifiedOrganization
+  role: Role,
+  selected: VerifiedOrganization,
+  manual = false
 ): Promise<IssuedPluginKey> {
   if (
     !PLUGIN_ID.test(pluginId) ||
