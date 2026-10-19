@@ -161,7 +161,11 @@ export async function listOwnedZitadelOrganizations(identity: Identity): Promise
           '/zitadel.internal_permission.v2.InternalPermissionService/ListAdministrators',
           {
             pagination: { offset: 0, limit: MAX_ADMINS },
-            filters: [{ resource: { organizationId: id } }],
+            filters: [
+              { resource: { organizationId: id } },
+              { inUserIdsFilter: { ids: [identity.sub] } },
+              { role: { roleKey: 'ORG_OWNER' } },
+            ],
           },
           true
         )
@@ -173,7 +177,11 @@ export async function listOwnedZitadelOrganizations(identity: Identity): Promise
           (admin) =>
             admin &&
             admin.user?.id === identity.sub &&
-            belongsToOrg(admin, id) &&
+            admin.instance !== true &&
+            (
+              (admin.organization === undefined && admin.organizationId === undefined) ||
+              belongsToOrg(admin, id)
+            ) &&
             Array.isArray(admin.roles) &&
             admin.roles.includes('ORG_OWNER')
         )
