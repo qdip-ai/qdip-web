@@ -1098,6 +1098,11 @@ export function RRProductionOperatorPanel({ locale = 'en' }: { locale?: Locale }
         </div>
       )}
       {session.authenticated && <RREconomicPreflightPanel locale={locale} />}
+      {operation === t.submissionRecovered && presentation && !error && (
+        <p role="status" data-testid="rr-lost-ack-recovered" className="mt-4 text-sm text-sky-200">
+          {t.submissionRecovered}
+        </p>
+      )}
       {error && (
         <p role="alert" data-error-kind={errorKind ?? 'INVALID_INPUT'} className="mt-4 text-sm text-rose-300">
           {error}
