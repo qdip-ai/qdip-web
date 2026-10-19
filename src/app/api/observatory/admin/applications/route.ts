@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { developerRequest } from '@/lib/observatory-plugin-admin'
-import { verifyOwnedZitadelOrganization } from '@/lib/zitadel-owner-organizations'
+import { verifyOwnedZitadelOrganization, OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
 import type { VerifiedOrganization } from '@/lib/observatory-developer-keys'
 import {
   DeveloperKeyError,
@@ -25,6 +25,7 @@ function noStore(body: Record<string, unknown>, status: number) {
 }
 
 function handle(error: unknown) {
+  if (error instanceof OwnerOrganizationError) return noStore({ error: error.message }, error.status)
   return error instanceof DeveloperKeyError
     ? noStore({ error: error.message }, error.status)
     : noStore({ error: 'Plugin key management unavailable' }, 503)
