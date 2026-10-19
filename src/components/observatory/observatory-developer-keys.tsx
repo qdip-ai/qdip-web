@@ -176,9 +176,7 @@ function capabilityTitle(capability: string): string {
 
 const endpoint = '/api/observatory/admin/applications'
 
-async function send<T>(
-  method: 'GET' | 'POST' | 'DELETE', organizationId: string, body?: object
-): Promise<T> {
+async function send<T>(method: 'GET' | 'POST' | 'DELETE', organizationId: string, body?: object): Promise<T> {
   const url = method === 'GET' ? endpoint + '?organizationId=' + encodeURIComponent(organizationId) : endpoint
   const payload = body ? { ...body, organizationId } : undefined
   const response = await fetch(url, {
@@ -510,7 +508,13 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
               </label>
               <button
                 type="submit"
-                disabled={!linkedOrg || pending || allowed.length === 0 || (!manual && !selected) || (manual && !manualId.trim())}
+                disabled={
+                  !linkedOrg ||
+                  pending ||
+                  allowed.length === 0 ||
+                  (!manual && !selected) ||
+                  (manual && !manualId.trim())
+                }
                 className="min-h-11 justify-self-start rounded-lg bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-900 disabled:opacity-40"
               >
                 {pending ? t.creating : t.create}
