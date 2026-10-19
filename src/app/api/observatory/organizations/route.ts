@@ -148,7 +148,10 @@ export async function POST(request: NextRequest) {
       { organization: selection, coreTenantId: bound.id, linked: true, pluginMigrationComplete: false },
       200
     )
-  } catch {
+  } catch (error) {
+    if (error instanceof OwnerOrganizationError) {
+      return response({ error: error.message }, error.status)
+    }
     return response({ error: 'Zitadel organization linkage unavailable' }, 503)
   }
 }
