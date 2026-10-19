@@ -47,7 +47,10 @@ function core(): { origin: string; key: string } {
     const url = new URL(base)
     if (
       url.protocol !== 'https:' ||
-      url.username || url.password || url.search || url.hash ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
       !['/', '/api/v1', '/api/v1/'].includes(url.pathname) ||
       !key
     )
@@ -94,17 +97,17 @@ async function ownerRequest(route: 'zitadel-owned' | 'zitadel-owner-proof', body
 function isOrganization(value: unknown): value is ZitadelOwnerOrganization {
   return Boolean(
     value &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      'id' in value &&
-      typeof value.id === 'string' &&
-      ID.test(value.id) &&
-      'name' in value &&
-      typeof value.name === 'string' &&
-      value.name.trim() &&
-      value.name.length <= 120 &&
-      'state' in value &&
-      value.state === 'active'
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    'id' in value &&
+    typeof value.id === 'string' &&
+    ID.test(value.id) &&
+    'name' in value &&
+    typeof value.name === 'string' &&
+    value.name.trim() &&
+    value.name.length <= 120 &&
+    'state' in value &&
+    value.state === 'active'
   )
 }
 
