@@ -441,7 +441,6 @@ export async function issuePluginCredential(
     throw new DeveloperKeyError(422, 'Invalid plugin key policy')
 
   const data = await metadata(selected)
-  const tenant = verifiedCoreTenant(data, selected)
   const direct = data.catalog.find((p) => p.name === pluginId)
   // Manual bootstrap of a plugin already registered under an opaque catalog
   // name must reuse that registration, not create a new tenant.
@@ -454,6 +453,7 @@ export async function issuePluginCredential(
   } else if (!manual) {
     throw new DeveloperKeyError(422, 'Plugin is not registered; use explicit manual bootstrap')
   }
+  const tenant = verifiedCoreTenant(data, selected)
   const scopes = [...ROLE_SCOPES[role]]
   let org: CoreOrg = tenant
   let credentialPluginId = pluginId
