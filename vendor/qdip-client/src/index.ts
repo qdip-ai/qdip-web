@@ -1,7 +1,7 @@
 export { QdipClient } from './client';
 export { QdipError } from './errors';
 export type { QdipErrorCode } from './errors';
-export { parseCapabilitiesResponse, parseInvokeResponse, parsePluginCatalog, parsePluginCatalogEntry, parsePluginSecurityResult, isActionable } from './validation';
+export { parseCapabilitiesResponse, parseInvokeResponse, parsePluginCatalog, parsePluginCatalogEntry, parsePluginSecurityResult, safePluginLaunchUrl, isActionable } from './validation';
 export type {
   Capability, CapabilitiesResponse, ExecutionManifest, ExecutionResult,
   SemanticReplayContract, ApproximationContract, InvokeOptions,

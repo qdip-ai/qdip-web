@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
 import { coreCatalogClient, readCorePublications } from '@/lib/observatory-plugin-catalog'
-import { QdipError } from '@qdip/client'
+import { QdipError, safePluginLaunchUrl } from '@qdip/client'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +24,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     description?: unknown
     category?: unknown
     slug?: unknown
+    application_launch_url?: unknown
+    launch_url_verified?: unknown
   }
   try {
     const raw = await request.text()
@@ -58,6 +60,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     const description = update.description
     const category = update.category
     const slug = update.slug
+    const launchUrl = update.application_launch_url
+    const reviewed = update.launch_url_verified
     if (
       displayName !== undefined &&
       (typeof displayName !== 'string' || displayName.trim().length < 2 || displayName.length > 120)
@@ -75,6 +79,15 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
         ['admin', 'api', 'new', 'edit', 'plugins', 'settings'].includes(slug))
     )
       return NextResponse.json({ error: 'Invalid URL slug' }, { status: 422 })
+    if (
+      (launchUrl !== undefined &&
+        (typeof launchUrl !== 'string' ||
+          (launchUrl !== '' && (!safePluginLaunchUrl(launchUrl) || reviewed !== true)) ||
+          (launchUrl === '' && reviewed === true) ||
+          (reviewed !== undefined && typeof reviewed !== 'boolean'))) ||
+      (launchUrl === undefined && reviewed !== undefined)
+    )
+      return NextResponse.json({ error: 'Launch destination requires reviewed public HTTPS URL' }, { status: 422 })
     const conflicting =
       typeof slug === 'string' &&
       catalog.some(
@@ -92,6 +105,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
       ...(description !== undefined ? { description: (description as string).trim() } : {}),
       ...(category !== undefined ? { category: (category as string).trim() } : {}),
       ...(slug !== undefined ? { slug: slug as string } : {}),
+      ...(launchUrl !== undefined ? { applicationLaunchUrl: launchUrl as string } : {}),
+      ...(reviewed !== undefined ? { launchUrlVerified: reviewed as boolean } : {}),
     })
     return NextResponse.json(updated, {
       headers: { 'Cache-Control': 'no-store' },

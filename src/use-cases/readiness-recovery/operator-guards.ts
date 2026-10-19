@@ -48,3 +48,73 @@ export function parsedExecutionIds(value: unknown): { executionId: string; decis
   const safe = (id: unknown) => (typeof id === 'string' && /^[a-zA-Z0-9][\w.-]{0,127}$/.test(id) ? id : '')
   return { executionId: safe(executionId), decisionId: safe(decisionId) }
 }
+
+/** Resolve an ambiguous write by identity, never by retrying its POST. */
+export function recoverableRRSubmission(
+  kind: 'create' | 'replan',
+  rawBody: string | undefined,
+  options: {
+    preflight?: {
+      execution_id: string
+      decision_id: string
+      payload_digest: string
+      source_snapshot_id: string
+    } | null
+    predecessorExecutionId?: string
+    decisionId?: string
+  }
+): {
+  executionId: string
+  decisionId: string | null
+  predecessorExecutionId: string | null
+  payloadDigest: string | null
+  sourceSnapshotId: string | null
+} | null {
+  if (!rawBody) return null
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(rawBody)
+  } catch {
+    return null
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+
+  const doc = parsed as Record<string, unknown>
+  const idPattern = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/
+  const validId = (id: unknown): id is string => typeof id === 'string' && idPattern.test(id)
+
+  if (kind === 'create') {
+    const preflight = options.preflight
+    if (!preflight || !validId(doc.execution_id)) return null
+    if (doc.execution_id !== preflight.execution_id) return null
+    if (!validId(preflight.decision_id)) return null
+    if (!/^[0-9a-f]{64}$/.test(preflight.payload_digest)) return null
+    if (!preflight.source_snapshot_id.trim()) return null
+
+    return {
+      executionId: doc.execution_id,
+      decisionId: preflight.decision_id,
+      predecessorExecutionId: null,
+      payloadDigest: preflight.payload_digest,
+      sourceSnapshotId: preflight.source_snapshot_id,
+    }
+  }
+
+  let successor: unknown = doc
+  if (doc.format_version === 'readiness-recovery.normalized-replan.v1') successor = doc.import_document
+  if (!successor || typeof successor !== 'object' || Array.isArray(successor)) return null
+
+  const nextId = (successor as Record<string, unknown>).execution_id
+  if (!validId(nextId)) return null
+  if (!validId(options.predecessorExecutionId)) return null
+  if (nextId === options.predecessorExecutionId) return null
+
+  return {
+    executionId: nextId,
+    decisionId: validId(options.decisionId) ? options.decisionId : null,
+    predecessorExecutionId: options.predecessorExecutionId,
+    payloadDigest: null,
+    sourceSnapshotId: null,
+  }
+}

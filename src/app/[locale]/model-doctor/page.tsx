@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ArrowUpRight, LockKeyhole, ShieldCheck } from 'lucide-react'
 
 import { PrototypeShell } from '@/features/observatory'
+import { ModelDoctorWorkspace } from '@/components/observatory/model-doctor-workspace'
 import { isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { modelDoctorHref } from '@/lib/model-doctor-url'
 
@@ -77,6 +78,7 @@ export default async function ModelDoctorPage({ params }: { params: Promise<{ lo
           <ArrowUpRight size={18} aria-hidden />
         </a>
         <p className="mt-3 text-sm text-slate-400">{t.newTab}</p>
+        <ModelDoctorWorkspace locale={locale} />
         <div className="mt-12 grid gap-5 md:grid-cols-2">
           <section className="rounded-xl border border-white/15 bg-white/5 p-6">
             <LockKeyhole className="mb-4 text-cyan-300" size={24} aria-hidden />

@@ -21,6 +21,11 @@ describe('public Observatory plugin projection', () => {
   it('retains existing explicit public demo allowlist before admin override', () => {
     expect(visibleUseCases([meta])).toContain('readiness-recovery')
   })
+  it('does not confuse the SDK evaluate demo with the separate native RR operator capability', () => {
+    const sdkDemo = { ...meta, capabilities: ['readiness-recovery.evaluate'] }
+    expect(visibleUseCases([sdkDemo])).not.toContain('readiness-recovery')
+    expect(visibleUseCases([{ ...sdkDemo, published: false }])).not.toContain('readiness-recovery')
+  })
   it('unpublish hides an existing application card', () => {
     expect(visibleUseCases([{ ...meta, published: false }])).not.toContain('readiness-recovery')
   })
