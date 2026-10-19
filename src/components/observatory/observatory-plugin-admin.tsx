@@ -939,9 +939,6 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     {row.security?.state === 'approved' && (
                       <p className="mt-2 text-sm text-emerald-300">{t.securityApproved}</p>
                     )}
-                    {row.security?.state === 'revoked' && (
-                      <p className="mt-2 text-sm text-rose-300">{t.securityRevoked}</p>
-                    )}
                     {row.security?.critical_block && (
                       <p className="mt-2 text-sm text-rose-300">{t.securityCriticalBlocked}</p>
                     )}
