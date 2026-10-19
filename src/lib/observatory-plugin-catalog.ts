@@ -59,7 +59,9 @@ export function visibleUseCases(records: readonly CorePluginPublication[]): stri
       record.enabled &&
       record.published === null &&
       record.capabilities.includes('readiness-recovery.evaluate')
-    ) return true
+    ) {
+      return true
+    }
     if (!record.enabled || !record.capabilities.includes(item.plugin.capability)) return false
     if (record.published === null) return LEGACY_PUBLIC.has(item.id)
     return (
