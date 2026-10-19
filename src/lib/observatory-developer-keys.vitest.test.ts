@@ -52,6 +52,65 @@ const key = () => ({
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Generic developer plugin keys', () => {
+  it('issues scoped Worker credentials into the linked Core UUID, not a new pseudo-organization', async () => {
+    const capability = 'new-plugin.run'
+    let createdName = ''
+    let keySaved = false
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string, options: RequestInit) => {
+      const path = new URL(input).pathname
+      const method = options.method ?? 'GET'
+      calls.push(method + ' ' + path)
+      if (path.endsWith('/plugin-publications')) return Response.json([])
+      if (method === 'GET' && path.endsWith('/organizations')) return Response.json([org])
+      if (method === 'GET' && path.endsWith('/keys')) {
+        return Response.json(keySaved ? [{
+          ...key(), name: createdName, scopes: ['plugins:register'],
+          allowed_capabilities: [capability], key: undefined,
+        }] : [])
+      }
+      if (method === 'POST' && path.endsWith('/keys')) {
+        const policy = JSON.parse(String(options.body))
+        expect(policy.scopes).toEqual(['plugins:register'])
+        expect(policy.allowed_capabilities).toEqual([capability])
+        createdName = policy.name
+        keySaved = true
+        return Response.json({
+          ...key(), name: createdName, scopes: ['plugins:register'],
+          allowed_capabilities: [capability],
+        }, { status: 201 })
+      }
+      throw Error('Unexpected Core request: ' + path)
+    }))
+    const issued = await issuePluginCredential(
+      'new-plugin', [capability], 'worker', OWNER, true
+    )
+    expect(issued.role).toBe('worker')
+    expect(issued.key).toBe(SECRET)
+    expect(calls.some((call) => call === 'POST /api/v1/organizations')).toBe(false)
+    expect(calls.some((call) => call === 'POST /api/v1/organizations/' + ORG + '/keys')).toBe(true)
+  })
+
+  it('never reads or revokes another linked Zitadel organization key', async () => {
+    const foreign = '12345678-1234-4234-8234-123456789ade'
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
+      const path = new URL(input).pathname
+      calls.push(path)
+      if (path.endsWith('/plugin-publications')) return Response.json([])
+      if (path.endsWith('/organizations')) return Response.json([
+        org,
+        { ...org, id: foreign, zitadel_organization_id: WRONG_OWNER.id },
+      ])
+      if (path.endsWith('/keys')) return Response.json([])
+      throw Error('Unexpected Core request: ' + path)
+    }))
+    expect(await listPluginCredentials(OWNER)).toEqual({ available: [], connected: [] })
+    expect(calls).not.toContain('/api/v1/organizations/' + foreign + '/keys')
+    await expect(revokePluginCredential(foreign, KEY_ID, OWNER)).rejects.toMatchObject({ status: 403 })
+    expect(calls).not.toContain('/api/v1/organizations/' + foreign + '/keys/' + KEY_ID + '/revoke')
+  })
+
   it('lists installed plugins dynamically and moves already keyed VHV out of available', async () => {
     const vhv = {
       name: remoteId(ORG, 'secretary'),
