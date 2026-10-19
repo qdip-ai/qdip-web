@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const ISSUER = 'https://zitadel.example.test'
-const ORG = '11111111111111111111'
-const CORE = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const { ISSUER, ORG, CORE } = vi.hoisted(() => ({
+  ISSUER: 'https://zitadel.example.test',
+  ORG: '11111111111111111111',
+  CORE: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+}))
 
 vi.mock('@/routing-config', () => ({ isSurfaceHost: () => true }))
 vi.mock('@/lib/qdip-oidc', () => ({
