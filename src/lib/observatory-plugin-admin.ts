@@ -26,7 +26,7 @@ export function adminRequest(request: NextRequest, mutate = false) {
  */
 export function developerRequest(request: NextRequest, mutate = false) {
   const host = request.headers.get('host')
-  if (!host || /[,\\s@/?#]/.test(host) || !isSurfaceHost('observatory', host))
+  if (!host || /[,\s@/?#]/.test(host) || !isSurfaceHost('observatory', host))
     return { error: NextResponse.json({ error: 'Not found' }, { status: 404 }), session: null }
   const secure = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https'
   if (!secure && !host.split(':')[0].endsWith('.localhost'))
