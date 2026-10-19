@@ -307,7 +307,23 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
     // Backward compatibility for VHV and earlier app keys, without hardcoded names.
     const legacy = data.stored.find(({ org }) => org.id === record.orgId)?.org.name
     const id = match?.[1] || (legacy?.startsWith('qdip-sdk-app:') ? legacy.slice('qdip-sdk-app:'.length) : '')
-    if (!id || items.has(id)) continue
+    if (!id) continue
+    if (items.has(id)) {
+      // An old key issued against an opaque catalog ID belongs to another
+      // tenant. Keep it visible for an administrator to revoke, but never
+      // treat it as authorization for the registered Worker.
+      const unmatchedId = 'unmatched-' + record.id
+      items.set(unmatchedId, {
+        id: unmatchedId,
+        label: 'Unmatched credential: ' + id,
+        capabilities: [...record.capabilities],
+        registered: false,
+        enabled: false,
+        keys: [{ id: record.id, orgId: record.orgId, role: record.role,
+          expiresAt: record.expiresAt, capabilities: record.capabilities }],
+      })
+      continue
+    }
     const keys = active
       .filter((x) => (match ? x.name.startsWith('access/' + id + '/') : x.orgId === record.orgId))
       .map(({ id: keyId, orgId, role, expiresAt, capabilities }) => ({
