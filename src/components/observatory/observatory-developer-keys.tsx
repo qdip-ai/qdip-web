@@ -220,7 +220,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   const [role, setRole] = useState<'execute' | 'worker'>('execute')
   const [issued, setIssued] = useState<Issued | null>(null)
   const [copied, setCopied] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
 
@@ -251,33 +251,6 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
     setInventory(result)
     return result
   }, [linkedOrg, t.ownerHelp])
-
-  useEffect(() => {
-    if (!linkedOrg) {
-      setInventory(null)
-      setLoading(false)
-      return
-    }
-    let active = true
-    setLoading(true)
-    setInventory(null)
-    void send<Inventory>('GET', linkedOrg)
-      .then((result) => {
-        if (!active) return
-        setInventory(result)
-        setSelectedId(result.available[0]?.id ?? '')
-        setSelectedCapabilities(result.available[0]?.capabilities ?? [])
-      })
-      .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : t.error)
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-    return () => {
-      active = false
-    }
-  }, [linkedOrg, t.error])
 
   const selected = inventory?.available.find((p) => p.id === selectedId)
   const allowed = manual
@@ -318,7 +291,21 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
         throw new Error('Unexpected organization owner response')
       setError('')
       setIssued(null)
+      setInventory(null)
+      setSelectedId('')
+      setSelectedCapabilities([])
       setLinkedOrg(org.id)
+      setLoading(true)
+      try {
+        const result = await send<Inventory>('GET', org.id)
+        setInventory(result)
+        setSelectedId(result.available[0]?.id ?? '')
+        setSelectedCapabilities(result.available[0]?.capabilities ?? [])
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : t.error)
+      } finally {
+        setLoading(false)
+      }
     } catch {
       setLinkError(true)
     } finally {
