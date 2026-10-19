@@ -455,7 +455,7 @@ export async function issuePluginCredential(
   }
   const tenant = verifiedCoreTenant(data, selected)
   const scopes = [...ROLE_SCOPES[role]]
-  let org: CoreOrg = tenant
+  const org: CoreOrg = tenant
   let credentialPluginId = pluginId
   if (registered?.source === 'remote') {
     const registrationOrg = registeredRemoteOrg(registered, data)
@@ -469,7 +469,7 @@ export async function issuePluginCredential(
   // duplicate detection must be scoped to the resolved registration owner.
   const exactMatch = data.stored.some(
     ({ org: storedOrg, keys }) =>
-      storedOrg.id === org!.id &&
+      storedOrg.id === org.id &&
       keys.some((key) => {
         const row = keyView(storedOrg, key)
         return row && row.role === role && exact(row.capabilities, capabilities)
