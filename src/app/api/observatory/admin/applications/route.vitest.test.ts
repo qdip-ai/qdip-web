@@ -8,9 +8,14 @@ vi.mock('@/lib/observatory-plugin-admin', () => ({
   })),
 }))
 vi.mock('@/lib/zitadel-owner-organizations', () => ({
-  listOwnedZitadelOrganizations: vi.fn(async () => [
-    { id: '1111111111111', name: 'Own organization', state: 'active' },
-  ]),
+  verifyOwnedZitadelOrganization: vi.fn(async (_identity: unknown, organizationId: string) => {
+    if (organizationId !== '1111111111111') {
+      const error = new Error('Not organization owner')
+      Object.assign(error, { status: 403 })
+      throw error
+    }
+    return { id: organizationId, name: 'Own organization', state: 'active' }
+  }),
 }))
 vi.mock('@/lib/observatory-developer-keys', () => ({
   DeveloperKeyError: class DeveloperKeyError extends Error {
