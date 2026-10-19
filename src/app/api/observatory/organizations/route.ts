@@ -3,7 +3,7 @@ import { sessionFromRequest } from '@/lib/qdip-oidc'
 import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
 import { signZitadelOwnerLink } from '@/lib/zitadel-org-link-assertion'
 import { isSurfaceHost } from '@/routing-config'
-import { listOwnedZitadelOrganizations, OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
+import { listOwnedZitadelOrganizations, verifyOwnedZitadelOrganization, OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const accessible = await listOwnedZitadelOrganizations({ issuer: session.issuer, sub: session.sub })
-    const selection = accessible.find((org) => org.id === id)
-    if (!selection) return response({ error: 'Zitadel organization ownership required' }, 403)
+    const selection = await verifyOwnedZitadelOrganization(
+      { issuer: session.issuer, sub: session.sub }, id
+    )
 
     const { base, key } = corePluginConnection()
     const origin = new URL(base)
