@@ -673,24 +673,24 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   >
                     {selected === row.name ? t.collapse : t.edit}
                   </Button>
-                {row.source === 'remote' && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={pending}
-                    aria-expanded={securityOpen === row.name}
-                    onClick={() => {
-                      setSecurityOpen(securityOpen === row.name ? '' : row.name)
-                      setSecurityFeedback(null)
-                      setSourceCode('')
-                      setSecurityReason('')
-                      setSecurityReference('')
-                      setRiskAcknowledged(false)
-                    }}
-                  >
-                    {securityOpen === row.name ? t.securityClose : t.securityReview}
-                  </Button>
-                )}
+                  {row.source === 'remote' && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={pending}
+                      aria-expanded={securityOpen === row.name}
+                      onClick={() => {
+                        setSecurityOpen(securityOpen === row.name ? '' : row.name)
+                        setSecurityFeedback(null)
+                        setSourceCode('')
+                        setSecurityReason('')
+                        setSecurityReference('')
+                        setRiskAcknowledged(false)
+                      }}
+                    >
+                      {securityOpen === row.name ? t.securityClose : t.securityReview}
+                    </Button>
+                  )}
                   {published && (
                     <>
                       <a className={styles.link} href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}>
@@ -927,161 +927,161 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     </form>
                   </section>
                 )}
-              {securityOpen === row.name && row.source === 'remote' && (
-                <section className="mt-5 min-w-0 border-t border-white/15 pt-5" aria-label={t.securityReview}>
-                  <h4 className="text-base font-semibold">{t.securityReview}</h4>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{t.securityCaveat}</p>
-                  {row.security?.state !== 'approved' && (
-                    <p className="mt-2 text-sm text-amber-300">{t.securityRiskWarning}</p>
-                  )}
-                  {row.security?.state === 'approved' && (
-                    <p className="mt-2 text-sm text-emerald-300">{t.securityApproved}</p>
-                  )}
-                  {row.security?.state === 'revoked' && (
-                    <p className="mt-2 text-sm text-rose-300">{t.securityRevoked}</p>
-                  )}
-                  {row.security?.critical_block && (
-                    <p className="mt-2 text-sm text-rose-300">{t.securityCriticalBlocked}</p>
-                  )}
-                  {row.security?.reason && (
-                    <p className="mt-3 break-words text-sm text-rose-300">{row.security.reason}</p>
-                  )}
-                  {row.security?.last_scan && (
-                    <div className="mt-3 text-sm text-slate-300">
-                      <p>
-                        {row.security.last_scan.result} · SHA-256: {row.security.last_scan.source_sha256}
-                      </p>
-                      {row.security.last_scan.findings.map((finding) => (
-                        <p key={finding.id}>
-                          {finding.severity}: {finding.id} · line {finding.line}
+                {securityOpen === row.name && row.source === 'remote' && (
+                  <section className="mt-5 min-w-0 border-t border-white/15 pt-5" aria-label={t.securityReview}>
+                    <h4 className="text-base font-semibold">{t.securityReview}</h4>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">{t.securityCaveat}</p>
+                    {row.security?.state !== 'approved' && (
+                      <p className="mt-2 text-sm text-amber-300">{t.securityRiskWarning}</p>
+                    )}
+                    {row.security?.state === 'approved' && (
+                      <p className="mt-2 text-sm text-emerald-300">{t.securityApproved}</p>
+                    )}
+                    {row.security?.state === 'revoked' && (
+                      <p className="mt-2 text-sm text-rose-300">{t.securityRevoked}</p>
+                    )}
+                    {row.security?.critical_block && (
+                      <p className="mt-2 text-sm text-rose-300">{t.securityCriticalBlocked}</p>
+                    )}
+                    {row.security?.reason && (
+                      <p className="mt-3 break-words text-sm text-rose-300">{row.security.reason}</p>
+                    )}
+                    {row.security?.last_scan && (
+                      <div className="mt-3 text-sm text-slate-300">
+                        <p>
+                          {row.security.last_scan.result} · SHA-256: {row.security.last_scan.source_sha256}
                         </p>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-4 grid gap-3">
-                    <label className="grid gap-2 text-sm">
-                      {t.sourceCode}
-                      <textarea
-                        className="min-h-32 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm"
-                        value={sourceCode}
-                        maxLength={32768}
-                        onChange={(event) => setSourceCode(event.target.value)}
-                      />
-                    </label>
-                    <select
-                      aria-label="Code language"
-                      className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
-                      value={sourceLanguage}
-                      onChange={(event) => setSourceLanguage(event.target.value as typeof sourceLanguage)}
-                    >
-                      <option value="python">Python</option>
-                      <option value="javascript">JavaScript</option>
-                      <option value="typescript">TypeScript</option>
-                      <option value="shell">Shell</option>
-                    </select>
-                    <Button
-                      type="button"
-                      disabled={
-                        pending ||
-                        row.security?.state === 'revoked' ||
-                        !sourceCode.trim() ||
-                        new TextEncoder().encode(sourceCode).length > 32768
-                      }
-                      onClick={() => void reviewSecurity(row, 'scan')}
-                    >
-                      {pending ? t.busy : t.securityScan}
-                    </Button>
-                    <label className="grid gap-2 text-sm">
-                      {t.securityReason}
-                      <textarea
-                        className="min-h-20 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
-                        value={securityReason}
-                        maxLength={1000}
-                        onChange={(event) => setSecurityReason(event.target.value)}
-                      />
-                    </label>
-                    {row.security?.state !== 'revoked' && (
+                        {row.security.last_scan.findings.map((finding) => (
+                          <p key={finding.id}>
+                            {finding.severity}: {finding.id} · line {finding.line}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-4 grid gap-3">
+                      <label className="grid gap-2 text-sm">
+                        {t.sourceCode}
+                        <textarea
+                          className="min-h-32 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm"
+                          value={sourceCode}
+                          maxLength={32768}
+                          onChange={(event) => setSourceCode(event.target.value)}
+                        />
+                      </label>
+                      <select
+                        aria-label="Code language"
+                        className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                        value={sourceLanguage}
+                        onChange={(event) => setSourceLanguage(event.target.value as typeof sourceLanguage)}
+                      >
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="shell">Shell</option>
+                      </select>
                       <Button
                         type="button"
-                        variant="secondary"
-                        disabled={pending || securityReason.trim().length < 12}
-                        onClick={() => void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')}
+                        disabled={
+                          pending ||
+                          row.security?.state === 'revoked' ||
+                          !sourceCode.trim() ||
+                          new TextEncoder().encode(sourceCode).length > 32768
+                        }
+                        onClick={() => void reviewSecurity(row, 'scan')}
                       >
-                        {row.security?.state === 'quarantined' ? t.release : t.quarantine}
+                        {pending ? t.busy : t.securityScan}
                       </Button>
-                    )}
-                    {row.security?.state === 'quarantined' && (
-                      <p className="text-sm text-slate-400">{t.securityReleaseHint}</p>
-                    )}
-                    {row.security?.state !== 'revoked' && (
-                      <div className="grid gap-3 border-t border-white/15 pt-4">
-                        <label className="grid gap-2 text-sm">
-                          {t.securityRevokeConfirm}
-                          <input
-                            className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
-                            value={revokeConfirmation}
-                            onChange={(event) => setRevokeConfirmation(event.target.value)}
-                            autoComplete="off"
-                          />
-                        </label>
+                      <label className="grid gap-2 text-sm">
+                        {t.securityReason}
+                        <textarea
+                          className="min-h-20 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                          value={securityReason}
+                          maxLength={1000}
+                          onChange={(event) => setSecurityReason(event.target.value)}
+                        />
+                      </label>
+                      {row.security?.state !== 'revoked' && (
                         <Button
                           type="button"
                           variant="secondary"
-                          disabled={pending || securityReason.trim().length < 20 || revokeConfirmation !== row.name}
-                          onClick={() => void reviewSecurity(row, 'revoke')}
+                          disabled={pending || securityReason.trim().length < 12}
+                          onClick={() => void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')}
                         >
-                          {t.securityRevoke}
+                          {row.security?.state === 'quarantined' ? t.release : t.quarantine}
                         </Button>
-                      </div>
-                    )}
-                    {row.security?.state !== 'approved' &&
-                      row.security?.state !== 'quarantined' &&
-                      row.security?.state !== 'revoked' &&
-                      !row.security?.critical_block && (
-                        <>
+                      )}
+                      {row.security?.state === 'quarantined' && (
+                        <p className="text-sm text-slate-400">{t.securityReleaseHint}</p>
+                      )}
+                      {row.security?.state !== 'revoked' && (
+                        <div className="grid gap-3 border-t border-white/15 pt-4">
                           <label className="grid gap-2 text-sm">
-                            {t.securityReference}
+                            {t.securityRevokeConfirm}
                             <input
-                              className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2"
-                              value={securityReference}
-                              maxLength={256}
-                              onChange={(event) => setSecurityReference(event.target.value)}
+                              className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                              value={revokeConfirmation}
+                              onChange={(event) => setRevokeConfirmation(event.target.value)}
+                              autoComplete="off"
                             />
-                          </label>
-                          <label className="flex items-start gap-3 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={riskAcknowledged}
-                              onChange={(event) => setRiskAcknowledged(event.target.checked)}
-                            />
-                            {t.securityRisk}
                           </label>
                           <Button
                             type="button"
-                            disabled={
-                              pending ||
-                              !riskAcknowledged ||
-                              securityReason.trim().length < 20 ||
-                              securityReference.trim().length < 8 ||
-                              row.security?.last_scan?.result === 'critical'
-                            }
-                            onClick={() => void reviewSecurity(row, 'approve')}
+                            variant="secondary"
+                            disabled={pending || securityReason.trim().length < 20 || revokeConfirmation !== row.name}
+                            onClick={() => void reviewSecurity(row, 'revoke')}
                           >
-                            {t.securityApprove}
+                            {t.securityRevoke}
                           </Button>
-                        </>
+                        </div>
                       )}
-                  </div>
-                  {securityFeedback?.name === row.name && (
-                    <p
-                      role={securityFeedback.failed ? 'alert' : 'status'}
-                      className={securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'}
-                    >
-                      {securityFeedback.message}
-                    </p>
-                  )}
-                </section>
-              )}
+                      {row.security?.state !== 'approved' &&
+                        row.security?.state !== 'quarantined' &&
+                        row.security?.state !== 'revoked' &&
+                        !row.security?.critical_block && (
+                          <>
+                            <label className="grid gap-2 text-sm">
+                              {t.securityReference}
+                              <input
+                                className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2"
+                                value={securityReference}
+                                maxLength={256}
+                                onChange={(event) => setSecurityReference(event.target.value)}
+                              />
+                            </label>
+                            <label className="flex items-start gap-3 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={riskAcknowledged}
+                                onChange={(event) => setRiskAcknowledged(event.target.checked)}
+                              />
+                              {t.securityRisk}
+                            </label>
+                            <Button
+                              type="button"
+                              disabled={
+                                pending ||
+                                !riskAcknowledged ||
+                                securityReason.trim().length < 20 ||
+                                securityReference.trim().length < 8 ||
+                                row.security?.last_scan?.result === 'critical'
+                              }
+                              onClick={() => void reviewSecurity(row, 'approve')}
+                            >
+                              {t.securityApprove}
+                            </Button>
+                          </>
+                        )}
+                    </div>
+                    {securityFeedback?.name === row.name && (
+                      <p
+                        role={securityFeedback.failed ? 'alert' : 'status'}
+                        className={securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'}
+                      >
+                        {securityFeedback.message}
+                      </p>
+                    )}
+                  </section>
+                )}
               </article>
             )
           })}
