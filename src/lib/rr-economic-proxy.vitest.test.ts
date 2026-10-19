@@ -34,6 +34,7 @@ function fakeRequest(): NextRequest {
 beforeEach(() => {
   vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
   vi.stubEnv('DIP_API_KEY', 'test-organization-scoped-key')
+  vi.stubEnv('RR_ORG_API_KEY', '')
   vi.mocked(operatorAuthorized).mockReturnValue(true)
   vi.mocked(sameOrigin).mockReturnValue(true)
 })
