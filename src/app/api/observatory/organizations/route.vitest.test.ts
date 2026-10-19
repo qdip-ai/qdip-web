@@ -9,7 +9,15 @@ const { ISSUER, ORG, CORE } = vi.hoisted(() => ({
 
 vi.mock('@/routing-config', () => ({ isSurfaceHost: () => true }))
 vi.mock('@/lib/qdip-oidc', () => ({
-  sessionFromRequest: vi.fn(() => ({ issuer: ISSUER, sub: '99999999999999999999', clientId: 'test-client', projectId: 'test-project', organizationId: ORG, expiresAt: 1792490000, roles: [] })),
+  sessionFromRequest: vi.fn(() => ({
+    issuer: ISSUER,
+    sub: '99999999999999999999',
+    clientId: 'test-client',
+    projectId: 'test-project',
+    organizationId: ORG,
+    expiresAt: 1792490000,
+    roles: [],
+  })),
 }))
 vi.mock('@/lib/zitadel-owner-organizations', () => {
   class OwnerOrganizationError extends Error {
