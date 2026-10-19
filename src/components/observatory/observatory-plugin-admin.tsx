@@ -651,7 +651,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           ? t.securityQuarantined
                           : row.source === 'remote' && row.security?.state !== 'approved'
                             ? t.securityPending
-                            : published ? t.published : t.unpublished}
+                            : published
+                              ? t.published
+                              : t.unpublished}
                     </span>
                     {offline && (
                       <span className={styles.pill} data-kind="offline">
@@ -1075,7 +1077,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     {securityFeedback?.name === row.name && (
                       <p
                         role={securityFeedback.failed ? 'alert' : 'status'}
-                        className={securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'}
+                        className={
+                          securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'
+                        }
                       >
                         {securityFeedback.message}
                       </p>
