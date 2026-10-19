@@ -91,9 +91,7 @@ describe('Zitadel-owned QDIP tenant discovery', () => {
 
   it('cannot use email or a different Zitadel subject to claim the owner organization', async () => {
     setup()
-    await expect(
-      listOwnedZitadelOrganizations({ issuer: ISSUER, sub: '98765432109876543211' })
-    ).resolves.toEqual([])
+    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: '98765432109876543211' })).resolves.toEqual([])
   })
 
   it('denies an instance owner, viewer, and wrong-organization administrative role', async () => {
@@ -123,7 +121,9 @@ describe('Zitadel-owned QDIP tenant discovery', () => {
 
   it('rejects issuer mismatch, malformed subject and untrusted issuer host', async () => {
     const calls = setup()
-    await expect(listOwnedZitadelOrganizations({ issuer: 'https://other.example', sub: SUBJECT })).rejects.toMatchObject({
+    await expect(
+      listOwnedZitadelOrganizations({ issuer: 'https://other.example', sub: SUBJECT })
+    ).rejects.toMatchObject({
       status: 503,
     })
     await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: '../fake' })).rejects.toMatchObject({
@@ -137,10 +137,12 @@ describe('Zitadel-owned QDIP tenant discovery', () => {
   })
 
   it('rejects incomplete pagination rather than silently omitting organizations', async () => {
-    setup({ list: {
-      details: { totalResult: 3 },
-      result: [{ id: ORG_A, name: 'My QDIP', state: 'ORGANIZATION_STATE_ACTIVE' }],
-    } })
+    setup({
+      list: {
+        details: { totalResult: 3 },
+        result: [{ id: ORG_A, name: 'My QDIP', state: 'ORGANIZATION_STATE_ACTIVE' }],
+      },
+    })
     await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).rejects.toMatchObject({
       status: 503,
     })
