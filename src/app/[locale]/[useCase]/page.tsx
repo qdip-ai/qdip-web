@@ -37,7 +37,9 @@ export async function generateMetadata({ params }: { params: Promise<UseCasePage
 
   const application = resolveUseCase(routeSegment)
   if (!application) return {}
-  if (application.id !== 'readiness-recovery' && !(await visiblePluginUseCaseIds()).includes(application.id)) return { robots: { index: false, follow: false } }
+  if (application.id !== 'readiness-recovery' && !(await visiblePluginUseCaseIds()).includes(application.id)) {
+    return { robots: { index: false, follow: false } }
+  }
 
   const messages = createTranslator(locale, `useCases.${application.id}`)
   const title = `${messages('title')} — QDIP Observatory`
@@ -72,7 +74,9 @@ export default async function UseCasePage({ params }: { params: Promise<UseCaseP
   if (!isSupportedLocale(locale)) notFound()
   const application = resolveUseCase(routeSegment)
   if (!application) notFound()
-  if (application.id !== 'readiness-recovery' && !(await visiblePluginUseCaseIds()).includes(application.id)) notFound()
+  if (application.id !== 'readiness-recovery' && !(await visiblePluginUseCaseIds()).includes(application.id)) {
+    notFound()
+  }
 
   if (application.id === 'readiness-recovery') {
     const access = await pageAccess('rr_operator')
