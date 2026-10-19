@@ -33,7 +33,8 @@ type Issued = {
 const translations = {
   uk: {
     ownerTitle: 'Мої організації Zitadel',
-    ownerHelp: 'Підтверджені організації, де ви маєте роль ORG_OWNER. Це перевірка власності, а не привʼязка плагінів. Міграцію чинних плагінів ще не виконано.',
+    ownerHelp:
+      'Підтверджені організації, де ви маєте роль ORG_OWNER. Це перевірка власності, а не привʼязка плагінів. Міграцію чинних плагінів ще не виконано.',
     ownerEmpty: 'Організацій з підтвердженими правами власника не знайдено.',
     ownerUnavailable: 'Перевірка власності через Zitadel недоступна. Нову організацію QDIP автоматично не створюємо.',
     title: 'Ключі та підключення плагінів',
@@ -72,7 +73,8 @@ const translations = {
   },
   en: {
     ownerTitle: 'My Zitadel organizations',
-    ownerHelp: 'Verified organizations where you hold ORG_OWNER. This is an ownership check, not a plugin assignment. Existing plugin migration is not complete.',
+    ownerHelp:
+      'Verified organizations where you hold ORG_OWNER. This is an ownership check, not a plugin assignment. Existing plugin migration is not complete.',
     ownerEmpty: 'No organizations with verified owner permissions found.',
     ownerUnavailable: 'Zitadel ownership verification is unavailable. QDIP will not invent an organization.',
     title: 'Plugin connections and keys',
@@ -111,7 +113,8 @@ const translations = {
   },
   pl: {
     ownerTitle: 'Moje organizacje Zitadel',
-    ownerHelp: 'Zweryfikowane organizacje, w których masz rolę ORG_OWNER. To odczyt, a nie przypisanie wtyczek. Migracja jeszcze nie została zakończona.',
+    ownerHelp:
+      'Zweryfikowane organizacje, w których masz rolę ORG_OWNER. To odczyt, a nie przypisanie wtyczek. Migracja jeszcze nie została zakończona.',
     ownerEmpty: 'Nie znaleziono organizacji z potwierdzonymi uprawnieniami właściciela.',
     ownerUnavailable: 'Weryfikacja właściciela w Zitadel jest niedostępna. QDIP nie tworzy organizacji automatycznie.',
     title: 'Połączenia i klucze wtyczek',
@@ -208,13 +211,19 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       .then(async (response) => {
         if (!response.ok) throw new Error('Zitadel owner verification unavailable')
         const body: unknown = await response.json()
-        if (!body || typeof body !== 'object' || !('organizations' in body) ||
-          !Array.isArray(body.organizations)) throw new Error('Invalid organization verification')
+        if (!body || typeof body !== 'object' || !('organizations' in body) || !Array.isArray(body.organizations))
+          throw new Error('Invalid organization verification')
         return body.organizations as OwnedOrganization[]
       })
-      .then((value) => { if (active) setOwnedOrganizations(value) })
-      .catch(() => { if (active) setOwnerError(true) })
-    return () => { active = false }
+      .then((value) => {
+        if (active) setOwnedOrganizations(value)
+      })
+      .catch(() => {
+        if (active) setOwnerError(true)
+      })
+    return () => {
+      active = false
+    }
   }, [])
 
   const load = useCallback(async () => {
@@ -315,10 +324,12 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       <section className="mt-6 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-5" aria-label={t.ownerTitle}>
         <h2 className="text-base font-semibold">{t.ownerTitle}</h2>
         <p className="mt-2 text-sm leading-6 text-slate-300">{t.ownerHelp}</p>
-        {ownerError ? <p role="status" className="mt-3 text-sm text-amber-200">{t.ownerUnavailable}</p> : null}
-        {ownedOrganizations?.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-400">{t.ownerEmpty}</p>
+        {ownerError ? (
+          <p role="status" className="mt-3 text-sm text-amber-200">
+            {t.ownerUnavailable}
+          </p>
         ) : null}
+        {ownedOrganizations?.length === 0 ? <p className="mt-3 text-sm text-slate-400">{t.ownerEmpty}</p> : null}
         {ownedOrganizations?.map((org) => (
           <div key={org.id} className="mt-3 min-w-0 rounded-md border border-white/10 p-3">
             <p className="break-words font-medium">{org.name}</p>
