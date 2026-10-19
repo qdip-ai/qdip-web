@@ -221,12 +221,15 @@ function registeredRemoteOrg(
   if (plugin.source !== 'remote') return null
   if (!plugin.plugin_id || !PLUGIN_ID.test(plugin.plugin_id)) return null
   const slug = [...plugin.plugin_id]
-    .map((char) => /^[A-Za-z0-9_.-]$/.test(char) ? char : '-')
+    .map((char) => (/^[A-Za-z0-9_.-]$/.test(char) ? char : '-'))
     .join('')
     .slice(0, 98)
   const matches = data.orgs.filter((org) => {
     if (!PREFIXES.some((prefix) => org.name.startsWith(prefix)) || !UUID.test(org.id)) return false
-    const fingerprint = createHash('sha256').update(org.id + '\0' + plugin.plugin_id).digest('hex').slice(0, 16)
+    const fingerprint = createHash('sha256')
+      .update(org.id + '\0' + plugin.plugin_id)
+      .digest('hex')
+      .slice(0, 16)
     return plugin.name === 'remote-' + fingerprint + '-' + slug
   })
   if (matches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous remote plugin tenant')
@@ -283,8 +286,7 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
     // authenticated registration tenant cannot be verified.
     if (plugin.source === 'remote' && !remoteOrg) continue
     const keys = active
-      .filter((k) => (!remoteOrg || k.orgId === remoteOrg.id) &&
-        k.capabilities.some((c) => caps.includes(c)))
+      .filter((k) => (!remoteOrg || k.orgId === remoteOrg.id) && k.capabilities.some((c) => caps.includes(c)))
       .map(({ id, orgId, role, expiresAt, capabilities }) => ({ id, orgId, role, expiresAt, capabilities }))
     if (!caps.length || (!plugin.enabled && !keys.length)) continue
     items.set(pluginId, {
@@ -319,8 +321,15 @@ function rows(data: Awaited<ReturnType<typeof metadata>>): PluginKeyEntry[] {
         capabilities: [...record.capabilities],
         registered: false,
         enabled: false,
-        keys: [{ id: record.id, orgId: record.orgId, role: record.role,
-          expiresAt: record.expiresAt, capabilities: record.capabilities }],
+        keys: [
+          {
+            id: record.id,
+            orgId: record.orgId,
+            role: record.role,
+            expiresAt: record.expiresAt,
+            capabilities: record.capabilities,
+          },
+        ],
       })
       continue
     }
@@ -388,11 +397,8 @@ export async function issuePluginCredential(
   const direct = data.catalog.find((p) => p.name === pluginId)
   // Manual bootstrap of a plugin already registered under an opaque catalog
   // name must reuse that registration, not create a new tenant.
-  const remoteMatches = data.catalog.filter(
-    (p) => p.source === 'remote' && p.plugin_id === pluginId
-  )
-  if (remoteMatches.length > 1)
-    throw new DeveloperKeyError(409, 'Ambiguous registered plugin ID')
+  const remoteMatches = data.catalog.filter((p) => p.source === 'remote' && p.plugin_id === pluginId)
+  if (remoteMatches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous registered plugin ID')
   const registered = direct ?? remoteMatches[0]
   if (registered) {
     if (!registered.enabled || capabilities.some((c) => !registered.capabilities.includes(c)))
@@ -417,12 +423,13 @@ export async function issuePluginCredential(
   }
   // The same capability can be present in multiple tenant organizations:
   // duplicate detection must be scoped to the resolved registration owner.
-  const exactMatch = data.stored.some(({ org: storedOrg, keys }) =>
-    storedOrg.id === org!.id &&
-    keys.some((key) => {
-      const row = keyView(storedOrg, key)
-      return row && row.role === role && exact(row.capabilities, capabilities)
-    })
+  const exactMatch = data.stored.some(
+    ({ org: storedOrg, keys }) =>
+      storedOrg.id === org!.id &&
+      keys.some((key) => {
+        const row = keyView(storedOrg, key)
+        return row && row.role === role && exact(row.capabilities, capabilities)
+      })
   )
   if (exactMatch) throw new DeveloperKeyError(409, 'A matching active key already exists')
 
