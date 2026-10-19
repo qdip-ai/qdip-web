@@ -294,10 +294,18 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       })
       if (!response.ok) throw new Error('Organization ownership verification refused')
       const result: unknown = await response.json()
-      if (!result || typeof result !== 'object' || !('linked' in result) || result.linked !== true ||
-        !('organization' in result) || !result.organization ||
-        typeof result.organization !== 'object' || !('id' in result.organization) ||
-        result.organization.id !== org.id) throw new Error('Unexpected organization owner response')
+      if (
+        !result ||
+        typeof result !== 'object' ||
+        !('linked' in result) ||
+        result.linked !== true ||
+        !('organization' in result) ||
+        !result.organization ||
+        typeof result.organization !== 'object' ||
+        !('id' in result.organization) ||
+        result.organization.id !== org.id
+      )
+        throw new Error('Unexpected organization owner response')
       setLinkedOrg(org.id)
     } catch {
       setLinkError(true)
@@ -364,7 +372,11 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       <section className="mt-6 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-5" aria-label={t.ownerTitle}>
         <h2 className="text-base font-semibold">{t.ownerTitle}</h2>
         <p className="mt-2 text-sm leading-6 text-slate-300">{t.ownerHelp}</p>
-        {linkError ? <p role="alert" className="mt-3 text-sm text-red-300">{t.ownerLinkError}</p> : null}
+        {linkError ? (
+          <p role="alert" className="mt-3 text-sm text-red-300">
+            {t.ownerLinkError}
+          </p>
+        ) : null}
         {ownerError ? (
           <p role="status" className="mt-3 text-sm text-amber-200">
             {t.ownerUnavailable}
@@ -383,7 +395,11 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
             >
               {linkingOrg === org.id ? t.ownerSelecting : t.ownerSelect}
             </button>
-            {linkedOrg === org.id ? <p role="status" className="mt-2 text-sm text-slate-300">{t.ownerLinked}</p> : null}
+            {linkedOrg === org.id ? (
+              <p role="status" className="mt-2 text-sm text-slate-300">
+                {t.ownerLinked}
+              </p>
+            ) : null}
           </div>
         ))}
       </section>
