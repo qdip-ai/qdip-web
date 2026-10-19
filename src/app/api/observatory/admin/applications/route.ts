@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
-import { listOwnedZitadelOrganizations } from '@/lib/zitadel-owner-organizations'
+import { verifyOwnedZitadelOrganization } from '@/lib/zitadel-owner-organizations'
 import type { VerifiedOrganization } from '@/lib/observatory-developer-keys'
 import {
   DeveloperKeyError,
@@ -56,9 +56,7 @@ async function verifySelection(
 ): Promise<VerifiedOrganization> {
   if (typeof organizationId !== 'string' || !/^[0-9]{1,32}$/.test(organizationId))
     throw new DeveloperKeyError(422, 'Select a real Zitadel organization')
-  const organizations = await listOwnedZitadelOrganizations({ issuer: session.issuer, sub: session.sub })
-  if (!organizations.some((org) => org.id === organizationId))
-    throw new DeveloperKeyError(403, 'Current Zitadel ORG_OWNER permission required')
+  await verifyOwnedZitadelOrganization({ issuer: session.issuer, sub: session.sub }, organizationId)
   return { id: organizationId, issuer: session.issuer }
 }
 
