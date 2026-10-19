@@ -13,15 +13,28 @@ export function signZitadelOwnerLink(session: { issuer: string; sub: string; org
   nonce: string
   assertion: string
 } {
+  return signOwnerAction('qdip-core-org-link/v1', session.issuer, session.organizationId, session.sub)
+}
+
+/** Read-only listing cannot be replayed as an organization-link assertion. */
+export function signZitadelOwnerList(session: { issuer: string; sub: string }): {
+  issued_at: number
+  nonce: string
+  assertion: string
+} {
+  return signOwnerAction('qdip-core-org-list/v1', session.issuer, '', session.sub)
+}
+
+function signOwnerAction(audience: string, issuer: string, organizationId: string, sub: string) {
   const secret = process.env.QDIP_ORG_LINK_ASSERTION_SECRET ?? ''
   if (Buffer.byteLength(secret, 'utf8') < 32) throw new Error('Zitadel owner assertion not configured')
   const issued_at = Math.floor(Date.now() / 1000)
   const nonce = randomBytes(16).toString('hex')
   const payload = [
-    'qdip-core-org-link/v1',
-    session.issuer,
-    session.organizationId,
-    session.sub,
+    audience,
+    issuer,
+    organizationId,
+    sub,
     String(issued_at),
     nonce,
   ].join('\n')
