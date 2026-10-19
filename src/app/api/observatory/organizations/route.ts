@@ -68,9 +68,15 @@ export async function POST(request: NextRequest) {
     const raw = await request.text()
     if (raw.length > 1024) return response({ error: 'Request too large' }, 413)
     const parsed: unknown = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
-      Object.keys(parsed).length !== 1 || !('organizationId' in parsed) ||
-      typeof parsed.organizationId !== 'string' || !/^[0-9]{1,32}$/.test(parsed.organizationId)) {
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      Array.isArray(parsed) ||
+      Object.keys(parsed).length !== 1 ||
+      !('organizationId' in parsed) ||
+      typeof parsed.organizationId !== 'string' ||
+      !/^[0-9]{1,32}$/.test(parsed.organizationId)
+    ) {
       return response({ error: 'Invalid organization selection' }, 422)
     }
     id = parsed.organizationId
@@ -85,8 +91,14 @@ export async function POST(request: NextRequest) {
 
     const { base, key } = corePluginConnection()
     const origin = new URL(base)
-    if (origin.protocol !== 'https:' || origin.username || origin.password || origin.search || origin.hash ||
-      !['/', '/api/v1', '/api/v1/'].includes(origin.pathname)) {
+    if (
+      origin.protocol !== 'https:' ||
+      origin.username ||
+      origin.password ||
+      origin.search ||
+      origin.hash ||
+      !['/', '/api/v1', '/api/v1/'].includes(origin.pathname)
+    ) {
       return response({ error: 'Core origin unavailable' }, 503)
     }
     const upstream = await fetch(origin.origin + '/api/v1/organizations/zitadel-link', {
@@ -108,11 +120,19 @@ export async function POST(request: NextRequest) {
     const rawResult = await upstream.text()
     if (rawResult.length > 16_384) return response({ error: 'Core organization identity invalid' }, 503)
     const bound: unknown = JSON.parse(rawResult)
-    if (!bound || typeof bound !== 'object' || Array.isArray(bound) ||
-      !('id' in bound) || bound.id !== selection.id ||
-      !('identity_provider' in bound) || bound.identity_provider !== 'zitadel' ||
-      !('zitadel_organization_id' in bound) || bound.zitadel_organization_id !== selection.id ||
-      !('zitadel_issuer' in bound) || bound.zitadel_issuer !== session.issuer) {
+    if (
+      !bound ||
+      typeof bound !== 'object' ||
+      Array.isArray(bound) ||
+      !('id' in bound) ||
+      bound.id !== selection.id ||
+      !('identity_provider' in bound) ||
+      bound.identity_provider !== 'zitadel' ||
+      !('zitadel_organization_id' in bound) ||
+      bound.zitadel_organization_id !== selection.id ||
+      !('zitadel_issuer' in bound) ||
+      bound.zitadel_issuer !== session.issuer
+    ) {
       return response({ error: 'Core organization identity mismatch' }, 503)
     }
     return response({ organization: selection, linked: true, pluginMigrationComplete: false }, 200)
