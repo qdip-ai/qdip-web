@@ -30,6 +30,14 @@ describe('Zitadel-backed RR session boundary', () => {
     expect(operatorConfigured()).toBe(false)
   })
 
+  it('accepts dedicated RR credential without requiring the platform Core key', () => {
+    vi.stubEnv('DIP_API_KEY', '')
+    vi.stubEnv('RR_ORG_API_KEY', 'dedicated-single-org-rr-key')
+    expect(operatorConfigured()).toBe(true)
+    vi.stubEnv('RR_ORG_API_KEY', '')
+    expect(operatorConfigured()).toBe(false)
+  })
+
   it('derives operator permission from signed roles, not a matching subject ID', () => {
     expect(operatorConfigured()).toBe(true)
     const req = { nextUrl: new URL('https://observatory.qdip.ai/en/readiness-recovery') } as NextRequest
