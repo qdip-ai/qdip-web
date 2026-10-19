@@ -1,74 +1,46 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import { listOwnedZitadelOrganizations } from './zitadel-owner-organizations'
+vi.mock('@/lib/observatory-plugin-catalog', () => ({
+  corePluginConnection: () => ({ base: 'https://core.qdip.test', key: 'PRIVATE-CORE-SERVICE-KEY' }),
+}))
+vi.mock('@/lib/zitadel-org-link-assertion', () => ({
+  signZitadelOwnerList: () => ({ issued_at: 1792400000, nonce: 'a'.repeat(32), assertion: 'b'.repeat(64) }),
+  signZitadelOwnerLink: () => ({ issued_at: 1792400000, nonce: 'c'.repeat(32), assertion: 'd'.repeat(64) }),
+}))
 
+import { listOwnedZitadelOrganizations, verifyOwnedZitadelOrganization } from './zitadel-owner-organizations'
+
+const ISSUER = 'https://zitadel.example.test'
+const SUBJECT = '98765432109876543210'
 const ORG_A = '12345678901234567890'
 const ORG_B = '12345678901234567891'
-const SUBJECT = '98765432109876543210'
-const ISSUER = 'https://zitadel.example.test'
 
-function setup(
-  overrides: {
-    list?: unknown
-    adminsA?: unknown
-    adminsB?: unknown
-    orgError?: number
-    adminError?: number
-  } = {}
-) {
+function setup(options: { denial?: number; response?: unknown; route?: string } = {}) {
   vi.stubEnv('ZITADEL_ISSUER', ISSUER)
-  vi.stubEnv('ZITADEL_ORG_READ_TOKEN', 'TEST_SCOPED_SERVER_TOKEN_ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-  const calls: Array<{ url: string; options: RequestInit }> = []
+  const calls: Array<{ url: string; body: Record<string, unknown> }> = []
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: string, options: RequestInit) => {
-      calls.push({ url: input, options })
-      expect(input.startsWith(ISSUER + '/')).toBe(true)
-      expect(options.method).toBe('POST')
-      expect(options.redirect).toBe('error')
-      expect((options.headers as Record<string, string>).authorization).toBe(
-        'Bearer TEST_SCOPED_SERVER_TOKEN_ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-      )
-      if (input.endsWith('/v2/organizations/_search')) {
-        if (overrides.orgError) return Response.json({}, { status: overrides.orgError })
+    vi.fn(async (url: string, request: RequestInit) => {
+      expect(url.startsWith('https://core.qdip.test/api/v1/organizations/')).toBe(true)
+      expect(request.method).toBe('POST')
+      expect(request.redirect).toBe('error')
+      expect(request.cache).toBe('no-store')
+      expect((request.headers as Record<string, string>)['x-api-key']).toBe('PRIVATE-CORE-SERVICE-KEY')
+      const body = JSON.parse(String(request.body)) as Record<string, unknown>
+      calls.push({ url, body })
+      if (options.denial) return Response.json({ detail: 'redacted' }, { status: options.denial })
+      if (url.endsWith('/zitadel-owned')) {
         return Response.json(
-          overrides.list ?? {
-            details: { totalResult: 2 },
-            result: [
-              { id: ORG_A, name: 'My QDIP', state: 'ORGANIZATION_STATE_ACTIVE' },
-              { id: ORG_B, name: 'Other tenant', state: 'ORGANIZATION_STATE_ACTIVE' },
-            ],
+          options.response ?? {
+            organizations: [{ id: ORG_A, name: 'My QDIP', state: 'active' }],
           }
         )
       }
-      if (input.endsWith('/ListAdministrators')) {
-        expect((options.headers as Record<string, string>)['connect-protocol-version']).toBe('1')
-        if (overrides.adminError) return Response.json({}, { status: overrides.adminError })
-        const body = JSON.parse(String(options.body))
-        const id = body.filters?.[0]?.resource?.organizationId
-        if (id === ORG_A) {
-          return Response.json(
-            overrides.adminsA ?? {
-              pagination: { totalResult: 1 },
-              administrators: [
-                { user: { id: SUBJECT }, roles: ['ORG_OWNER'], organization: { organizationId: ORG_A } },
-              ],
-            }
-          )
-        }
-        if (id === ORG_B) {
-          return Response.json(
-            overrides.adminsB ?? {
-              pagination: { totalResult: 1 },
-              administrators: [
-                { user: { id: SUBJECT }, roles: ['ORG_OWNER_VIEWER'], organization: { organizationId: ORG_B } },
-              ],
-            }
-          )
-        }
+      if (url.endsWith('/zitadel-owner-proof')) {
+        return Response.json(options.response ?? { id: ORG_A, name: 'My QDIP', state: 'active' })
       }
-      throw Error('Unexpected Zitadel API operation')
+      throw new Error('Unexpected Core API')
     })
   )
   return calls
@@ -79,86 +51,72 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('Zitadel-owned QDIP tenant discovery', () => {
-  it('lists only current ORG_OWNER organizations for exactly the authenticated subject', async () => {
+describe('Core-backed Zitadel organization ownership', () => {
+  it('lists only what authenticated Core owner proof returns, never calls Zitadel from Vercel', async () => {
     const calls = setup()
-    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).resolves.toEqual([
+    expect(await listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).toEqual([
       { id: ORG_A, name: 'My QDIP', state: 'active' },
     ])
-    expect(calls).toHaveLength(3)
-    expect(calls.every((call) => call.options.method === 'POST')).toBe(true)
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('https://core.qdip.test/api/v1/organizations/zitadel-owned')
+    expect(calls[0].body.authenticated_subject).toBe(SUBJECT)
+    expect(calls[0].body.assertion).toBe('b'.repeat(64))
+    expect(calls[0].body).not.toHaveProperty('ZITADEL_AGENT_KEY_JSON')
+    expect(calls[0].body).not.toHaveProperty('ZITADEL_ORG_READ_TOKEN')
   })
 
-  it('cannot use email or a different Zitadel subject to claim the owner organization', async () => {
-    setup()
-    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: '98765432109876543211' })).resolves.toEqual([])
-  })
-
-  it('denies an instance owner, viewer, and wrong-organization administrative role', async () => {
-    setup({
-      adminsA: {
-        pagination: { totalResult: 3 },
-        administrators: [
-          { user: { id: SUBJECT }, roles: ['IAM_OWNER'], instance: true },
-          { user: { id: SUBJECT }, roles: ['ORG_OWNER_VIEWER'], organization: { organizationId: ORG_A } },
-          { user: { id: SUBJECT }, roles: ['ORG_OWNER'], organization: { organizationId: ORG_B } },
-        ],
-      },
+  it('requires a separately signed proof for exact selected org on every key operation', async () => {
+    const calls = setup()
+    expect(await verifyOwnedZitadelOrganization({ issuer: ISSUER, sub: SUBJECT }, ORG_A)).toEqual({
+      id: ORG_A,
+      name: 'My QDIP',
+      state: 'active',
     })
-    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).resolves.toEqual([])
+    expect(calls[0].url).toBe('https://core.qdip.test/api/v1/organizations/zitadel-owner-proof')
+    expect(calls[0].body.organization_id).toBe(ORG_A)
+    expect(calls[0].body.authenticated_subject).toBe(SUBJECT)
+    expect(calls[0].body.assertion).toBe('d'.repeat(64))
   })
 
-  it('fails closed without the server-side ZITADEL organization read token', async () => {
-    const fetchMock = vi.fn()
-    vi.stubGlobal('fetch', fetchMock)
-    vi.stubEnv('ZITADEL_ISSUER', ISSUER)
-    vi.stubEnv('ZITADEL_ORG_READ_TOKEN', '')
+  it('rejects an owner proof of a different organization rather than leaking its keys', async () => {
+    setup({ response: { id: ORG_B, name: 'Other tenant', state: 'active' } })
+    await expect(verifyOwnedZitadelOrganization({ issuer: ISSUER, sub: SUBJECT }, ORG_A)).rejects.toMatchObject({
+      status: 503,
+    })
+  })
+
+  it('never falls back to an arbitrary Core UUID when Zitadel denies a principal', async () => {
+    setup({ denial: 403 })
+    await expect(verifyOwnedZitadelOrganization({ issuer: ISSUER, sub: SUBJECT }, ORG_A)).rejects.toMatchObject({
+      status: 403,
+    })
+  })
+
+  it('fails closed if Core cannot check the machine account permissions', async () => {
+    setup({ denial: 503 })
     await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).rejects.toMatchObject({
       status: 503,
     })
-    expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('rejects issuer mismatch, malformed subject and untrusted issuer host', async () => {
+  it('rejects incomplete, duplicated and untrusted organization projections', async () => {
+    setup({ response: { organizations: [
+      { id: ORG_A, name: 'My QDIP', state: 'active' },
+      { id: ORG_A, name: 'My QDIP', state: 'active' },
+    ] } })
+    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).rejects.toMatchObject({
+      status: 503,
+    })
+  })
+
+  it('denies a forged issuer or malformed OIDC subject before any network access', async () => {
     const calls = setup()
-    await expect(
-      listOwnedZitadelOrganizations({ issuer: 'https://other.example', sub: SUBJECT })
-    ).rejects.toMatchObject({
+    await expect(listOwnedZitadelOrganizations({ issuer: 'https://evil.test', sub: SUBJECT })).rejects.toMatchObject({
       status: 503,
     })
-    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: '../fake' })).rejects.toMatchObject({
-      status: 503,
-    })
-    vi.stubEnv('ZITADEL_ISSUER', 'http://localhost')
-    await expect(listOwnedZitadelOrganizations({ issuer: 'http://localhost', sub: SUBJECT })).rejects.toMatchObject({
+    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: '../owner' })).rejects.toMatchObject({
       status: 503,
     })
     expect(calls).toHaveLength(0)
-  })
-
-  it('rejects incomplete pagination rather than silently omitting organizations', async () => {
-    setup({
-      list: {
-        details: { totalResult: 3 },
-        result: [{ id: ORG_A, name: 'My QDIP', state: 'ORGANIZATION_STATE_ACTIVE' }],
-      },
-    })
-    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).rejects.toMatchObject({
-      status: 503,
-    })
-  })
-
-  it('rejects incomplete administrator records and inaccessible Zitadel permissions', async () => {
-    setup({ adminsA: { pagination: { totalResult: 5 }, administrators: [] } })
-    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).rejects.toMatchObject({
-      status: 503,
-    })
-  })
-
-  it('never falls back to guessable QDIP org IDs when Zitadel denies access', async () => {
-    setup({ adminError: 403 })
-    await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).rejects.toMatchObject({
-      status: 503,
-    })
   })
 })
