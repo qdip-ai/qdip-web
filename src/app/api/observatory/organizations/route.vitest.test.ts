@@ -13,13 +13,16 @@ vi.mock('@/lib/qdip-oidc', () => ({
 }))
 vi.mock('@/lib/zitadel-owner-organizations', () => {
   class OwnerOrganizationError extends Error {
-    constructor(public readonly status: number, message: string) { super(message) }
+    constructor(
+      public readonly status: number,
+      message: string
+    ) {
+      super(message)
+    }
   }
   return {
     OwnerOrganizationError,
-    listOwnedZitadelOrganizations: vi.fn(async () =>
-      [{ id: ORG, name: 'QDIP', state: 'active' }]
-    ),
+    listOwnedZitadelOrganizations: vi.fn(async () => [{ id: ORG, name: 'QDIP', state: 'active' }]),
     verifyOwnedZitadelOrganization: vi.fn(async (_principal: unknown, organizationId: string) => {
       if (organizationId !== ORG) throw new OwnerOrganizationError(403, 'Organization owner required')
       return { id: ORG, name: 'QDIP', state: 'active' }
@@ -51,7 +54,9 @@ function request(method: 'GET' | 'POST', body?: object, origin = 'https://observ
 
 beforeEach(() => {
   vi.mocked(sessionFromRequest).mockReturnValue({
-    issuer: ISSUER, sub: '99999999999999999999', roles: [],
+    issuer: ISSUER,
+    sub: '99999999999999999999',
+    roles: [],
   } as ReturnType<typeof sessionFromRequest>)
 })
 afterEach(() => {
@@ -78,17 +83,25 @@ describe('verified Zitadel ownership link', () => {
       expect(body.organization_id).toBe(ORG)
       expect(body.authenticated_subject).toBe('99999999999999999999')
       expect(body.assertion).toBe('b'.repeat(64))
-      return Response.json({
-        id: CORE, name: 'QDIP', identity_provider: 'zitadel',
-        zitadel_issuer: ISSUER, zitadel_organization_id: ORG,
-      }, { status: 201 })
+      return Response.json(
+        {
+          id: CORE,
+          name: 'QDIP',
+          identity_provider: 'zitadel',
+          zitadel_issuer: ISSUER,
+          zitadel_organization_id: ORG,
+        },
+        { status: 201 }
+      )
     })
     vi.stubGlobal('fetch', upstream)
     const response = await POST(request('POST', { organizationId: ORG }))
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       organization: { id: ORG, name: 'QDIP', state: 'active' },
-      coreTenantId: CORE, linked: true, pluginMigrationComplete: false,
+      coreTenantId: CORE,
+      linked: true,
+      pluginMigrationComplete: false,
     })
     expect(upstream).toHaveBeenCalledTimes(1)
   })
@@ -103,10 +116,20 @@ describe('verified Zitadel ownership link', () => {
   })
 
   it('rejects any Core identity mismatch', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({
-      id: '22222222222222222222', identity_provider: 'zitadel',
-      zitadel_issuer: ISSUER, zitadel_organization_id: ORG,
-    }, { status: 201 })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json(
+          {
+            id: '22222222222222222222',
+            identity_provider: 'zitadel',
+            zitadel_issuer: ISSUER,
+            zitadel_organization_id: ORG,
+          },
+          { status: 201 }
+        )
+      )
+    )
     expect((await POST(request('POST', { organizationId: ORG }))).status).toBe(503)
   })
 
