@@ -20,6 +20,7 @@ type Plugin = {
   keys: ConnectedKey[]
 }
 type Inventory = { available: Plugin[]; connected: Plugin[] }
+type OwnedOrganization = { id: string; name: string; state: 'active' }
 type Issued = {
   pluginId: string
   key: string
@@ -31,6 +32,10 @@ type Issued = {
 
 const translations = {
   uk: {
+    ownerTitle: 'Мої організації Zitadel',
+    ownerHelp: 'Підтверджені організації, де ви маєте роль ORG_OWNER. Це перевірка власності, а не привʼязка плагінів. Міграцію чинних плагінів ще не виконано.',
+    ownerEmpty: 'Організацій з підтвердженими правами власника не знайдено.',
+    ownerUnavailable: 'Перевірка власності через Zitadel недоступна. Нову організацію QDIP автоматично не створюємо.',
     title: 'Ключі та підключення плагінів',
     description:
       'Виберіть будь-який зареєстрований плагін або підготуйте ключ для нового. Ключ обмежений обраними можливостями.',
@@ -66,6 +71,10 @@ const translations = {
     warning: 'Наявність ключа не підтверджує, що Worker запущений. Стан виконання перевіряється окремо.',
   },
   en: {
+    ownerTitle: 'My Zitadel organizations',
+    ownerHelp: 'Verified organizations where you hold ORG_OWNER. This is an ownership check, not a plugin assignment. Existing plugin migration is not complete.',
+    ownerEmpty: 'No organizations with verified owner permissions found.',
+    ownerUnavailable: 'Zitadel ownership verification is unavailable. QDIP will not invent an organization.',
     title: 'Plugin connections and keys',
     description:
       'Choose any registered plugin, or bootstrap a new one. Each key is restricted to selected capabilities.',
@@ -101,6 +110,10 @@ const translations = {
     warning: 'An issued key does not prove that the Worker is running; runtime status is separate.',
   },
   pl: {
+    ownerTitle: 'Moje organizacje Zitadel',
+    ownerHelp: 'Zweryfikowane organizacje, w których masz rolę ORG_OWNER. To odczyt, a nie przypisanie wtyczek. Migracja jeszcze nie została zakończona.',
+    ownerEmpty: 'Nie znaleziono organizacji z potwierdzonymi uprawnieniami właściciela.',
+    ownerUnavailable: 'Weryfikacja właściciela w Zitadel jest niedostępna. QDIP nie tworzy organizacji automatycznie.',
     title: 'Połączenia i klucze wtyczek',
     description:
       'Wybierz dowolną zarejestrowaną wtyczkę lub przygotuj klucz dla nowej. Klucz ma ograniczone uprawnienia.',
@@ -175,6 +188,8 @@ async function send<T>(method: 'GET' | 'POST' | 'DELETE', body?: object): Promis
 export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   const t = translations[locale]
   const [inventory, setInventory] = useState<Inventory | null>(null)
+  const [ownedOrganizations, setOwnedOrganizations] = useState<OwnedOrganization[] | null>(null)
+  const [ownerError, setOwnerError] = useState(false)
   const [selectedId, setSelectedId] = useState('')
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([])
   const [manual, setManual] = useState(false)
@@ -186,6 +201,21 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    void fetch('/api/observatory/organizations', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Zitadel owner verification unavailable')
+        const body: unknown = await response.json()
+        if (!body || typeof body !== 'object' || !('organizations' in body) ||
+          !Array.isArray(body.organizations)) throw new Error('Invalid organization verification')
+        return body.organizations as OwnedOrganization[]
+      })
+      .then((value) => { if (active) setOwnedOrganizations(value) })
+      .catch(() => { if (active) setOwnerError(true) })
+    return () => { active = false }
+  }, [])
 
   const load = useCallback(async () => {
     const result = await send<Inventory>('GET')
@@ -282,6 +312,20 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       <p className="text-xs uppercase tracking-widest text-slate-400">QDIP / Observatory / SDK</p>
       <h1 className="mt-3 text-3xl font-semibold">{t.title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{t.description}</p>
+      <section className="mt-6 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-5" aria-label={t.ownerTitle}>
+        <h2 className="text-base font-semibold">{t.ownerTitle}</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-300">{t.ownerHelp}</p>
+        {ownerError ? <p role="status" className="mt-3 text-sm text-amber-200">{t.ownerUnavailable}</p> : null}
+        {ownedOrganizations?.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-400">{t.ownerEmpty}</p>
+        ) : null}
+        {ownedOrganizations?.map((org) => (
+          <div key={org.id} className="mt-3 min-w-0 rounded-md border border-white/10 p-3">
+            <p className="break-words font-medium">{org.name}</p>
+            <p className="mt-1 break-all text-xs text-slate-400">{org.id}</p>
+          </div>
+        ))}
+      </section>
 
       {loading ? <p className="mt-6 text-sm text-slate-400">{t.loading}</p> : null}
       {error ? (
