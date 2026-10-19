@@ -55,8 +55,7 @@ export async function POST(request: NextRequest) {
   if (!host || /[,\s@/?#]/.test(host) || !isSurfaceHost('observatory', host))
     return respond({ error: 'Not found' }, 404)
   const secure = request.nextUrl.protocol === 'https:' || request.headers.get('x-forwarded-proto') === 'https'
-  if (!secure && !host.split(':')[0].endsWith('.localhost'))
-    return respond({ error: 'HTTPS required' }, 403)
+  if (!secure && !host.split(':')[0].endsWith('.localhost')) return respond({ error: 'HTTPS required' }, 403)
   if (request.headers.get('origin') !== `${secure ? 'https' : 'http'}://${host.toLowerCase()}`)
     return respond({ error: 'Same-origin request required' }, 403)
   const session = sessionFromRequest(request)
@@ -72,10 +71,14 @@ export async function POST(request: NextRequest) {
     return respond({ error: 'Invalid JSON request' }, 400)
   }
   if (
-    !payload || typeof payload !== 'object' || Array.isArray(payload) ||
-    Object.keys(payload).length !== 1 || !Object.hasOwn(payload, 'organizationId') ||
+    !payload ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload) ||
+    Object.keys(payload).length !== 1 ||
+    !Object.hasOwn(payload, 'organizationId') ||
     typeof (payload as { organizationId: unknown }).organizationId !== 'string'
-  ) return respond({ error: 'Invalid organization selection' }, 422)
+  )
+    return respond({ error: 'Invalid organization selection' }, 422)
 
   try {
     const selected = await verifyZitadelOrganizationOwner(
@@ -115,23 +118,27 @@ export async function POST(request: NextRequest) {
       return respond({ error: 'Invalid QDIP tenant response' }, 502)
     }
     if (
-      !linked || typeof linked !== 'object' ||
+      !linked ||
+      typeof linked !== 'object' ||
       typeof (linked as { id?: unknown }).id !== 'string' ||
       !/^[a-f0-9-]{36}$/i.test((linked as { id: string }).id) ||
       (linked as { zitadel_issuer?: unknown }).zitadel_issuer !== session.issuer ||
       (linked as { zitadel_organization_id?: unknown }).zitadel_organization_id !== selected.id ||
       (linked as { status?: unknown }).status !== 'active'
-    ) return respond({ error: 'QDIP tenant identity mismatch' }, 502)
-    return respond({
-      organization: {
-        id: selected.id,
-        name: selected.name,
-        coreTenantId: (linked as { id: string }).id,
+    )
+      return respond({ error: 'QDIP tenant identity mismatch' }, 502)
+    return respond(
+      {
+        organization: {
+          id: selected.id,
+          name: selected.name,
+          coreTenantId: (linked as { id: string }).id,
+        },
       },
-    }, 200)
+      200
+    )
   } catch (error) {
-    if (error instanceof ZitadelOwnerLookupError)
-      return respond({ error: error.message }, error.status)
+    if (error instanceof ZitadelOwnerLookupError) return respond({ error: error.message }, error.status)
     return respond({ error: 'Organization linkage unavailable' }, 503)
   }
 }
