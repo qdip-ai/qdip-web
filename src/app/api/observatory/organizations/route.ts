@@ -131,7 +131,8 @@ export async function POST(request: NextRequest) {
       typeof bound !== 'object' ||
       Array.isArray(bound) ||
       !('id' in bound) ||
-      bound.id !== selection.id ||
+      typeof bound.id !== 'string' ||
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(bound.id) ||
       !('identity_provider' in bound) ||
       bound.identity_provider !== 'zitadel' ||
       !('zitadel_organization_id' in bound) ||
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
     ) {
       return response({ error: 'Core organization identity mismatch' }, 503)
     }
-    return response({ organization: selection, linked: true, pluginMigrationComplete: false }, 200)
+    return response({ organization: selection, coreTenantId: bound.id, linked: true, pluginMigrationComplete: false }, 200)
   } catch {
     return response({ error: 'Zitadel organization linkage unavailable' }, 503)
   }
