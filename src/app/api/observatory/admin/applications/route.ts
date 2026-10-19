@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { adminRequest } from '@/lib/observatory-plugin-admin'
+import { developerRequest } from '@/lib/observatory-plugin-admin'
 import { verifyOwnedZitadelOrganization } from '@/lib/zitadel-owner-organizations'
 import type { VerifiedOrganization } from '@/lib/observatory-developer-keys'
 import {
@@ -61,7 +61,7 @@ async function verifySelection(
 }
 
 export async function GET(request: NextRequest) {
-  const { error, session } = adminRequest(request)
+  const { error, session } = developerRequest(request)
   if (error) return error
   try {
     const selected = await verifySelection(session!, request.nextUrl.searchParams.get('organizationId'))
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { error, session } = adminRequest(request, true)
+  const { error, session } = developerRequest(request, true)
   if (error) return error
   try {
     const data = await payload(request)
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { error, session } = adminRequest(request, true)
+  const { error, session } = developerRequest(request, true)
   if (error) return error
   try {
     const data = await payload(request)
