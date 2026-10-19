@@ -49,6 +49,17 @@ export function visibleUseCases(records: readonly CorePluginPublication[]): stri
   return DIP_USE_CASES.filter((item) => {
     const record = byName.get(item.plugin.id)
     if (!record) return LEGACY_PUBLIC.has(item.id)
+    // RR's restricted native operator API is not the similarly named SDK demo
+    // capability `readiness-recovery.evaluate`. Until an administrator makes
+    // an explicit publication decision, keep the existing legacy operator
+    // route available for its independently enforced rr_operator role gate.
+    // Explicit unpublish/disable still wins; do not grant arbitrary plugin IDs.
+    if (
+      item.id === 'readiness-recovery' &&
+      record.enabled &&
+      record.published === null &&
+      record.capabilities.includes('readiness-recovery.evaluate')
+    ) return true
     if (!record.enabled || !record.capabilities.includes(item.plugin.capability)) return false
     if (record.published === null) return LEGACY_PUBLIC.has(item.id)
     return (
