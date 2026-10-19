@@ -244,7 +244,8 @@ function registeredRemoteOrg(
     if (
       !(PREFIXES.some((prefix) => org.name.startsWith(prefix)) || org.identity_provider === 'zitadel') ||
       !UUID.test(org.id)
-    ) return false
+    )
+      return false
     const fingerprint = createHash('sha256')
       .update(org.id + '\0' + plugin.plugin_id)
       .digest('hex')
@@ -309,14 +310,14 @@ function keyView(org: CoreOrg, key: CoreKey): ConnectedKey | null {
 }
 
 function rows(data: Awaited<ReturnType<typeof metadata>>, tenantId: string): PluginKeyEntry[] {
-  const active: Array<ConnectedKey & { name: string }> = data.stored.filter(
-    ({ org }) => org.id === tenantId
-  ).flatMap(({ org, keys }) =>
-    keys.flatMap((key) => {
-      const row = keyView(org, key)
-      return row ? [{ ...row, name: key.name }] : []
-    })
-  )
+  const active: Array<ConnectedKey & { name: string }> = data.stored
+    .filter(({ org }) => org.id === tenantId)
+    .flatMap(({ org, keys }) =>
+      keys.flatMap((key) => {
+        const row = keyView(org, key)
+        return row ? [{ ...row, name: key.name }] : []
+      })
+    )
   const items = new Map<string, PluginKeyEntry>()
   for (const plugin of data.catalog) {
     const caps = plugin.capabilities.filter((c): c is string => typeof c === 'string' && CAPABILITY.test(c))
@@ -409,7 +410,9 @@ async function revoke(orgId: string, keyId: string): Promise<void> {
 }
 
 export async function revokePluginCredential(
-  orgId: string, keyId: string, selected: VerifiedOrganization
+  orgId: string,
+  keyId: string,
+  selected: VerifiedOrganization
 ): Promise<void> {
   if (!UUID.test(orgId) || !UUID.test(keyId)) throw new DeveloperKeyError(422, 'Invalid key identity')
   const data = await metadata(selected)
