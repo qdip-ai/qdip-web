@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { rrCoreApiKey } from '@/lib/rr-core-credential'
+
 import { createHash, createHmac, createPublicKey, randomBytes, timingSafeEqual, verify } from 'node:crypto'
 import type { JsonWebKey as NodeJsonWebKey } from 'node:crypto'
 import type { NextRequest, NextResponse } from 'next/server'
@@ -95,7 +97,7 @@ export function operatorConfigured() {
   return Boolean(
     oidcConfigured() &&
     (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) &&
-    process.env.DIP_API_KEY?.trim() &&
+    rrCoreApiKey() &&
     (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32
   )
 }
