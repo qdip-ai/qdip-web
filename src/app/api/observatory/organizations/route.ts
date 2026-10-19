@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sessionFromRequest } from '@/lib/qdip-oidc'
 import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
+import { signZitadelOwnerLink } from '@/lib/zitadel-org-link-assertion'
 import { isSurfaceHost } from '@/routing-config'
 import { listOwnedZitadelOrganizations, OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
 
@@ -108,6 +109,11 @@ export async function POST(request: NextRequest) {
         organization_id: selection.id,
         issuer: session.issuer,
         authenticated_subject: session.sub,
+        ...signZitadelOwnerLink({
+          issuer: session.issuer,
+          sub: session.sub,
+          organizationId: selection.id,
+        }),
       }),
       redirect: 'error',
       cache: 'no-store',
