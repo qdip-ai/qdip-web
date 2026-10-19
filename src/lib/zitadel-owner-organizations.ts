@@ -141,38 +141,46 @@ export async function listOwnedZitadelOrganizations(identity: Identity): Promise
 
   const verified: ZitadelOwnerOrganization[] = []
   const seen = new Set<string>()
-  // Only return organizations for which the exact authenticated Zitadel
-  // subject holds a current ORG_OWNER grant on that specific organization.
-  for (const row of records as Organization[]) {
-    if (!ID.test(String(row?.id ?? '')) || typeof row.name !== 'string' || !row.name.trim() || seen.has(String(row.id))) {
-      throw new OwnerOrganizationError(503, 'Invalid Zitadel organization identity')
-    }
-    const id = row.id as string
-    seen.add(id)
-    if (row.state !== 'ORGANIZATION_STATE_ACTIVE') continue
+  // Batch bounded org-member checks; no partial listing is returned if any
+  // required organization query fails, even if earlier checks succeeded.
+  const rows = records as Organization[]
+  for (let offset = 0; offset < rows.length; offset += 6) {
+    const batch = rows.slice(offset, offset + 6)
+    const granted = await Promise.all(
+      batch.map(async (row): Promise<ZitadelOwnerOrganization | null> => {
+        if (!ID.test(String(row?.id ?? '')) || typeof row.name !== 'string' || !row.name.trim()) {
+          throw new OwnerOrganizationError(503, 'Invalid Zitadel organization identity')
+        }
+        const id = row.id as string
+        if (seen.has(id)) throw new OwnerOrganizationError(503, 'Duplicate Zitadel organization')
+        seen.add(id)
+        if (row.state !== 'ORGANIZATION_STATE_ACTIVE') return null
 
-    const admins = await query(
-      settings,
-      '/zitadel.internal_permission.v2.InternalPermissionService/ListAdministrators',
-      {
-        pagination: { offset: 0, limit: MAX_ADMINS },
-        filters: [{ resource: { organizationId: id } }],
-      },
-      true
+        const admins = await query(
+          settings,
+          '/zitadel.internal_permission.v2.InternalPermissionService/ListAdministrators',
+          {
+            pagination: { offset: 0, limit: MAX_ADMINS },
+            filters: [{ resource: { organizationId: id } }],
+          },
+          true
+        )
+        if (!Array.isArray(admins.administrators)) {
+          throw new OwnerOrganizationError(503, 'Invalid Zitadel administrator listing')
+        }
+        exactCount(admins, admins.administrators.length, MAX_ADMINS)
+        const hasOwner = (admins.administrators as Administrator[]).some(
+          (admin) =>
+            admin &&
+            admin.user?.id === identity.sub &&
+            belongsToOrg(admin, id) &&
+            Array.isArray(admin.roles) &&
+            admin.roles.includes('ORG_OWNER')
+        )
+        return hasOwner ? { id, name: row.name.trim(), state: 'active' } : null
+      })
     )
-    if (!Array.isArray(admins.administrators)) {
-      throw new OwnerOrganizationError(503, 'Invalid Zitadel administrator listing')
-    }
-    exactCount(admins, admins.administrators.length, MAX_ADMINS)
-    const hasOwner = (admins.administrators as Administrator[]).some(
-      (admin) =>
-        admin &&
-        admin.user?.id === identity.sub &&
-        belongsToOrg(admin, id) &&
-        Array.isArray(admin.roles) &&
-        admin.roles.includes('ORG_OWNER')
-    )
-    if (hasOwner) verified.push({ id, name: row.name.trim(), state: 'active' })
+    for (const org of granted) if (org) verified.push(org)
   }
   return verified.sort((a, b) => a.name.localeCompare(b.name))
 }
