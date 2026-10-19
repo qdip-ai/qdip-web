@@ -8,11 +8,7 @@ vi.mock('@/lib/observatory-plugin-catalog', () => ({
     key: 'PRIVATE-PLATFORM-ADMIN',
   }),
 }))
-import {
-  issuePluginCredential,
-  listPluginCredentials,
-  revokePluginCredential,
-} from './observatory-developer-keys'
+import { issuePluginCredential, listPluginCredentials, revokePluginCredential } from './observatory-developer-keys'
 
 const ORG = '12345678-1234-4234-8234-123456789abc'
 const KEY_ID = '12345678-1234-4234-8234-123456789abd'
