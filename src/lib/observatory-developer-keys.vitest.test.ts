@@ -223,7 +223,8 @@ describe('Generic developer plugin keys', () => {
       if (method === 'GET' && path.endsWith('/organizations')) return Response.json([workerOrg, incorrectOrg])
       if (method === 'GET' && path.includes('/keys')) {
         if (path.includes(workerOrg.id)) {
-          const { key: _private, ...publicIssued } = issued
+          const publicIssued = { ...issued }
+          delete (publicIssued as { key?: string }).key
           return Response.json(calls.length ? [workerKey, publicIssued] : [workerKey])
         }
         return Response.json([wrongExecute])
