@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/observatory-plugin-admin', () => ({
-  adminRequest: vi.fn(() => ({
+  developerRequest: vi.fn(() => ({
     error: null,
     session: { issuer: 'https://zitadel.example.test', sub: '1234567890123' },
   })),
