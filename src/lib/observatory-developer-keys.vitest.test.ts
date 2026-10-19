@@ -33,8 +33,12 @@ const plugin = {
   ui: { label: 'Sample Planner' },
 }
 const org = {
-  id: ORG, name: 'QDIP', status: 'active', identity_provider: 'zitadel',
-  zitadel_organization_id: ZITADEL_ID, zitadel_issuer: OWNER.issuer,
+  id: ORG,
+  name: 'QDIP',
+  status: 'active',
+  identity_provider: 'zitadel',
+  zitadel_organization_id: ZITADEL_ID,
+  zitadel_issuer: OWNER.issuer,
 }
 
 const key = () => ({
@@ -57,34 +61,49 @@ describe('Generic developer plugin keys', () => {
     let createdName = ''
     let keySaved = false
     const calls: string[] = []
-    vi.stubGlobal('fetch', vi.fn(async (input: string, options: RequestInit) => {
-      const path = new URL(input).pathname
-      const method = options.method ?? 'GET'
-      calls.push(method + ' ' + path)
-      if (path.endsWith('/plugin-publications')) return Response.json([])
-      if (method === 'GET' && path.endsWith('/organizations')) return Response.json([org])
-      if (method === 'GET' && path.endsWith('/keys')) {
-        return Response.json(keySaved ? [{
-          ...key(), name: createdName, scopes: ['plugins:register'],
-          allowed_capabilities: [capability], key: undefined,
-        }] : [])
-      }
-      if (method === 'POST' && path.endsWith('/keys')) {
-        const policy = JSON.parse(String(options.body))
-        expect(policy.scopes).toEqual(['plugins:register'])
-        expect(policy.allowed_capabilities).toEqual([capability])
-        createdName = policy.name
-        keySaved = true
-        return Response.json({
-          ...key(), name: createdName, scopes: ['plugins:register'],
-          allowed_capabilities: [capability],
-        }, { status: 201 })
-      }
-      throw Error('Unexpected Core request: ' + path)
-    }))
-    const issued = await issuePluginCredential(
-      'new-plugin', [capability], 'worker', OWNER, true
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, options: RequestInit) => {
+        const path = new URL(input).pathname
+        const method = options.method ?? 'GET'
+        calls.push(method + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json([])
+        if (method === 'GET' && path.endsWith('/organizations')) return Response.json([org])
+        if (method === 'GET' && path.endsWith('/keys')) {
+          return Response.json(
+            keySaved
+              ? [
+                  {
+                    ...key(),
+                    name: createdName,
+                    scopes: ['plugins:register'],
+                    allowed_capabilities: [capability],
+                    key: undefined,
+                  },
+                ]
+              : []
+          )
+        }
+        if (method === 'POST' && path.endsWith('/keys')) {
+          const policy = JSON.parse(String(options.body))
+          expect(policy.scopes).toEqual(['plugins:register'])
+          expect(policy.allowed_capabilities).toEqual([capability])
+          createdName = policy.name
+          keySaved = true
+          return Response.json(
+            {
+              ...key(),
+              name: createdName,
+              scopes: ['plugins:register'],
+              allowed_capabilities: [capability],
+            },
+            { status: 201 }
+          )
+        }
+        throw Error('Unexpected Core request: ' + path)
+      })
     )
+    const issued = await issuePluginCredential('new-plugin', [capability], 'worker', OWNER, true)
     expect(issued.role).toBe('worker')
     expect(issued.key).toBe(SECRET)
     expect(calls.some((call) => call === 'POST /api/v1/organizations')).toBe(false)
@@ -94,17 +113,18 @@ describe('Generic developer plugin keys', () => {
   it('never reads or revokes another linked Zitadel organization key', async () => {
     const foreign = '12345678-1234-4234-8234-123456789ade'
     const calls: string[] = []
-    vi.stubGlobal('fetch', vi.fn(async (input: string) => {
-      const path = new URL(input).pathname
-      calls.push(path)
-      if (path.endsWith('/plugin-publications')) return Response.json([])
-      if (path.endsWith('/organizations')) return Response.json([
-        org,
-        { ...org, id: foreign, zitadel_organization_id: WRONG_OWNER.id },
-      ])
-      if (path.endsWith('/keys')) return Response.json([])
-      throw Error('Unexpected Core request: ' + path)
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) => {
+        const path = new URL(input).pathname
+        calls.push(path)
+        if (path.endsWith('/plugin-publications')) return Response.json([])
+        if (path.endsWith('/organizations'))
+          return Response.json([org, { ...org, id: foreign, zitadel_organization_id: WRONG_OWNER.id }])
+        if (path.endsWith('/keys')) return Response.json([])
+        throw Error('Unexpected Core request: ' + path)
+      })
+    )
     expect(await listPluginCredentials(OWNER)).toEqual({ available: [], connected: [] })
     expect(calls).not.toContain('/api/v1/organizations/' + foreign + '/keys')
     await expect(revokePluginCredential(foreign, KEY_ID, OWNER)).rejects.toMatchObject({ status: 403 })
@@ -177,9 +197,11 @@ describe('Generic developer plugin keys', () => {
         throw Error('Unexpected Core request')
       })
     )
-    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', OWNER, false)).rejects.toMatchObject({
-      status: 422,
-    })
+    await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', OWNER, false)).rejects.toMatchObject(
+      {
+        status: 422,
+      }
+    )
     await expect(issuePluginCredential('new-plugin', ['new-plugin.run'], 'worker', OWNER, true)).rejects.toMatchObject({
       status: 409,
     })
@@ -189,10 +211,16 @@ describe('Generic developer plugin keys', () => {
   it('rejects invalid capabilities without network calls', async () => {
     const fetchStub = vi.fn()
     vi.stubGlobal('fetch', fetchStub)
-    await expect(issuePluginCredential('../invalid', ['sample.plan'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
-    await expect(issuePluginCredential('GTM Lab', ['gtm-lab.demo'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential('../invalid', ['sample.plan'], 'execute', OWNER)).rejects.toMatchObject({
+      status: 422,
+    })
+    await expect(issuePluginCredential('GTM Lab', ['gtm-lab.demo'], 'execute', OWNER)).rejects.toMatchObject({
+      status: 422,
+    })
     await expect(issuePluginCredential('sample', ['*'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
-    await expect(issuePluginCredential('sample', ['sample.plan', 'sample.plan'], 'execute', OWNER)).rejects.toMatchObject({ status: 422 })
+    await expect(
+      issuePluginCredential('sample', ['sample.plan', 'sample.plan'], 'execute', OWNER)
+    ).rejects.toMatchObject({ status: 422 })
     expect(fetchStub).not.toHaveBeenCalled()
   })
 
@@ -309,7 +337,9 @@ describe('Generic developer plugin keys', () => {
         throw Error('Unexpected request')
       })
     )
-    await expect(issuePluginCredential('remote-fake-route-optimizer-sdk02', [cap], 'execute', OWNER)).rejects.toMatchObject({
+    await expect(
+      issuePluginCredential('remote-fake-route-optimizer-sdk02', [cap], 'execute', OWNER)
+    ).rejects.toMatchObject({
       status: 409,
     })
   })
