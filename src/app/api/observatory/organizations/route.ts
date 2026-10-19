@@ -3,7 +3,11 @@ import { sessionFromRequest } from '@/lib/qdip-oidc'
 import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
 import { signZitadelOwnerLink } from '@/lib/zitadel-org-link-assertion'
 import { isSurfaceHost } from '@/routing-config'
-import { listOwnedZitadelOrganizations, verifyOwnedZitadelOrganization, OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
+import {
+  listOwnedZitadelOrganizations,
+  verifyOwnedZitadelOrganization,
+  OwnerOrganizationError,
+} from '@/lib/zitadel-owner-organizations'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -86,9 +90,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const selection = await verifyOwnedZitadelOrganization(
-      { issuer: session.issuer, sub: session.sub }, id
-    )
+    const selection = await verifyOwnedZitadelOrganization({ issuer: session.issuer, sub: session.sub }, id)
 
     const { base, key } = corePluginConnection()
     const origin = new URL(base)
@@ -142,7 +144,10 @@ export async function POST(request: NextRequest) {
     ) {
       return response({ error: 'Core organization identity mismatch' }, 503)
     }
-    return response({ organization: selection, coreTenantId: bound.id, linked: true, pluginMigrationComplete: false }, 200)
+    return response(
+      { organization: selection, coreTenantId: bound.id, linked: true, pluginMigrationComplete: false },
+      200
+    )
   } catch {
     return response({ error: 'Zitadel organization linkage unavailable' }, 503)
   }
