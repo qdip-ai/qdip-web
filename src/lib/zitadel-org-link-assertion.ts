@@ -8,11 +8,11 @@ import { createHmac, randomBytes } from 'node:crypto'
  * The signing secret is distinct from the Core platform API key and remains
  * server-side on both Observatory and Core.
  */
-export function signZitadelOwnerLink(session: {
-  issuer: string
-  sub: string
-  organizationId: string
-}): { issued_at: number; nonce: string; assertion: string } {
+export function signZitadelOwnerLink(session: { issuer: string; sub: string; organizationId: string }): {
+  issued_at: number
+  nonce: string
+  assertion: string
+} {
   const secret = process.env.QDIP_ORG_LINK_ASSERTION_SECRET ?? ''
   if (Buffer.byteLength(secret, 'utf8') < 32) throw new Error('Zitadel owner assertion not configured')
   const issued_at = Math.floor(Date.now() / 1000)
