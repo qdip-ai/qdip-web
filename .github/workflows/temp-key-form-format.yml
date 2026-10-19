@@ -1,0 +1,22 @@
+name: Temporary key-form formatter
+on:
+  push:
+    branches: [fix/observatory-issued-key-layout-20261019]
+    paths: [.github/workflows/temp-key-form-format.yml]
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Print Prettier output
+        run: |
+          set -euo pipefail
+          npx --yes prettier@3.9.8 --write --config .prettierrc src/components/observatory/observatory-developer-keys.vitest.test.tsx
+          echo '__FORMATTED_BEGIN__'
+          cat src/components/observatory/observatory-developer-keys.vitest.test.tsx
+          echo '__FORMATTED_END__'
