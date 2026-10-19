@@ -100,10 +100,14 @@ describe('Core-backed Zitadel organization ownership', () => {
   })
 
   it('rejects incomplete, duplicated and untrusted organization projections', async () => {
-    setup({ response: { organizations: [
-      { id: ORG_A, name: 'My QDIP', state: 'active' },
-      { id: ORG_A, name: 'My QDIP', state: 'active' },
-    ] } })
+    setup({
+      response: {
+        organizations: [
+          { id: ORG_A, name: 'My QDIP', state: 'active' },
+          { id: ORG_A, name: 'My QDIP', state: 'active' },
+        ],
+      },
+    })
     await expect(listOwnedZitadelOrganizations({ issuer: ISSUER, sub: SUBJECT })).rejects.toMatchObject({
       status: 503,
     })
