@@ -163,7 +163,7 @@ const VERIFIED_REMOTE_IDENTITIES = new Map<string, string>([
 ])
 
 export function pluginPresentation(
-  plugin: PluginCatalogEntry,
+  plugin: Pick<PluginCatalogEntry, 'name' | 'description' | 'ui' | 'plugin_id' | 'source'>,
   locale: Locale,
 ): Presentation {
   const originalTitle = plugin.ui?.label || plugin.name
