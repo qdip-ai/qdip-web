@@ -567,7 +567,7 @@ export async function issuePluginCredential(
     // A disconnected, registered Worker must be able to recover a scoped
     // registration credential. That does not authorize invoking it.
     if (!registered.enabled) {
-      if (!isSdk425CanonicalWorkerRecovery(
+      if (!legacyMigration && !isSdk425CanonicalWorkerRecovery(
         registered.plugin_id!, capabilities, role, selected, tenant, registered, manual
       )) {
         throw new DeveloperKeyError(422, 'Disconnected or non-admitted remote plugin cannot receive a new key')
