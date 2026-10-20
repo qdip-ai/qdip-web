@@ -52,10 +52,14 @@ The source legacy organization must also remain active during the narrowly
 permitted temporary Worker bootstrap; stale/inactive legacy source identities
 are refused.
 
-A disconnected Worker already registered under the exact verified
-canonical tenant can also issue a replacement Worker registration key
-under the normal policy. The caller still cannot receive an execute key
-for an offline plugin using that relaxation.
+A disconnected Worker already registered under the exact verified canonical
+tenant can receive a replacement registration key **only** in the explicit
+#425 migration window: flag `enabled`, `manual=true`, Worker role, exact
+first-party `secretary` or `route-optimizer-sdk02` target registration,
+exact capability, and `published=false`. There is **no general recovery
+exception** for an offline Worker; once published, an unavailable Worker is
+not implicitly authorized to re-register. A new independent recovery/
+security-admission process would need a separate review.
 
 ## Release and security constraints
 
@@ -78,7 +82,9 @@ for an offline plugin using that relaxation.
 
 New Vitest cases cover default DENY, explicit allowlist, exact
 capability/scope/target selection, wrong legacy origin, non-worker denial,
-and disconnected target Worker recovery. Tests are source-authored; exact
+exact-target caller selection alongside legacy registration, and narrowly
+gated prepublication first-party Worker recovery. Published-but-disconnected
+and untrusted Worker recovery cases are explicitly denied. Tests are source-authored; exact
 repository test execution must be performed separately before merge.
 
 The flag is **not set** in production and this branch is Draft.
