@@ -466,16 +466,79 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
     const targetRemote = {
       ...vhv,
       name: remoteId(tenant, 'secretary'),
+      published: false,
       enabled: false,
     }
     const calls = givenLegacyPlugin({ published: targetRemote })
-    const issued = await issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner)
+    await expect(issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner))
+      .rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner, true))
+      .rejects.toMatchObject({ status: 422 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+    vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
+    const issued = await issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner, true)
     expect(issued.role).toBe('worker')
     expect(calls).toContain('POST /api/v1/organizations/' + tenant + '/keys')
     expect(calls).not.toContain('POST /api/v1/organizations')
   })
 })
 
+
+describe('P0 #425: disconnected canonical Worker must never bypass admission', () => {
+  const owner = {
+    id: '368555767923594379',
+    issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
+  }
+  const target = {
+    id: 'ff638747-1962-4a44-95ee-3902c28d949f', name: 'QDIP',
+    status: 'active', identity_provider: 'zitadel',
+    zitadel_organization_id: owner.id, zitadel_issuer: owner.issuer,
+  }
+  const unavailable = {
+    name: remoteId(target.id, 'secretary'),
+    source: 'remote', plugin_id: 'secretary', enabled: false,
+    published: true, capabilities: ['secretary.plan'],
+  }
+
+  it('DENIES published disconnected remote even with migration flag and manual override', async () => {
+    vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const path = new URL(input).pathname
+      calls.push((init.method ?? 'GET') + ' ' + path)
+      if (path.endsWith('/plugin-publications')) return Response.json([unavailable])
+      if (path.endsWith('/organizations')) return Response.json([target])
+      if (path.endsWith('/keys')) return Response.json([])
+      throw new Error('Unexpected Core request')
+    }))
+    await expect(
+      issuePluginCredential(unavailable.name, ['secretary.plan'], 'worker', owner, true)
+    ).rejects.toMatchObject({ status: 422 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+  })
+
+  it('DENIES a disconnected unregistered third-party Worker regardless of migration flag', async () => {
+    vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
+    const external = {
+      name: remoteId(target.id, 'untrusted-worker'),
+      source: 'remote', plugin_id: 'untrusted-worker', enabled: false,
+      published: false, capabilities: ['untrusted-worker.execute'],
+    }
+    const calls: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const path = new URL(input).pathname
+      calls.push((init.method ?? 'GET') + ' ' + path)
+      if (path.endsWith('/plugin-publications')) return Response.json([external])
+      if (path.endsWith('/organizations')) return Response.json([target])
+      if (path.endsWith('/keys')) return Response.json([])
+      throw new Error('Unexpected Core request')
+    }))
+    await expect(
+      issuePluginCredential(external.name, ['untrusted-worker.execute'], 'worker', owner, true)
+    ).rejects.toMatchObject({ status: 422 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+  })
+})
 
 describe('P0 #425: RO SDK-02 never reuses a stray legacy caller tenant', () => {
   it('allows only an explicit owner-scoped first-party RO Worker bootstrap', async () => {
