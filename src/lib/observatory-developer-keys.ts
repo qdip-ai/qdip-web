@@ -497,11 +497,15 @@ export async function issuePluginCredential(
     throw new DeveloperKeyError(422, 'Invalid plugin key policy')
 
   const data = await metadata(selected)
-  const direct = data.catalog.find((p) => p.name === pluginId)
-  // Manual bootstrap of a plugin already registered under an opaque catalog
-  // name must reuse that registration, not create a new tenant.
+  const directMatches = data.catalog.filter((p) => p.name === pluginId)
+  if (directMatches.length > 1) throw new DeveloperKeyError(409, 'Duplicate catalog identity')
+  const direct = directMatches[0]
+  // During #425 cutover the old and canonical remote registrations coexist.
+  // An exact catalog ID unambiguously selects the intended tenant; an SDK
+  // plugin_id is ambiguous and MUST NOT silently select either registration.
   const remoteMatches = data.catalog.filter((p) => p.source === 'remote' && p.plugin_id === pluginId)
-  if (remoteMatches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous registered plugin ID')
+  if (!direct && remoteMatches.length > 1)
+    throw new DeveloperKeyError(409, 'Multiple remote registrations; select the exact catalog ID')
   const registered = direct ?? remoteMatches[0]
   if (registered && capabilities.some((c) => !registered.capabilities.includes(c)))
     throw new DeveloperKeyError(422, 'Capabilities not registered for this plugin')
