@@ -53,7 +53,10 @@ const key = () => ({
   revoked_at: null,
 })
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
 
 describe('Generic developer plugin keys', () => {
   it('issues scoped Worker credentials into the linked Core UUID, not a new pseudo-organization', async () => {
@@ -342,5 +345,128 @@ describe('Generic developer plugin keys', () => {
     ).rejects.toMatchObject({
       status: 409,
     })
+  })
+})
+
+
+describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
+  const tenant = 'ff638747-1962-4a44-95ee-3902c28d949f'
+  const owner = {
+    id: '368555767923594379',
+    issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
+  }
+  const vhvOld = {
+    id: '1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab',
+    name: 'qdip-sdk-app:vhv',
+    status: 'active',
+  }
+  const linked = {
+    id: tenant,
+    name: 'QDIP',
+    status: 'active',
+    identity_provider: 'zitadel',
+    zitadel_organization_id: owner.id,
+    zitadel_issuer: owner.issuer,
+  }
+  const vhv = {
+    name: remoteId(vhvOld.id, 'secretary'),
+    plugin_id: 'secretary',
+    source: 'remote',
+    enabled: false,
+    capabilities: ['secretary.plan'],
+    ui: { label: 'VHV' },
+  }
+
+  function givenLegacyPlugin(options: {
+    source?: typeof vhvOld
+    target?: typeof linked
+    published?: typeof vhv
+  } = {}) {
+    const calls: string[] = []
+    let createdName = ''
+    let created = false
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const path = new URL(input).pathname
+      const method = init.method ?? 'GET'
+      calls.push(method + ' ' + path)
+      if (path.endsWith('/plugin-publications'))
+        return Response.json([options.published ?? vhv])
+      if (method === 'GET' && path.endsWith('/organizations'))
+        return Response.json([options.target ?? linked, options.source ?? vhvOld])
+      if (method === 'GET' && path.endsWith('/keys')) {
+        if (!created) return Response.json([])
+        const response = {
+          ...key(), org_id: tenant, name: createdName,
+          scopes: ['plugins:register'], allowed_capabilities: ['secretary.plan'],
+        }
+        delete (response as { key?: string }).key
+        return Response.json([response])
+      }
+      if (method === 'POST' && path.endsWith('/keys')) {
+        const body = JSON.parse(String(init.body)) as { name: string; scopes: string[]; allowed_capabilities: string[] }
+        expect(body.scopes).toEqual(['plugins:register'])
+        expect(body.allowed_capabilities).toEqual(['secretary.plan'])
+        createdName = body.name
+        created = true
+        return Response.json({
+          ...key(), org_id: tenant, name: createdName,
+          scopes: ['plugins:register'], allowed_capabilities: ['secretary.plan'],
+        }, { status: 201 })
+      }
+      throw new Error('Unexpected Core request')
+    }))
+    return calls
+  }
+
+  it('defaults to DENY for old-tenant plugins without an explicit operator migration flag', async () => {
+    const calls = givenLegacyPlugin()
+    await expect(
+      issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)
+    ).rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+  })
+
+  it('permits only a 30-day capability-scoped Worker key in the known owner tenant when explicitly enabled', async () => {
+    vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
+    const calls = givenLegacyPlugin()
+    const issued = await issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)
+    expect(issued.pluginId).toBe('secretary')
+    expect(issued.capabilities).toEqual(['secretary.plan'])
+    expect(calls).toContain('POST /api/v1/organizations/' + tenant + '/keys')
+    expect(calls).not.toContain('POST /api/v1/organizations')
+    expect(calls.some((call) => call.includes(vhvOld.id + '/keys'))).toBe(false)
+  })
+
+  it('never permits execute/cross-tenant/forged legacy bootstrap even with the flag enabled', async () => {
+    vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
+    let calls = givenLegacyPlugin()
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'execute', owner, true))
+      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, false))
+      .rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+
+    calls = givenLegacyPlugin({ source: { ...vhvOld, name: 'qdip-sdk-plugin:unrelated' } })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
+      .rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+
+    calls = givenLegacyPlugin({ target: { ...linked, id: '12345678-1234-4234-8234-123456789abf' } })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
+      .rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+  })
+
+  it('allows same-tenant registration-key recovery for a disconnected verified remote Worker', async () => {
+    const targetRemote = {
+      ...vhv,
+      name: remoteId(tenant, 'secretary'),
+      enabled: false,
+    }
+    const calls = givenLegacyPlugin({ published: targetRemote })
+    const issued = await issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner)
+    expect(issued.role).toBe('worker')
+    expect(calls).toContain('POST /api/v1/organizations/' + tenant + '/keys')
+    expect(calls).not.toContain('POST /api/v1/organizations')
   })
 })
