@@ -61,6 +61,7 @@ function isSdk425LegacyWorkerBootstrap(
     remote.plugin_id === pluginId &&
     remote.name !== pluginId &&
     sourceTenant.id === legacy.tenant &&
+    sourceTenant.status === 'active' &&
     sourceTenant.name === legacy.organizationName &&
     exact(capabilities, [legacy.capability]) &&
     exact(remote.capabilities, [legacy.capability])
