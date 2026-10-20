@@ -19,18 +19,18 @@ or general third-party credential impersonation.
 Only when `QDIP_SDK425_MIGRATION_BOOTSTRAP=enabled` is set explicitly
 in the **Observatory server** does a signed-in, live-verified
 `ORG_OWNER` receive the option to request a new **Worker** key via the
-existing explicit manual-bootstrap flow, for *exactly*:
+existing explicit manual-bootstrap flow, for _exactly_:
 
-| SDK plugin ID | Registered legacy tenant | Allowed capability |
-|---|---|---|
-| `secretary` | `1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab` | `secretary.plan` |
+| SDK plugin ID           | Registered legacy tenant               | Allowed capability                 |
+| ----------------------- | -------------------------------------- | ---------------------------------- |
+| `secretary`             | `1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab` | `secretary.plan`                   |
 | `route-optimizer-sdk02` | `cbe626fc-e287-4e23-8c1b-001858521c44` | `route-optimizer.select-routes.v1` |
 
 Both must target canonical Core UUID
 `ff638747-1962-4a44-95ee-3902c28d949f`, under the exact
 `https://mentality-rmwj0i.eu1.zitadel.cloud` issuer/organization.
 The existing server verifies `ORG_OWNER` per request. The code checks
-the *source catalog fingerprint* resolves to the explicit legacy tenant
+the _source catalog fingerprint_ resolves to the explicit legacy tenant
 and source name; the legacy Worker must still be live (`enabled=true`) and
 its legacy Core organization active at issuance time. It does not accept arbitrary plugin/capability names,
 a forged tenant, an unrelated organization's registration, or
