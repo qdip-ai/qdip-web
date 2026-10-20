@@ -93,7 +93,12 @@ The flag is **not set** in production and this branch is Draft.
 ## Latest executable validation (2026-10-20)
 
 The exact GitHub source module and its committed test file were loaded into an
-isolated minimal Vite/Node test project. **Vitest 19/19 PASS**, **TypeScript
-PASS**, and **Prettier PASS** across all three modified files. The normal
-entire-repository Next.js build, app routing and real Core/Railway E2E have
-not yet been run. This evidence does not itself authorize a production cutover.
+isolated minimal Vite/Node test project:
+
+- Vitest: **19/19 PASS**
+- TypeScript: **PASS**
+- Prettier: **PASS** on the three changed files before this evidence update
+
+The normal entire-repository Next.js build, app routing, and real Core/Railway
+E2E have not yet been run. This evidence does not itself authorize production
+cutover.
