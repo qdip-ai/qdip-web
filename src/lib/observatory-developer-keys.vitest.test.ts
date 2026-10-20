@@ -348,7 +348,6 @@ describe('Generic developer plugin keys', () => {
   })
 })
 
-
 describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
   const tenant = 'ff638747-1962-4a44-95ee-3902c28d949f'
   const owner = {
@@ -377,52 +376,69 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
     ui: { label: 'VHV' },
   }
 
-  function givenLegacyPlugin(options: {
-    source?: typeof vhvOld
-    target?: typeof linked
-    published?: typeof vhv
-  } = {}) {
+  function givenLegacyPlugin(
+    options: {
+      source?: typeof vhvOld
+      target?: typeof linked
+      published?: typeof vhv
+    } = {}
+  ) {
     const calls: string[] = []
     let createdName = ''
     let created = false
-    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
-      const path = new URL(input).pathname
-      const method = init.method ?? 'GET'
-      calls.push(method + ' ' + path)
-      if (path.endsWith('/plugin-publications'))
-        return Response.json([options.published ?? vhv])
-      if (method === 'GET' && path.endsWith('/organizations'))
-        return Response.json([options.target ?? linked, options.source ?? vhvOld])
-      if (method === 'GET' && path.endsWith('/keys')) {
-        if (!created) return Response.json([])
-        const response = {
-          ...key(), org_id: tenant, name: createdName,
-          scopes: ['plugins:register'], allowed_capabilities: ['secretary.plan'],
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const path = new URL(input).pathname
+        const method = init.method ?? 'GET'
+        calls.push(method + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json([options.published ?? vhv])
+        if (method === 'GET' && path.endsWith('/organizations'))
+          return Response.json([options.target ?? linked, options.source ?? vhvOld])
+        if (method === 'GET' && path.endsWith('/keys')) {
+          if (!created) return Response.json([])
+          const response = {
+            ...key(),
+            org_id: tenant,
+            name: createdName,
+            scopes: ['plugins:register'],
+            allowed_capabilities: ['secretary.plan'],
+          }
+          delete (response as { key?: string }).key
+          return Response.json([response])
         }
-        delete (response as { key?: string }).key
-        return Response.json([response])
-      }
-      if (method === 'POST' && path.endsWith('/keys')) {
-        const body = JSON.parse(String(init.body)) as { name: string; scopes: string[]; allowed_capabilities: string[] }
-        expect(body.scopes).toEqual(['plugins:register'])
-        expect(body.allowed_capabilities).toEqual(['secretary.plan'])
-        createdName = body.name
-        created = true
-        return Response.json({
-          ...key(), org_id: tenant, name: createdName,
-          scopes: ['plugins:register'], allowed_capabilities: ['secretary.plan'],
-        }, { status: 201 })
-      }
-      throw new Error('Unexpected Core request')
-    }))
+        if (method === 'POST' && path.endsWith('/keys')) {
+          const body = JSON.parse(String(init.body)) as {
+            name: string
+            scopes: string[]
+            allowed_capabilities: string[]
+          }
+          expect(body.scopes).toEqual(['plugins:register'])
+          expect(body.allowed_capabilities).toEqual(['secretary.plan'])
+          createdName = body.name
+          created = true
+          return Response.json(
+            {
+              ...key(),
+              org_id: tenant,
+              name: createdName,
+              scopes: ['plugins:register'],
+              allowed_capabilities: ['secretary.plan'],
+            },
+            { status: 201 }
+          )
+        }
+        throw new Error('Unexpected Core request')
+      })
+    )
     return calls
   }
 
   it('defaults to DENY for old-tenant plugins without an explicit operator migration flag', async () => {
     const calls = givenLegacyPlugin()
-    await expect(
-      issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)
-    ).rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
   })
 
@@ -440,33 +456,39 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
   it('refuses bootstrap for an offline source Worker despite the migration flag', async () => {
     vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
     const calls = givenLegacyPlugin({ published: { ...vhv, enabled: false } })
-    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
-      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
   })
 
   it('never permits execute/cross-tenant/forged legacy bootstrap even with the flag enabled', async () => {
     vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
     let calls = givenLegacyPlugin()
-    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'execute', owner, true))
-      .rejects.toMatchObject({ status: 409 })
-    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, false))
-      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'execute', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, false)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
 
     calls = givenLegacyPlugin({ source: { ...vhvOld, name: 'qdip-sdk-plugin:unrelated' } })
-    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
-      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
 
     calls = givenLegacyPlugin({ source: { ...vhvOld, status: 'inactive' } })
-    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
-      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
 
     calls = givenLegacyPlugin({ target: { ...linked, id: '12345678-1234-4234-8234-123456789abf' } })
-    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
-      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
   })
 
@@ -478,10 +500,12 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
       enabled: false,
     }
     const calls = givenLegacyPlugin({ published: targetRemote })
-    await expect(issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner))
-      .rejects.toMatchObject({ status: 422 })
-    await expect(issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner, true))
-      .rejects.toMatchObject({ status: 422 })
+    await expect(issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner)).rejects.toMatchObject({
+      status: 422,
+    })
+    await expect(
+      issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner, true)
+    ).rejects.toMatchObject({ status: 422 })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
     vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
     const issued = await issuePluginCredential(targetRemote.name, ['secretary.plan'], 'worker', owner, true)
@@ -491,34 +515,42 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
   })
 })
 
-
 describe('P0 #425: disconnected canonical Worker must never bypass admission', () => {
   const owner = {
     id: '368555767923594379',
     issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
   }
   const target = {
-    id: 'ff638747-1962-4a44-95ee-3902c28d949f', name: 'QDIP',
-    status: 'active', identity_provider: 'zitadel',
-    zitadel_organization_id: owner.id, zitadel_issuer: owner.issuer,
+    id: 'ff638747-1962-4a44-95ee-3902c28d949f',
+    name: 'QDIP',
+    status: 'active',
+    identity_provider: 'zitadel',
+    zitadel_organization_id: owner.id,
+    zitadel_issuer: owner.issuer,
   }
   const unavailable = {
     name: remoteId(target.id, 'secretary'),
-    source: 'remote', plugin_id: 'secretary', enabled: false,
-    published: true, capabilities: ['secretary.plan'],
+    source: 'remote',
+    plugin_id: 'secretary',
+    enabled: false,
+    published: true,
+    capabilities: ['secretary.plan'],
   }
 
   it('DENIES published disconnected remote even with migration flag and manual override', async () => {
     vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
     const calls: string[] = []
-    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
-      const path = new URL(input).pathname
-      calls.push((init.method ?? 'GET') + ' ' + path)
-      if (path.endsWith('/plugin-publications')) return Response.json([unavailable])
-      if (path.endsWith('/organizations')) return Response.json([target])
-      if (path.endsWith('/keys')) return Response.json([])
-      throw new Error('Unexpected Core request')
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const path = new URL(input).pathname
+        calls.push((init.method ?? 'GET') + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json([unavailable])
+        if (path.endsWith('/organizations')) return Response.json([target])
+        if (path.endsWith('/keys')) return Response.json([])
+        throw new Error('Unexpected Core request')
+      })
+    )
     await expect(
       issuePluginCredential(unavailable.name, ['secretary.plan'], 'worker', owner, true)
     ).rejects.toMatchObject({ status: 422 })
@@ -529,18 +561,24 @@ describe('P0 #425: disconnected canonical Worker must never bypass admission', (
     vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
     const external = {
       name: remoteId(target.id, 'untrusted-worker'),
-      source: 'remote', plugin_id: 'untrusted-worker', enabled: false,
-      published: false, capabilities: ['untrusted-worker.execute'],
+      source: 'remote',
+      plugin_id: 'untrusted-worker',
+      enabled: false,
+      published: false,
+      capabilities: ['untrusted-worker.execute'],
     }
     const calls: string[] = []
-    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
-      const path = new URL(input).pathname
-      calls.push((init.method ?? 'GET') + ' ' + path)
-      if (path.endsWith('/plugin-publications')) return Response.json([external])
-      if (path.endsWith('/organizations')) return Response.json([target])
-      if (path.endsWith('/keys')) return Response.json([])
-      throw new Error('Unexpected Core request')
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const path = new URL(input).pathname
+        calls.push((init.method ?? 'GET') + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json([external])
+        if (path.endsWith('/organizations')) return Response.json([target])
+        if (path.endsWith('/keys')) return Response.json([])
+        throw new Error('Unexpected Core request')
+      })
+    )
     await expect(
       issuePluginCredential(external.name, ['untrusted-worker.execute'], 'worker', owner, true)
     ).rejects.toMatchObject({ status: 422 })
@@ -556,59 +594,81 @@ describe('P0 #425: RO SDK-02 never reuses a stray legacy caller tenant', () => {
       issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
     }
     const target = {
-      id: 'ff638747-1962-4a44-95ee-3902c28d949f', name: 'QDIP',
-      status: 'active', identity_provider: 'zitadel',
-      zitadel_organization_id: owner.id, zitadel_issuer: owner.issuer,
+      id: 'ff638747-1962-4a44-95ee-3902c28d949f',
+      name: 'QDIP',
+      status: 'active',
+      identity_provider: 'zitadel',
+      zitadel_organization_id: owner.id,
+      zitadel_issuer: owner.issuer,
     }
     const ro = {
       id: 'cbe626fc-e287-4e23-8c1b-001858521c44',
-      name: 'qdip-sdk-plugin:route-optimizer-sdk02', status: 'active',
+      name: 'qdip-sdk-plugin:route-optimizer-sdk02',
+      status: 'active',
     }
     const strayCaller = {
       id: '23fade79-c21a-405e-bcb6-2603a7e5ea8b',
-      name: 'qdip-sdk-app:unmatched-ro-caller', status: 'active',
+      name: 'qdip-sdk-app:unmatched-ro-caller',
+      status: 'active',
     }
     const cap = 'route-optimizer.select-routes.v1'
     const remote = {
       name: remoteId(ro.id, 'route-optimizer-sdk02'),
-      plugin_id: 'route-optimizer-sdk02', source: 'remote', enabled: true,
+      plugin_id: 'route-optimizer-sdk02',
+      source: 'remote',
+      enabled: true,
       capabilities: [cap],
     }
     let generated = false
     let issueName = ''
     const requests: string[] = []
-    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
-      const path = new URL(input).pathname
-      const method = init.method ?? 'GET'
-      requests.push(method + ' ' + path)
-      if (path.endsWith('/plugin-publications')) return Response.json([remote])
-      if (method === 'GET' && path.endsWith('/organizations'))
-        return Response.json([target, ro, strayCaller])
-      if (method === 'GET' && path.endsWith('/keys')) {
-        if (!generated) return Response.json([])
-        const record = {
-          ...key(), name: issueName, org_id: target.id,
-          scopes: ['plugins:register'], allowed_capabilities: [cap],
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const path = new URL(input).pathname
+        const method = init.method ?? 'GET'
+        requests.push(method + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json([remote])
+        if (method === 'GET' && path.endsWith('/organizations')) return Response.json([target, ro, strayCaller])
+        if (method === 'GET' && path.endsWith('/keys')) {
+          if (!generated) return Response.json([])
+          const record = {
+            ...key(),
+            name: issueName,
+            org_id: target.id,
+            scopes: ['plugins:register'],
+            allowed_capabilities: [cap],
+          }
+          delete (record as { key?: string }).key
+          return Response.json([record])
         }
-        delete (record as { key?: string }).key
-        return Response.json([record])
-      }
-      if (method === 'POST' && path.endsWith('/keys')) {
-        const policy = JSON.parse(String(init.body)) as { name: string; scopes: string[]; allowed_capabilities: string[] }
-        expect(policy.scopes).toEqual(['plugins:register'])
-        expect(policy.allowed_capabilities).toEqual([cap])
-        issueName = policy.name
-        generated = true
-        return Response.json({
-          ...key(), name: issueName, org_id: target.id,
-          scopes: ['plugins:register'], allowed_capabilities: [cap],
-        }, { status: 201 })
-      }
-      throw new Error('Unexpected Core request')
-    }))
-    await expect(
-      issuePluginCredential('route-optimizer-sdk02', [cap], 'execute', owner, true)
-    ).rejects.toMatchObject({ status: 409 })
+        if (method === 'POST' && path.endsWith('/keys')) {
+          const policy = JSON.parse(String(init.body)) as {
+            name: string
+            scopes: string[]
+            allowed_capabilities: string[]
+          }
+          expect(policy.scopes).toEqual(['plugins:register'])
+          expect(policy.allowed_capabilities).toEqual([cap])
+          issueName = policy.name
+          generated = true
+          return Response.json(
+            {
+              ...key(),
+              name: issueName,
+              org_id: target.id,
+              scopes: ['plugins:register'],
+              allowed_capabilities: [cap],
+            },
+            { status: 201 }
+          )
+        }
+        throw new Error('Unexpected Core request')
+      })
+    )
+    await expect(issuePluginCredential('route-optimizer-sdk02', [cap], 'execute', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
     const result = await issuePluginCredential('route-optimizer-sdk02', [cap], 'worker', owner, true)
     expect(result.role).toBe('worker')
     expect(requests).toContain('POST /api/v1/organizations/' + target.id + '/keys')
@@ -617,7 +677,6 @@ describe('P0 #425: RO SDK-02 never reuses a stray legacy caller tenant', () => {
     expect(requests).not.toContain('POST /api/v1/organizations')
   })
 })
-
 
 describe('P0 #425: parallel legacy and canonical SDK registration', () => {
   it('requires the target opaque catalog ID and issues only a target-tenant caller key', async () => {
@@ -630,49 +689,87 @@ describe('P0 #425: parallel legacy and canonical SDK registration', () => {
     const sourcePluginId = remoteId(legacyId, 'secretary')
     const targetPluginId = remoteId(targetId, 'secretary')
     const organizations = [
-      { id: targetId, name: 'QDIP', status: 'active', identity_provider: 'zitadel',
-        zitadel_organization_id: owner.id, zitadel_issuer: owner.issuer },
+      {
+        id: targetId,
+        name: 'QDIP',
+        status: 'active',
+        identity_provider: 'zitadel',
+        zitadel_organization_id: owner.id,
+        zitadel_issuer: owner.issuer,
+      },
       { id: legacyId, name: 'qdip-sdk-app:vhv', status: 'active' },
     ]
     const catalog = [
-      { name: sourcePluginId, source: 'remote', plugin_id: 'secretary',
-        enabled: true, capabilities: ['secretary.plan'] },
-      { name: targetPluginId, source: 'remote', plugin_id: 'secretary',
-        enabled: true, capabilities: ['secretary.plan'] },
+      {
+        name: sourcePluginId,
+        source: 'remote',
+        plugin_id: 'secretary',
+        enabled: true,
+        capabilities: ['secretary.plan'],
+      },
+      {
+        name: targetPluginId,
+        source: 'remote',
+        plugin_id: 'secretary',
+        enabled: true,
+        capabilities: ['secretary.plan'],
+      },
     ]
     const requests: string[] = []
     let createdName = ''
     let issued = false
-    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
-      const path = new URL(input).pathname
-      const method = init.method ?? 'GET'
-      requests.push(method + ' ' + path)
-      if (path.endsWith('/plugin-publications')) return Response.json(catalog)
-      if (method === 'GET' && path.endsWith('/organizations')) return Response.json(organizations)
-      if (method === 'GET' && path.endsWith('/keys')) {
-        if (!issued) return Response.json([])
-        const row = { ...key(), org_id: targetId, name: createdName,
-          scopes: ['plugins:read', 'plugins:execute'], allowed_capabilities: ['secretary.plan'] }
-        delete (row as { key?: string }).key
-        return Response.json([row])
-      }
-      if (method === 'POST' && path.endsWith('/keys')) {
-        const policy = JSON.parse(String(init.body)) as { name: string; scopes: string[]; allowed_capabilities: string[] }
-        expect(policy.scopes).toEqual(['plugins:read', 'plugins:execute'])
-        expect(policy.allowed_capabilities).toEqual(['secretary.plan'])
-        createdName = policy.name
-        issued = true
-        return Response.json({ ...key(), org_id: targetId, name: createdName,
-          scopes: policy.scopes, allowed_capabilities: policy.allowed_capabilities }, { status: 201 })
-      }
-      throw new Error('Unexpected Core request: ' + method + ' ' + path)
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const path = new URL(input).pathname
+        const method = init.method ?? 'GET'
+        requests.push(method + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json(catalog)
+        if (method === 'GET' && path.endsWith('/organizations')) return Response.json(organizations)
+        if (method === 'GET' && path.endsWith('/keys')) {
+          if (!issued) return Response.json([])
+          const row = {
+            ...key(),
+            org_id: targetId,
+            name: createdName,
+            scopes: ['plugins:read', 'plugins:execute'],
+            allowed_capabilities: ['secretary.plan'],
+          }
+          delete (row as { key?: string }).key
+          return Response.json([row])
+        }
+        if (method === 'POST' && path.endsWith('/keys')) {
+          const policy = JSON.parse(String(init.body)) as {
+            name: string
+            scopes: string[]
+            allowed_capabilities: string[]
+          }
+          expect(policy.scopes).toEqual(['plugins:read', 'plugins:execute'])
+          expect(policy.allowed_capabilities).toEqual(['secretary.plan'])
+          createdName = policy.name
+          issued = true
+          return Response.json(
+            {
+              ...key(),
+              org_id: targetId,
+              name: createdName,
+              scopes: policy.scopes,
+              allowed_capabilities: policy.allowed_capabilities,
+            },
+            { status: 201 }
+          )
+        }
+        throw new Error('Unexpected Core request: ' + method + ' ' + path)
+      })
+    )
 
     // Shared SDK plugin_id has two registrations. Silent selection is unsafe.
-    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'execute', owner, true))
-      .rejects.toMatchObject({ status: 409 })
-    await expect(issuePluginCredential(sourcePluginId, ['secretary.plan'], 'execute', owner))
-      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'execute', owner, true)).rejects.toMatchObject({
+      status: 409,
+    })
+    await expect(issuePluginCredential(sourcePluginId, ['secretary.plan'], 'execute', owner)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(requests.every((call) => call.startsWith('GET '))).toBe(true)
 
     // Selecting the immutable *target* catalog ID resolves tenant unambiguously.
@@ -686,19 +783,28 @@ describe('P0 #425: parallel legacy and canonical SDK registration', () => {
 
   it('refuses a duplicate opaque catalog identity even if the manifests have the same capability', async () => {
     const owner = { id: ZITADEL_ID, issuer: OWNER.issuer }
-    const entry = { name: remoteId(ORG, 'secretary'), plugin_id: 'secretary',
-      source: 'remote', enabled: true, capabilities: ['secretary.plan'] }
+    const entry = {
+      name: remoteId(ORG, 'secretary'),
+      plugin_id: 'secretary',
+      source: 'remote',
+      enabled: true,
+      capabilities: ['secretary.plan'],
+    }
     const requests: string[] = []
-    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
-      const path = new URL(input).pathname
-      requests.push((init.method ?? 'GET') + ' ' + path)
-      if (path.endsWith('/plugin-publications')) return Response.json([entry, entry])
-      if (path.endsWith('/organizations')) return Response.json([org])
-      if (path.endsWith('/keys')) return Response.json([])
-      throw new Error('Unexpected Core request')
-    }))
-    await expect(issuePluginCredential(entry.name, ['secretary.plan'], 'worker', owner))
-      .rejects.toMatchObject({ status: 409 })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, init: RequestInit = {}) => {
+        const path = new URL(input).pathname
+        requests.push((init.method ?? 'GET') + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json([entry, entry])
+        if (path.endsWith('/organizations')) return Response.json([org])
+        if (path.endsWith('/keys')) return Response.json([])
+        throw new Error('Unexpected Core request')
+      })
+    )
+    await expect(issuePluginCredential(entry.name, ['secretary.plan'], 'worker', owner)).rejects.toMatchObject({
+      status: 409,
+    })
     expect(requests.every((call) => call.startsWith('GET '))).toBe(true)
   })
 })
