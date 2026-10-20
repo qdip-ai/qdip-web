@@ -328,21 +328,13 @@ function registeredRemoteOrg(
 ): CoreOrg | null {
   if (plugin.source !== 'remote') return null
   if (!plugin.plugin_id || !PLUGIN_ID.test(plugin.plugin_id)) return null
-  const slug = [...plugin.plugin_id]
-    .map((char) => (/^[A-Za-z0-9_.-]$/.test(char) ? char : '-'))
-    .join('')
-    .slice(0, 98)
   const matches = data.orgs.filter((org) => {
     if (
       !(PREFIXES.some((prefix) => org.name.startsWith(prefix)) || org.identity_provider === 'zitadel') ||
       !UUID.test(org.id)
     )
       return false
-    const fingerprint = createHash('sha256')
-      .update(org.id + '\0' + plugin.plugin_id)
-      .digest('hex')
-      .slice(0, 16)
-    return plugin.name === 'remote-' + fingerprint + '-' + slug
+    return plugin.name === remoteCatalogId(org.id, plugin.plugin_id!)
   })
   if (matches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous remote plugin tenant')
   return matches[0] ?? null
