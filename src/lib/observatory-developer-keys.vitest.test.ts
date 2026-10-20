@@ -451,6 +451,11 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
       .rejects.toMatchObject({ status: 409 })
     expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
 
+    calls = givenLegacyPlugin({ source: { ...vhvOld, status: 'inactive' } })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
+      .rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+
     calls = givenLegacyPlugin({ target: { ...linked, id: '12345678-1234-4234-8234-123456789abf' } })
     await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
       .rejects.toMatchObject({ status: 409 })
