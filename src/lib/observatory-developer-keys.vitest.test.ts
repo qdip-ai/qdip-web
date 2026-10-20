@@ -470,3 +470,74 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
     expect(calls).not.toContain('POST /api/v1/organizations')
   })
 })
+
+
+describe('P0 #425: RO SDK-02 never reuses a stray legacy caller tenant', () => {
+  it('allows only an explicit owner-scoped first-party RO Worker bootstrap', async () => {
+    vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
+    const owner = {
+      id: '368555767923594379',
+      issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
+    }
+    const target = {
+      id: 'ff638747-1962-4a44-95ee-3902c28d949f', name: 'QDIP',
+      status: 'active', identity_provider: 'zitadel',
+      zitadel_organization_id: owner.id, zitadel_issuer: owner.issuer,
+    }
+    const ro = {
+      id: 'cbe626fc-e287-4e23-8c1b-001858521c44',
+      name: 'qdip-sdk-plugin:route-optimizer-sdk02', status: 'active',
+    }
+    const strayCaller = {
+      id: '23fade79-c21a-405e-bcb6-2603a7e5ea8b',
+      name: 'qdip-sdk-app:unmatched-ro-caller', status: 'active',
+    }
+    const cap = 'route-optimizer.select-routes.v1'
+    const remote = {
+      name: remoteId(ro.id, 'route-optimizer-sdk02'),
+      plugin_id: 'route-optimizer-sdk02', source: 'remote', enabled: true,
+      capabilities: [cap],
+    }
+    let generated = false
+    let issueName = ''
+    const requests: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const path = new URL(input).pathname
+      const method = init.method ?? 'GET'
+      requests.push(method + ' ' + path)
+      if (path.endsWith('/plugin-publications')) return Response.json([remote])
+      if (method === 'GET' && path.endsWith('/organizations'))
+        return Response.json([target, ro, strayCaller])
+      if (method === 'GET' && path.endsWith('/keys')) {
+        if (!generated) return Response.json([])
+        const record = {
+          ...key(), name: issueName, org_id: target.id,
+          scopes: ['plugins:register'], allowed_capabilities: [cap],
+        }
+        delete (record as { key?: string }).key
+        return Response.json([record])
+      }
+      if (method === 'POST' && path.endsWith('/keys')) {
+        const policy = JSON.parse(String(init.body)) as { name: string; scopes: string[]; allowed_capabilities: string[] }
+        expect(policy.scopes).toEqual(['plugins:register'])
+        expect(policy.allowed_capabilities).toEqual([cap])
+        issueName = policy.name
+        generated = true
+        return Response.json({
+          ...key(), name: issueName, org_id: target.id,
+          scopes: ['plugins:register'], allowed_capabilities: [cap],
+        }, { status: 201 })
+      }
+      throw new Error('Unexpected Core request')
+    }))
+    await expect(
+      issuePluginCredential('route-optimizer-sdk02', [cap], 'execute', owner, true)
+    ).rejects.toMatchObject({ status: 409 })
+    const result = await issuePluginCredential('route-optimizer-sdk02', [cap], 'worker', owner, true)
+    expect(result.role).toBe('worker')
+    expect(requests).toContain('POST /api/v1/organizations/' + target.id + '/keys')
+    expect(requests.some((item) => item.includes(strayCaller.id))).toBe(false)
+    expect(requests.some((item) => item.includes(ro.id + '/keys'))).toBe(false)
+    expect(requests).not.toContain('POST /api/v1/organizations')
+  })
+})
