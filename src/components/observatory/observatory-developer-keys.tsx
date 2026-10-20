@@ -468,7 +468,10 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
                   type="checkbox"
                   className={styles.capabilityInput}
                   checked={manual}
-                  onChange={(event) => setManual(event.target.checked)}
+                  onChange={(event) => {
+                    setManual(event.target.checked)
+                    if (event.target.checked) setRole('worker')
+                  }}
                 />
                 <span className={styles.capabilityText}>{t.custom}</span>
               </label>
@@ -502,7 +505,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
                   onChange={(event) => setRole(event.target.value as 'execute' | 'worker')}
                   className="min-h-11 rounded-lg border border-white/20 bg-slate-950 px-3"
                 >
-                  <option value="execute">{t.execute}</option>
+                  {!manual && <option value="execute">{t.execute}</option>}
                   <option value="worker">{t.worker}</option>
                 </select>
               </label>
