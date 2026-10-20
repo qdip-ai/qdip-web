@@ -58,6 +58,7 @@ function isSdk425LegacyWorkerBootstrap(
     selected.issuer === SDK425_MIGRATION.issuer &&
     targetTenant.id === SDK425_MIGRATION.targetTenant &&
     remote.source === 'remote' &&
+    remote.enabled === true &&
     remote.plugin_id === pluginId &&
     remote.name !== pluginId &&
     sourceTenant.id === legacy.tenant &&
