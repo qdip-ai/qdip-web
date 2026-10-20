@@ -79,6 +79,8 @@ describe('Observatory mobile SDK key form', () => {
     expect(manual.closest('label')).toBeTruthy()
     await user.click(manual)
     expect((manual as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole('combobox', { name: 'Тип ключа' }) as HTMLSelectElement).value).toBe('worker')
+    expect(screen.queryByRole('option', { name: 'Виклик плагіна' })).toBeNull()
   })
 
   it('keeps a very long capability slug in the same label as its checkbox', async () => {
