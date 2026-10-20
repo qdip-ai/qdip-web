@@ -69,6 +69,34 @@ function isSdk425LegacyWorkerBootstrap(
 }
 
 
+function isSdk425CanonicalWorkerRecovery(
+  pluginId: string,
+  capabilities: string[],
+  role: Role,
+  selected: VerifiedOrganization,
+  targetTenant: CoreOrg,
+  remote: CatalogPlugin,
+  manual: boolean
+): boolean {
+  const legacy = SDK425_MIGRATION.legacy[pluginId as keyof typeof SDK425_MIGRATION.legacy]
+  return (
+    process.env.QDIP_SDK425_MIGRATION_BOOTSTRAP === 'enabled' &&
+    manual &&
+    role === 'worker' &&
+    !!legacy &&
+    selected.id === SDK425_MIGRATION.organizationId &&
+    selected.issuer === SDK425_MIGRATION.issuer &&
+    targetTenant.id === SDK425_MIGRATION.targetTenant &&
+    remote.source === 'remote' &&
+    remote.plugin_id === pluginId &&
+    remote.name === remoteCatalogId(targetTenant.id, pluginId) &&
+    remote.published === false &&
+    exact(capabilities, [legacy.capability]) &&
+    exact(remote.capabilities, [legacy.capability])
+  )
+}
+
+
 type Role = keyof typeof ROLE_SCOPES
 type CoreOrg = {
   id: string
@@ -284,6 +312,16 @@ async function metadata(selected: VerifiedOrganization): Promise<{
  * matching capability names, a display name, or an opaque catalog id.
  * Match the Core-generated fingerprint against ONLY existing managed orgs.
  */
+function remoteCatalogId(tenantId: string, pluginId: string): string {
+  const slug = [...pluginId]
+    .map((char) => (/^[A-Za-z0-9_.-]$/.test(char) ? char : '-'))
+    .join('')
+    .slice(0, 98)
+  const fingerprint = createHash('sha256').update(tenantId + '\\0' + pluginId)
+    .digest('hex').slice(0, 16)
+  return 'remote-' + fingerprint + '-' + slug
+}
+
 function registeredRemoteOrg(
   plugin: CatalogPlugin,
   data: Pick<Awaited<ReturnType<typeof metadata>>, 'orgs'>
@@ -528,8 +566,13 @@ export async function issuePluginCredential(
       throw new DeveloperKeyError(409, 'Remote plugin belongs to a legacy or different tenant; migration required')
     // A disconnected, registered Worker must be able to recover a scoped
     // registration credential. That does not authorize invoking it.
-    if (!registered.enabled && role !== 'worker')
-      throw new DeveloperKeyError(422, 'Plugin unavailable for invoking')
+    if (!registered.enabled) {
+      if (!isSdk425CanonicalWorkerRecovery(
+        registered.plugin_id!, capabilities, role, selected, tenant, registered, manual
+      )) {
+        throw new DeveloperKeyError(422, 'Disconnected or non-admitted remote plugin cannot receive a new key')
+      }
+    }
     credentialPluginId = registered.plugin_id!
   } else if (registered && !registered.enabled) {
     throw new DeveloperKeyError(422, 'Plugin disabled')
