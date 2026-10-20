@@ -15,6 +15,51 @@ const ROLE_SCOPES = {
   worker: ['plugins:register'],
 } as const
 
+// #425: these are the two existing development Workers, not tenant aliases.
+// A verified QDIP owner may replace their registration keys in QDIP itself.
+// Other tenants/plugins and all invoke credentials remain isolated.
+const RECREATE_WORKERS = {
+  secretary: {
+    capability: 'secretary.plan',
+    sourceTenant: '1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab',
+    sourceName: 'qdip-sdk-app:vhv',
+  },
+  'route-optimizer-sdk02': {
+    capability: 'route-optimizer.select-routes.v1',
+    sourceTenant: 'cbe626fc-e287-4e23-8c1b-001858521c44',
+    sourceName: 'qdip-sdk-plugin:route-optimizer-sdk02',
+  },
+} as const
+
+function canRecreateWorker(
+  pluginId: string,
+  capabilities: string[],
+  role: Role,
+  manual: boolean,
+  selected: VerifiedOrganization,
+  target: CoreOrg,
+  remote: CatalogPlugin,
+  source: CoreOrg
+): boolean {
+  const legacy = RECREATE_WORKERS[pluginId as keyof typeof RECREATE_WORKERS]
+  return (
+    manual &&
+    role === 'worker' &&
+    !!legacy &&
+    selected.id === '368555767923594379' &&
+    selected.issuer === 'https://mentality-rmwj0i.eu1.zitadel.cloud' &&
+    target.id === 'ff638747-1962-4a44-95ee-3902c28d949f' &&
+    remote.source === 'remote' &&
+    remote.plugin_id === pluginId &&
+    remote.enabled === true &&
+    source.id === legacy.sourceTenant &&
+    source.name === legacy.sourceName &&
+    source.status === 'active' &&
+    exact(capabilities, [legacy.capability]) &&
+    exact(remote.capabilities, [legacy.capability])
+  )
+}
+
 type Role = keyof typeof ROLE_SCOPES
 type CoreOrg = {
   id: string
@@ -448,13 +493,16 @@ export async function issuePluginCredential(
   // Manual bootstrap of a plugin already registered under an opaque catalog
   // name must reuse that registration, not create a new tenant.
   const remoteMatches = data.catalog.filter((p) => p.source === 'remote' && p.plugin_id === pluginId)
-  if (remoteMatches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous registered plugin ID')
+  // Multiple registrations cannot be resolved from a bare SDK ID.
+  // Exact catalog IDs remain unambiguous after a Worker re-registers.
+  if (!direct && remoteMatches.length > 1)
+    throw new DeveloperKeyError(409, 'Multiple registrations; select the exact new catalog ID')
   const registered = direct ?? remoteMatches[0]
   if (registered) {
     if (!registered.enabled || capabilities.some((c) => !registered.capabilities.includes(c)))
       throw new DeveloperKeyError(422, 'Capabilities not registered or plugin disabled')
-  } else if (!manual) {
-    throw new DeveloperKeyError(422, 'Plugin is not registered; use explicit manual bootstrap')
+  } else if (!manual || role !== 'worker') {
+    throw new DeveloperKeyError(422, 'Unregistered plugins require a Worker registration key')
   }
   const tenant = verifiedCoreTenant(data, selected)
   const scopes = [...ROLE_SCOPES[role]]
@@ -463,9 +511,13 @@ export async function issuePluginCredential(
   if (registered?.source === 'remote') {
     const registrationOrg = registeredRemoteOrg(registered, data)
     if (!registrationOrg) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
-    // Old SDK per-plugin UUID orgs must be migrated before issuing new keys.
-    if (registrationOrg.id !== tenant.id)
-      throw new DeveloperKeyError(409, 'Remote plugin belongs to a legacy or different tenant; migration required')
+    // Two existing first-party development Workers may be re-registered
+    // directly in QDIP. This NEVER grants an invoke key to another tenant.
+    if (
+      registrationOrg.id !== tenant.id &&
+      !canRecreateWorker(pluginId, capabilities, role, manual, selected, tenant, registered, registrationOrg)
+    )
+      throw new DeveloperKeyError(409, 'Remote plugin belongs to another tenant; create a scoped Worker key only')
     credentialPluginId = registered.plugin_id!
   }
   // The same capability can be present in multiple tenant organizations:
