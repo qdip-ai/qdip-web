@@ -541,3 +541,88 @@ describe('P0 #425: RO SDK-02 never reuses a stray legacy caller tenant', () => {
     expect(requests).not.toContain('POST /api/v1/organizations')
   })
 })
+
+
+describe('P0 #425: parallel legacy and canonical SDK registration', () => {
+  it('requires the target opaque catalog ID and issues only a target-tenant caller key', async () => {
+    const owner = {
+      id: '368555767923594379',
+      issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
+    }
+    const targetId = 'ff638747-1962-4a44-95ee-3902c28d949f'
+    const legacyId = '1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab'
+    const sourcePluginId = remoteId(legacyId, 'secretary')
+    const targetPluginId = remoteId(targetId, 'secretary')
+    const organizations = [
+      { id: targetId, name: 'QDIP', status: 'active', identity_provider: 'zitadel',
+        zitadel_organization_id: owner.id, zitadel_issuer: owner.issuer },
+      { id: legacyId, name: 'qdip-sdk-app:vhv', status: 'active' },
+    ]
+    const catalog = [
+      { name: sourcePluginId, source: 'remote', plugin_id: 'secretary',
+        enabled: true, capabilities: ['secretary.plan'] },
+      { name: targetPluginId, source: 'remote', plugin_id: 'secretary',
+        enabled: true, capabilities: ['secretary.plan'] },
+    ]
+    const requests: string[] = []
+    let createdName = ''
+    let issued = false
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const path = new URL(input).pathname
+      const method = init.method ?? 'GET'
+      requests.push(method + ' ' + path)
+      if (path.endsWith('/plugin-publications')) return Response.json(catalog)
+      if (method === 'GET' && path.endsWith('/organizations')) return Response.json(organizations)
+      if (method === 'GET' && path.endsWith('/keys')) {
+        if (!issued) return Response.json([])
+        const row = { ...key(), org_id: targetId, name: createdName,
+          scopes: ['plugins:read', 'plugins:execute'], allowed_capabilities: ['secretary.plan'] }
+        delete (row as { key?: string }).key
+        return Response.json([row])
+      }
+      if (method === 'POST' && path.endsWith('/keys')) {
+        const policy = JSON.parse(String(init.body)) as { name: string; scopes: string[]; allowed_capabilities: string[] }
+        expect(policy.scopes).toEqual(['plugins:read', 'plugins:execute'])
+        expect(policy.allowed_capabilities).toEqual(['secretary.plan'])
+        createdName = policy.name
+        issued = true
+        return Response.json({ ...key(), org_id: targetId, name: createdName,
+          scopes: policy.scopes, allowed_capabilities: policy.allowed_capabilities }, { status: 201 })
+      }
+      throw new Error('Unexpected Core request: ' + method + ' ' + path)
+    }))
+
+    // Shared SDK plugin_id has two registrations. Silent selection is unsafe.
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'execute', owner, true))
+      .rejects.toMatchObject({ status: 409 })
+    await expect(issuePluginCredential(sourcePluginId, ['secretary.plan'], 'execute', owner))
+      .rejects.toMatchObject({ status: 409 })
+    expect(requests.every((call) => call.startsWith('GET '))).toBe(true)
+
+    // Selecting the immutable *target* catalog ID resolves tenant unambiguously.
+    const result = await issuePluginCredential(targetPluginId, ['secretary.plan'], 'execute', owner)
+    expect(result.role).toBe('execute')
+    expect(result.pluginId).toBe(targetPluginId)
+    expect(requests).toContain('POST /api/v1/organizations/' + targetId + '/keys')
+    expect(requests.some((call) => call.includes(legacyId + '/keys'))).toBe(false)
+    expect(requests.some((call) => call.includes(legacyId + '/keys/'))).toBe(false)
+  })
+
+  it('refuses a duplicate opaque catalog identity even if the manifests have the same capability', async () => {
+    const owner = { id: ZITADEL_ID, issuer: OWNER.issuer }
+    const entry = { name: remoteId(ORG, 'secretary'), plugin_id: 'secretary',
+      source: 'remote', enabled: true, capabilities: ['secretary.plan'] }
+    const requests: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (input: string, init: RequestInit = {}) => {
+      const path = new URL(input).pathname
+      requests.push((init.method ?? 'GET') + ' ' + path)
+      if (path.endsWith('/plugin-publications')) return Response.json([entry, entry])
+      if (path.endsWith('/organizations')) return Response.json([org])
+      if (path.endsWith('/keys')) return Response.json([])
+      throw new Error('Unexpected Core request')
+    }))
+    await expect(issuePluginCredential(entry.name, ['secretary.plan'], 'worker', owner))
+      .rejects.toMatchObject({ status: 409 })
+    expect(requests.every((call) => call.startsWith('GET '))).toBe(true)
+  })
+})
