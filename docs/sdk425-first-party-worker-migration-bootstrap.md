@@ -31,7 +31,8 @@ Both must target canonical Core UUID
 `https://mentality-rmwj0i.eu1.zitadel.cloud` issuer/organization.
 The existing server verifies `ORG_OWNER` per request. The code checks
 the *source catalog fingerprint* resolves to the explicit legacy tenant
-and source name; it does not accept arbitrary plugin/capability names,
+and source name; the legacy Worker must still be live (`enabled=true`) and
+its legacy Core organization active at issuance time. It does not accept arbitrary plugin/capability names,
 a forged tenant, an unrelated organization's registration, or
 an `execute` (caller) key via this temporary exception.
 
