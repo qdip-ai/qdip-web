@@ -69,7 +69,6 @@ function isSdk425LegacyWorkerBootstrap(
   )
 }
 
-
 function isSdk425CanonicalWorkerRecovery(
   pluginId: string,
   capabilities: string[],
@@ -96,7 +95,6 @@ function isSdk425CanonicalWorkerRecovery(
     exact(remote.capabilities, [legacy.capability])
   )
 }
-
 
 type Role = keyof typeof ROLE_SCOPES
 type CoreOrg = {
@@ -318,8 +316,10 @@ function remoteCatalogId(tenantId: string, pluginId: string): string {
     .map((char) => (/^[A-Za-z0-9_.-]$/.test(char) ? char : '-'))
     .join('')
     .slice(0, 98)
-  const fingerprint = createHash('sha256').update(tenantId + '\0' + pluginId)
-    .digest('hex').slice(0, 16)
+  const fingerprint = createHash('sha256')
+    .update(tenantId + '\0' + pluginId)
+    .digest('hex')
+    .slice(0, 16)
   return 'remote-' + fingerprint + '-' + slug
 }
 
@@ -551,18 +551,26 @@ export async function issuePluginCredential(
   if (registered?.source === 'remote') {
     const registrationOrg = registeredRemoteOrg(registered, data)
     if (!registrationOrg) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
-    const legacyMigration = registrationOrg.id !== tenant.id &&
-      isSdk425LegacyWorkerBootstrap(
-        pluginId, capabilities, role, selected, tenant, registered, registrationOrg, manual
-      )
+    const legacyMigration =
+      registrationOrg.id !== tenant.id &&
+      isSdk425LegacyWorkerBootstrap(pluginId, capabilities, role, selected, tenant, registered, registrationOrg, manual)
     if (registrationOrg.id !== tenant.id && !legacyMigration)
       throw new DeveloperKeyError(409, 'Remote plugin belongs to a legacy or different tenant; migration required')
     // A disconnected, registered Worker must be able to recover a scoped
     // registration credential. That does not authorize invoking it.
     if (!registered.enabled) {
-      if (!legacyMigration && !isSdk425CanonicalWorkerRecovery(
-        registered.plugin_id!, capabilities, role, selected, tenant, registered, manual
-      )) {
+      if (
+        !legacyMigration &&
+        !isSdk425CanonicalWorkerRecovery(
+          registered.plugin_id!,
+          capabilities,
+          role,
+          selected,
+          tenant,
+          registered,
+          manual
+        )
+      ) {
         throw new DeveloperKeyError(422, 'Disconnected or non-admitted remote plugin cannot receive a new key')
       }
     }
