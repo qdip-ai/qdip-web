@@ -15,6 +15,59 @@ const ROLE_SCOPES = {
   worker: ['plugins:register'],
 } as const
 
+/**
+ * #425: one-time, opt-in first-party migration of exactly these legacy SDK-02
+ * registrations. NEVER enable for arbitrary third-party plugins. No new Core
+ * organization is created, and a legacy key is neither copied nor revoked.
+ */
+const SDK425_MIGRATION = {
+  organizationId: '368555767923594379',
+  issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
+  targetTenant: 'ff638747-1962-4a44-95ee-3902c28d949f',
+  legacy: {
+    secretary: {
+      tenant: '1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab',
+      organizationName: 'qdip-sdk-app:vhv',
+      capability: 'secretary.plan',
+    },
+    'route-optimizer-sdk02': {
+      tenant: 'cbe626fc-e287-4e23-8c1b-001858521c44',
+      organizationName: 'qdip-sdk-plugin:route-optimizer-sdk02',
+      capability: 'route-optimizer.select-routes.v1',
+    },
+  },
+} as const
+
+function isSdk425LegacyWorkerBootstrap(
+  pluginId: string,
+  capabilities: string[],
+  role: Role,
+  selected: VerifiedOrganization,
+  targetTenant: CoreOrg,
+  remote: CatalogPlugin,
+  sourceTenant: CoreOrg,
+  manual: boolean
+): boolean {
+  const legacy = SDK425_MIGRATION.legacy[pluginId as keyof typeof SDK425_MIGRATION.legacy]
+  return (
+    process.env.QDIP_SDK425_MIGRATION_BOOTSTRAP === 'enabled' &&
+    manual &&
+    role === 'worker' &&
+    !!legacy &&
+    selected.id === SDK425_MIGRATION.organizationId &&
+    selected.issuer === SDK425_MIGRATION.issuer &&
+    targetTenant.id === SDK425_MIGRATION.targetTenant &&
+    remote.source === 'remote' &&
+    remote.plugin_id === pluginId &&
+    remote.name !== pluginId &&
+    sourceTenant.id === legacy.tenant &&
+    sourceTenant.name === legacy.organizationName &&
+    exact(capabilities, [legacy.capability]) &&
+    exact(remote.capabilities, [legacy.capability])
+  )
+}
+
+
 type Role = keyof typeof ROLE_SCOPES
 type CoreOrg = {
   id: string
@@ -450,12 +503,11 @@ export async function issuePluginCredential(
   const remoteMatches = data.catalog.filter((p) => p.source === 'remote' && p.plugin_id === pluginId)
   if (remoteMatches.length > 1) throw new DeveloperKeyError(409, 'Ambiguous registered plugin ID')
   const registered = direct ?? remoteMatches[0]
-  if (registered) {
-    if (!registered.enabled || capabilities.some((c) => !registered.capabilities.includes(c)))
-      throw new DeveloperKeyError(422, 'Capabilities not registered or plugin disabled')
-  } else if (!manual) {
+  if (registered && capabilities.some((c) => !registered.capabilities.includes(c)))
+    throw new DeveloperKeyError(422, 'Capabilities not registered for this plugin')
+  if (!registered && !manual)
     throw new DeveloperKeyError(422, 'Plugin is not registered; use explicit manual bootstrap')
-  }
+
   const tenant = verifiedCoreTenant(data, selected)
   const scopes = [...ROLE_SCOPES[role]]
   const org: CoreOrg = tenant
@@ -463,10 +515,19 @@ export async function issuePluginCredential(
   if (registered?.source === 'remote') {
     const registrationOrg = registeredRemoteOrg(registered, data)
     if (!registrationOrg) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
-    // Old SDK per-plugin UUID orgs must be migrated before issuing new keys.
-    if (registrationOrg.id !== tenant.id)
+    const legacyMigration = registrationOrg.id !== tenant.id &&
+      isSdk425LegacyWorkerBootstrap(
+        pluginId, capabilities, role, selected, tenant, registered, registrationOrg, manual
+      )
+    if (registrationOrg.id !== tenant.id && !legacyMigration)
       throw new DeveloperKeyError(409, 'Remote plugin belongs to a legacy or different tenant; migration required')
+    // A disconnected, registered Worker must be able to recover a scoped
+    // registration credential. That does not authorize invoking it.
+    if (!registered.enabled && role !== 'worker')
+      throw new DeveloperKeyError(422, 'Plugin unavailable for invoking')
     credentialPluginId = registered.plugin_id!
+  } else if (registered && !registered.enabled) {
+    throw new DeveloperKeyError(422, 'Plugin disabled')
   }
   // The same capability can be present in multiple tenant organizations:
   // duplicate detection must be scoped to the resolved registration owner.
