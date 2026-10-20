@@ -317,7 +317,7 @@ function remoteCatalogId(tenantId: string, pluginId: string): string {
     .map((char) => (/^[A-Za-z0-9_.-]$/.test(char) ? char : '-'))
     .join('')
     .slice(0, 98)
-  const fingerprint = createHash('sha256').update(tenantId + '\\0' + pluginId)
+  const fingerprint = createHash('sha256').update(tenantId + '\0' + pluginId)
     .digest('hex').slice(0, 16)
   return 'remote-' + fingerprint + '-' + slug
 }
