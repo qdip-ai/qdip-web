@@ -416,11 +416,16 @@ describe('Direct first-party Worker re-registration in linked QDIP', () => {
           }])
         }
         if (method === 'POST' && path.endsWith('/keys')) {
-          posted = JSON.parse(String(init.body))
-          createdName = (posted as { name: string }).name
+          const policy = JSON.parse(String(init.body)) as {
+            name: string
+            scopes: string[]
+            allowed_capabilities: string[]
+          }
+          posted = policy
+          createdName = policy.name
           return Response.json({
-            ...key(), org_id: target, name: createdName, scopes: posted.scopes,
-            allowed_capabilities: posted.allowed_capabilities,
+            ...key(), org_id: target, name: createdName, scopes: policy.scopes,
+            allowed_capabilities: policy.allowed_capabilities,
           }, { status: 201 })
         }
         throw Error('Unexpected path ' + method + ' ' + path)
