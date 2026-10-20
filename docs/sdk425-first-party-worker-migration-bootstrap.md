@@ -44,7 +44,13 @@ bootstrap operation.
 Once a real target Worker has registered, use its **new opaque Core catalog
 ID** in the normal UI to create a separately scoped `execute` caller
 credential. Do **not** choose the legacy catalog card or assume that
-matching capability implies matching organization.
+matching capability implies matching organization. When both old and new
+registrations coexist, a generic SDK `plugin_id` is deliberately rejected as
+ambiguous, but the **exact target catalog ID** is accepted and must match the
+verified canonical Core tenant. This does not grant access to the old tenant.
+The source legacy organization must also remain active during the narrowly
+permitted temporary Worker bootstrap; stale/inactive legacy source identities
+are refused.
 
 A disconnected Worker already registered under the exact verified
 canonical tenant can also issue a replacement Worker registration key
