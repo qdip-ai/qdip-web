@@ -372,7 +372,7 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
     name: remoteId(vhvOld.id, 'secretary'),
     plugin_id: 'secretary',
     source: 'remote',
-    enabled: false,
+    enabled: true,
     capabilities: ['secretary.plan'],
     ui: { label: 'VHV' },
   }
@@ -435,6 +435,14 @@ describe('P0 #425: first-party legacy Worker recovery and bootstrap', () => {
     expect(calls).toContain('POST /api/v1/organizations/' + tenant + '/keys')
     expect(calls).not.toContain('POST /api/v1/organizations')
     expect(calls.some((call) => call.includes(vhvOld.id + '/keys'))).toBe(false)
+  })
+
+  it('refuses bootstrap for an offline source Worker despite the migration flag', async () => {
+    vi.stubEnv('QDIP_SDK425_MIGRATION_BOOTSTRAP', 'enabled')
+    const calls = givenLegacyPlugin({ published: { ...vhv, enabled: false } })
+    await expect(issuePluginCredential('secretary', ['secretary.plan'], 'worker', owner, true))
+      .rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
   })
 
   it('never permits execute/cross-tenant/forged legacy bootstrap even with the flag enabled', async () => {
