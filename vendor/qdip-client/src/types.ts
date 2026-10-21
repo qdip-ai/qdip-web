@@ -106,6 +106,7 @@ export interface PluginCatalogEntry {
   /** Present only after an explicit platform-admin destination review. */
   application_launch_url?: string | null;
   launch_url_verified?: boolean;
+  security?: PluginSecurityState;
 }
 
 export interface PluginCatalogUpdate {
@@ -126,4 +127,67 @@ export interface PluginCatalogUpdate {
   actor: string;
   deadlineMs?: number;
   signal?: AbortSignal;
+}
+
+/** Registry-level quarantine survives worker reconnect and version changes. */
+export interface PluginSecurityState {
+  state: 'pending_review' | 'approved' | 'quarantined' | 'revoked';
+  reason?: string | null;
+  review_reference?: string | null;
+  approval_source?: string | null;
+  critical_block?: boolean;
+  last_scan?: {
+    source_sha256: string;
+    source_kind: 'reviewer_supplied_unverified';
+    language: string;
+    findings: Array<{ id: string; severity: 'critical' | 'review'; line: number }>;
+    result: 'critical' | 'review' | 'no_signatures';
+    coverage: string;
+  } | null;
+}
+export interface PluginSecurityResult {
+  name: string;
+  revision: number;
+  security: PluginSecurityState;
+  published: boolean;
+}
+export interface PluginSourceScanInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  sourceCode: string;
+  language: 'python' | 'javascript' | 'typescript' | 'shell';
+  signal?: AbortSignal;
+  deadlineMs?: number;
+}
+export interface PluginQuarantineInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  quarantined: boolean;
+  reason: string;
+  signal?: AbortSignal;
+  deadlineMs?: number;
+}
+
+/** Explicit manual risk acceptance, not a code/artifact safety attestation. */
+export interface PluginApprovalInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  reason: string;
+  reviewReference: string;
+  riskAcknowledged: true;
+  signal?: AbortSignal;
+  deadlineMs?: number;
+}
+
+/** Terminal and audited removal of a Worker identity's execution grant. */
+export interface PluginRevokeInput {
+  expectedRevision: number;
+  pluginVersion: string;
+  actor: string;
+  reason: string;
+  signal?: AbortSignal;
+  deadlineMs?: number;
 }

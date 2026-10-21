@@ -49,6 +49,8 @@ export function visibleUseCases(records: readonly CorePluginPublication[]): stri
   return DIP_USE_CASES.filter((item) => {
     const record = byName.get(item.plugin.id)
     if (!record) return LEGACY_PUBLIC.has(item.id)
+    if (record.source === 'remote' && record.security?.state !== 'approved') return false
+    if (record.security?.state === 'quarantined' || record.security?.state === 'revoked') return false
     if (!record.enabled || !record.capabilities.includes(item.plugin.capability)) return false
     if (record.published === null) return LEGACY_PUBLIC.has(item.id)
     return (
@@ -82,6 +84,9 @@ export function publishedPluginEntries(records: readonly CorePluginPublication[]
       // Preserve published details only for disconnected remote SDK workers.
       // Locally disabled embedded plugins must still disappear from public listings.
       (plugin.enabled || plugin.source === 'remote') &&
+      (plugin.source !== 'remote' || plugin.security?.state === 'approved') &&
+      plugin.security?.state !== 'quarantined' &&
+      plugin.security?.state !== 'revoked' &&
       plugin.published === true &&
       plugin.published_version === plugin.version &&
       typeof plugin.capability_id === 'string' &&

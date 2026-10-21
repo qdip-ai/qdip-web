@@ -13,6 +13,7 @@ const secretary = {
   name: 'remote-qa-secretary',
   plugin_id: 'secretary',
   source: 'remote',
+  security: { state: 'approved', approval_source: 'trusted_first_party_manual' },
   description: 'Decision-aware planning of commitments',
   version: '0.1.0',
   enabled: true,
@@ -372,4 +373,13 @@ describe('Observatory inline plugin editing', () => {
       launch_url_verified: false,
     })
   })
+})
+
+it('never allows publishing a remote Worker without a security approval', async () => {
+  const unapproved = { ...secretary, security: { state: 'pending_review' } }
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply({ plugins: [unapproved] })))
+  render(<ObservatoryPluginAdmin locale="uk" />)
+  await loaded()
+  fireEvent.click(card('VHV — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
+  expect(card('VHV — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
 })

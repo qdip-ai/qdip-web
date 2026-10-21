@@ -1,6 +1,6 @@
 import { QdipError, type QdipErrorCode } from './errors';
-import { parseCapabilitiesResponse, parseInvokeResponse, parsePluginCatalog, parsePluginCatalogEntry, safePluginLaunchUrl } from './validation';
-import type { CapabilitiesResponse, InvokeOptions, InvokeResponse, QdipClientOptions, PluginCatalogEntry, PluginCatalogUpdate } from './types';
+import { parseCapabilitiesResponse, parseInvokeResponse, parsePluginCatalog, parsePluginCatalogEntry, parsePluginSecurityResult, safePluginLaunchUrl } from './validation';
+import type { CapabilitiesResponse, InvokeOptions, InvokeResponse, QdipClientOptions, PluginCatalogEntry, PluginCatalogUpdate, PluginSecurityResult, PluginSourceScanInput, PluginQuarantineInput, PluginApprovalInput, PluginRevokeInput } from './types';
 
 const DEFAULT_INVOKE_DEADLINE_MS = 45_000;
 const DISCOVERY_DEADLINE_MS = 15_000;
@@ -87,6 +87,10 @@ export class QdipClient {
   readonly catalog: {
     list: (options?: { signal?: AbortSignal; deadlineMs?: number }) => Promise<PluginCatalogEntry[]>;
     publish: (name: string, change: PluginCatalogUpdate) => Promise<PluginCatalogEntry>;
+    scan: (name: string, input: PluginSourceScanInput) => Promise<PluginSecurityResult>;
+    quarantine: (name: string, input: PluginQuarantineInput) => Promise<PluginSecurityResult>;
+    approve: (name: string, input: PluginApprovalInput) => Promise<PluginSecurityResult>;
+    revoke: (name: string, input: PluginRevokeInput) => Promise<PluginSecurityResult>;
   };
   private readonly origin: string;
   private readonly readApiKey: string | undefined;
@@ -107,6 +111,10 @@ export class QdipClient {
     this.catalog = {
       list: (params = {}) => this.listCatalog(params),
       publish: (name, change) => this.publishCatalog(name, change),
+      scan: (name, input) => this.scanPlugin(name, input),
+      quarantine: (name, input) => this.quarantinePlugin(name, input),
+      approve: (name, input) => this.approvePlugin(name, input),
+      revoke: (name, input) => this.revokePlugin(name, input),
     };
   }
 
@@ -198,6 +206,75 @@ export class QdipClient {
     return this.request('plugin-publications/' + encodeURIComponent(name), this.adminApiKey,
       'PUT', update.deadlineMs ?? DISCOVERY_DEADLINE_MS, update.signal, payload,
       parsePluginCatalogEntry, update.actor);
+  }
+
+  private validateSecurityRequest(name: string, revision: number, version: string, actor: string): void {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(name) ||
+        !Number.isSafeInteger(revision) || revision < 0 ||
+        typeof version !== 'string' || version.length < 1 || version.length > 64 ||
+        typeof actor !== 'string' || !/^[A-Za-z0-9@._:-]{1,256}$/.test(actor))
+      throw new QdipError('CONFIGURATION_ERROR');
+  }
+
+  private scanPlugin(name: string, input: PluginSourceScanInput): Promise<PluginSecurityResult> {
+    if (!input) throw new QdipError('CONFIGURATION_ERROR');
+    this.validateSecurityRequest(name, input.expectedRevision, input.pluginVersion, input.actor);
+    if (!['python', 'javascript', 'typescript', 'shell'].includes(input.language) ||
+        typeof input.sourceCode !== 'string' ||
+        new TextEncoder().encode(input.sourceCode).length < 1 ||
+        new TextEncoder().encode(input.sourceCode).length > 32768)
+      throw new QdipError('CONFIGURATION_ERROR');
+    return this.request('plugin-publications/' + encodeURIComponent(name) + '/security/scan',
+      this.adminApiKey, 'POST', input.deadlineMs ?? DISCOVERY_DEADLINE_MS, input.signal,
+      serializeInput({
+        expected_revision: input.expectedRevision, plugin_version: input.pluginVersion,
+        language: input.language, source_code: input.sourceCode,
+      }), parsePluginSecurityResult, input.actor);
+  }
+
+  private quarantinePlugin(name: string, input: PluginQuarantineInput): Promise<PluginSecurityResult> {
+    if (!input) throw new QdipError('CONFIGURATION_ERROR');
+    this.validateSecurityRequest(name, input.expectedRevision, input.pluginVersion, input.actor);
+    if (typeof input.quarantined !== 'boolean' || typeof input.reason !== 'string' ||
+        input.reason.trim().length < 12 || input.reason.length > 1000)
+      throw new QdipError('CONFIGURATION_ERROR');
+    return this.request('plugin-publications/' + encodeURIComponent(name) + '/security/quarantine',
+      this.adminApiKey, 'POST', input.deadlineMs ?? DISCOVERY_DEADLINE_MS, input.signal,
+      serializeInput({
+        expected_revision: input.expectedRevision, plugin_version: input.pluginVersion,
+        quarantined: input.quarantined, reason: input.reason.trim(),
+      }), parsePluginSecurityResult, input.actor);
+  }
+
+  private approvePlugin(name: string, input: PluginApprovalInput): Promise<PluginSecurityResult> {
+    if (!input) throw new QdipError('CONFIGURATION_ERROR');
+    this.validateSecurityRequest(name, input.expectedRevision, input.pluginVersion, input.actor);
+    if (input.riskAcknowledged !== true ||
+        typeof input.reason !== 'string' || input.reason.trim().length < 20 || input.reason.length > 1000 ||
+        typeof input.reviewReference !== 'string' || input.reviewReference.trim().length < 8 ||
+        input.reviewReference.length > 256)
+      throw new QdipError('CONFIGURATION_ERROR');
+    return this.request('plugin-publications/' + encodeURIComponent(name) + '/security/approve',
+      this.adminApiKey, 'POST', input.deadlineMs ?? DISCOVERY_DEADLINE_MS, input.signal,
+      serializeInput({
+        expected_revision: input.expectedRevision, plugin_version: input.pluginVersion,
+        reason: input.reason.trim(), review_reference: input.reviewReference.trim(),
+        risk_acknowledged: true,
+      }), parsePluginSecurityResult, input.actor);
+  }
+
+  private revokePlugin(name: string, input: PluginRevokeInput): Promise<PluginSecurityResult> {
+    if (!input) throw new QdipError('CONFIGURATION_ERROR');
+    this.validateSecurityRequest(name, input.expectedRevision, input.pluginVersion, input.actor);
+    if (typeof input.reason !== 'string' ||
+        input.reason.trim().length < 20 || input.reason.length > 1000)
+      throw new QdipError('CONFIGURATION_ERROR');
+    return this.request('plugin-publications/' + encodeURIComponent(name) + '/security/revoke',
+      this.adminApiKey, 'POST', input.deadlineMs ?? DISCOVERY_DEADLINE_MS, input.signal,
+      serializeInput({
+        expected_revision: input.expectedRevision, plugin_version: input.pluginVersion,
+        reason: input.reason.trim(),
+      }), parsePluginSecurityResult, input.actor);
   }
 
 }

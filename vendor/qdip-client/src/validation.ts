@@ -182,11 +182,63 @@ export function parsePluginCatalogEntry(input: unknown): PluginCatalogEntry {
     ...(v.slug !== undefined ? { slug: v.slug as string | null } : {}),
     ...(v.slug_aliases !== undefined ? { slug_aliases: v.slug_aliases as string[] } : {}),
     ...(v.application_launch_url !== undefined ? { application_launch_url: v.application_launch_url as string | null } : {}),
-    ...(v.launch_url_verified !== undefined ? { launch_url_verified: v.launch_url_verified as boolean } : {})
+    ...(v.launch_url_verified !== undefined ? { launch_url_verified: v.launch_url_verified as boolean } : {}),
+    ...(v.security !== undefined ? { security: parsePluginSecurityState(v.security) } : {})
   };
 }
 
 export function parsePluginCatalog(value: unknown): PluginCatalogEntry[] {
   if (!Array.isArray(value) || value.length > 1000) return fail();
   return value.map(parsePluginCatalogEntry);
+}
+
+/** Strict parsing of administrative security evidence: never display opaque HTML. */
+export function parsePluginSecurityState(input: unknown): import('./types.js').PluginSecurityState {
+  const v = obj(input);
+  if (!['pending_review', 'approved', 'quarantined', 'revoked'].includes(String(v.state))) return fail();
+  if (v.reason != null && (typeof v.reason !== 'string' || v.reason.length > 1000)) return fail();
+  if (v.review_reference != null && (typeof v.review_reference !== 'string' || v.review_reference.length > 256)) return fail();
+  if (v.approval_source != null && (typeof v.approval_source !== 'string' || v.approval_source.length > 128)) return fail();
+  let lastScan: import('./types.js').PluginSecurityState['last_scan'] = null;
+  if (v.last_scan != null) {
+    const scan = obj(v.last_scan);
+    if (typeof scan.source_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(scan.source_sha256) ||
+        scan.source_kind !== 'reviewer_supplied_unverified' ||
+        !['python','javascript','typescript','shell'].includes(String(scan.language)) ||
+        !['critical','review','no_signatures'].includes(String(scan.result)) ||
+        typeof scan.coverage !== 'string' || scan.coverage.length > 128 ||
+        !Array.isArray(scan.findings) || scan.findings.length > 12) return fail();
+    const findings = scan.findings.map((entry: unknown) => {
+      const f = obj(entry);
+      if (typeof f.id !== 'string' || f.id.length > 64 ||
+          (f.severity !== 'critical' && f.severity !== 'review') ||
+          !Number.isSafeInteger(f.line) || (f.line as number) < 1) return fail();
+      return { id: f.id as string, severity: f.severity as 'critical' | 'review', line: f.line as number };
+    });
+    lastScan = {
+      source_sha256: scan.source_sha256,
+      source_kind: 'reviewer_supplied_unverified',
+      language: scan.language as 'python' | 'javascript' | 'typescript' | 'shell',
+      findings, result: scan.result as 'critical' | 'review' | 'no_signatures', coverage: scan.coverage
+    };
+  }
+  if (v.critical_block !== undefined && typeof v.critical_block !== 'boolean') return fail();
+  return {
+    state: v.state as import('./types.js').PluginSecurityState['state'],
+    ...(v.reason !== undefined ? { reason: v.reason as string | null } : {}),
+    ...(v.review_reference !== undefined ? { review_reference: v.review_reference as string | null } : {}),
+    ...(v.approval_source !== undefined ? { approval_source: v.approval_source as string | null } : {}),
+    ...(v.critical_block !== undefined ? { critical_block: v.critical_block as boolean } : {}),
+    ...(v.last_scan !== undefined ? { last_scan: lastScan } : {}),
+  };
+}
+
+export function parsePluginSecurityResult(value: unknown): import('./types.js').PluginSecurityResult {
+  const v = obj(value);
+  if (!Number.isSafeInteger(v.revision) || (v.revision as number) < 0 || typeof v.published !== 'boolean')
+    return fail();
+  return {
+    name: str(v.name), revision: v.revision as number,
+    published: v.published, security: parsePluginSecurityState(v.security)
+  };
 }

@@ -15,6 +15,16 @@ type Row = {
   slug_aliases?: string[]
   application_launch_url?: string | null
   launch_url_verified?: boolean
+  security?: {
+    state: 'pending_review' | 'approved' | 'quarantined' | 'revoked'
+    critical_block?: boolean
+    reason?: string | null
+    last_scan?: {
+      result: 'critical' | 'review' | 'no_signatures'
+      source_sha256: string
+      findings: Array<{ id: string; severity: 'critical' | 'review'; line: number }>
+    } | null
+  }
   source?: 'embedded' | 'remote'
   description: string
   version: string
@@ -78,6 +88,36 @@ const copy = {
     publish: 'Зберегти й опублікувати',
     saveChanges: 'Зберегти зміни',
     edit: 'Редагувати',
+    securityReview: 'Перевірка безпеки',
+    securityClose: 'Закрити перевірку',
+    quarantine: 'Заблокувати виконання',
+    release: 'Зняти блокування',
+    securityScan: 'Перевірити фрагмент коду',
+    securityReason: 'Причина рішення (не менше 12 символів)',
+    securityRevoke: 'Відкликати назавжди',
+    securityRevokeConfirm: 'Введіть повний внутрішній ID плагіна для підтвердження відкликання',
+    securityRevoked: 'ВІДКЛИКАНО — відновлення неможливе',
+    securityCriticalBlocked:
+      'Виявлено критичну сигнатуру. Новий snapshot не скасовує блокування; потрібна перевірена процедура усунення загрози.',
+    sourceCode: 'Вихідний код для перевірки',
+    securityCaveat:
+      'Перевіряється тільки наданий snapshot, а не фактичний код запущеного Worker. Відсутність збігів не означає, що плагін безпечний.',
+    securityQuarantined: 'ЗАБЛОКОВАНО',
+    securityClear: 'Збігів у перевіреному фрагменті не знайдено; безпеку Worker не підтверджено.',
+    securityReviewNeeded: 'Знайдено підозрілі конструкції. Потрібна ручна перевірка.',
+    securityCritical: 'Знайдено критичну сигнатуру. Плагін заблоковано в Core.',
+    securityError: 'Не вдалося виконати перевірку. Повторіть після оновлення.',
+    securityChanged: 'Стан безпеки оновлено.',
+    securityPending: 'Очікує перевірки',
+    securityApproved: 'Ручний допуск',
+    securityApprove: 'Надати ручний допуск',
+    securityReference: 'Посилання на звіт перевірки (мін. 8 символів)',
+    securityRisk: 'Підтверджую відповідальне прийняття ризику: фактичний код Worker не засвідчений.',
+    securityRiskWarning:
+      'Без допуску виконання заблоковане. Ручний дозвіл можливий лише для внутрішнього Worker з ідентичністю у дозволеному списку Core; сторонні плагіни очікують перевірки артефактів.',
+    securityFirstPartyOnly:
+      'Цей Worker не входить до дозволеного списку внутрішніх плагінів. Потрібна атестація артефакту.',
+    securityReleaseHint: 'Зняття карантину переводить плагін у стан очікування перевірки, а не відкриває доступ.',
     cancel: 'Скасувати',
     collapse: 'Згорнути',
     editing: 'Редагування плагіна',
@@ -140,6 +180,36 @@ const copy = {
     publish: 'Save and publish',
     saveChanges: 'Save changes',
     edit: 'Edit',
+    securityReview: 'Security review',
+    securityClose: 'Close review',
+    quarantine: 'Block execution',
+    release: 'Release quarantine',
+    securityScan: 'Scan code snapshot',
+    securityReason: 'Reason (at least 12 characters)',
+    securityRevoke: 'Permanently revoke',
+    securityRevokeConfirm: 'Enter the full internal plugin ID to confirm revocation',
+    securityRevoked: 'REVOKED — cannot be restored',
+    securityCriticalBlocked:
+      'A critical finding remains unresolved. A new snapshot cannot clear the block; verified remediation is required.',
+    sourceCode: 'Source snapshot to review',
+    securityCaveat:
+      'Only the submitted snapshot is checked, not the running Worker. No matches do not prove that the plugin is safe.',
+    securityQuarantined: 'QUARANTINED',
+    securityClear: 'No matching signatures in the submitted snapshot; Worker safety is unverified.',
+    securityReviewNeeded: 'Suspicious primitives found; manual review required.',
+    securityCritical: 'Critical signature found. The Core has quarantined the plugin.',
+    securityError: 'Security action failed. Refresh and retry.',
+    securityChanged: 'Security status updated.',
+    securityPending: 'Pending review',
+    securityApproved: 'Manually authorized',
+    securityApprove: 'Accept risk and authorize',
+    securityReference: 'Review evidence reference (min. 8 characters)',
+    securityRisk: 'I accept the residual risk: actual Worker source code is not attested.',
+    securityRiskWarning:
+      'Calls are blocked until admission. Manual approval is only for deployed first-party allowlisted Workers; external plugins require artifact verification.',
+    securityFirstPartyOnly:
+      'Worker is not on the vetted first-party allowlist; verified artifact admission is required.',
+    securityReleaseHint: 'Releasing quarantine returns to pending review, never grants execution.',
     cancel: 'Cancel',
     collapse: 'Collapse',
     editing: 'Edit plugin',
@@ -202,6 +272,36 @@ const copy = {
     publish: 'Zapisz i opublikuj',
     saveChanges: 'Zapisz zmiany',
     edit: 'Edytuj',
+    securityReview: 'Kontrola bezpieczeństwa',
+    securityClose: 'Zamknij kontrolę',
+    quarantine: 'Zablokuj wykonywanie',
+    release: 'Odblokuj',
+    securityScan: 'Sprawdź kod źródłowy',
+    securityReason: 'Powód (minimum 12 znaków)',
+    securityRevoke: 'Trwale cofnij dostęp',
+    securityRevokeConfirm: 'Wpisz pełny wewnętrzny identyfikator wtyczki, aby potwierdzić',
+    securityRevoked: 'COFNIĘTO — nieodwracalne',
+    securityCriticalBlocked:
+      'Krytyczne ustalenie nadal blokuje dostęp. Nowy fragment kodu nie usuwa blokady; wymagane jest potwierdzone rozwiązanie problemu.',
+    sourceCode: 'Kod źródłowy do sprawdzenia',
+    securityCaveat:
+      'Sprawdzany jest wyłącznie przekazany fragment, nie kod działającego Workera. Brak trafień nie potwierdza bezpieczeństwa.',
+    securityQuarantined: 'ZABLOKOWANO',
+    securityClear: 'Brak dopasowań w dostarczonym kodzie; bezpieczeństwo Workera niepotwierdzone.',
+    securityReviewNeeded: 'Wykryto podejrzane elementy; wymagana ręczna kontrola.',
+    securityCritical: 'Krytyczna sygnatura. Wtyczka została zablokowana w Core.',
+    securityError: 'Kontrola nie powiodła się. Odśwież i spróbuj ponownie.',
+    securityChanged: 'Zaktualizowano status bezpieczeństwa.',
+    securityPending: 'Oczekuje na weryfikację',
+    securityApproved: 'Dopuszczono ręcznie',
+    securityApprove: 'Zaakceptuj ryzyko i dopuść',
+    securityReference: 'Odnośnik do przeglądu (min. 8 znaków)',
+    securityRisk: 'Akceptuję ryzyko: rzeczywisty kod Workera nie został poświadczony.',
+    securityRiskWarning:
+      'Wykonywanie jest blokowane. Ręczne dopuszczenie dotyczy tylko wewnętrznych Workerów z listy Core; zewnętrzne wymagają weryfikacji artefaktu.',
+    securityFirstPartyOnly:
+      'Worker nie znajduje się na zatwierdzonej liście wewnętrznej; wymagana jest weryfikacja artefaktu.',
+    securityReleaseHint: 'Zdjęcie kwarantanny przywraca oczekiwanie na ocenę, bez zgody na wykonywanie.',
     cancel: 'Anuluj',
     collapse: 'Zwiń',
     editing: 'Edytowanie wtyczki',
@@ -232,6 +332,7 @@ function isPublished(row: Row) {
   // Publication is a catalog state; remote Worker liveness is a separate state.
   return (
     (row.enabled || row.source === 'remote') &&
+    (row.source !== 'remote' || row.security?.state === 'approved') &&
     row.published === true &&
     row.published_version === row.version &&
     typeof row.capability_id === 'string' &&
@@ -256,6 +357,18 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const t = copy[locale]
   const [rows, setRows] = useState<Row[] | null>(null)
   const [selected, setSelected] = useState('')
+  const [securityOpen, setSecurityOpen] = useState('')
+  const [sourceCode, setSourceCode] = useState('')
+  const [sourceLanguage, setSourceLanguage] = useState<'python' | 'javascript' | 'typescript' | 'shell'>('python')
+  const [securityReason, setSecurityReason] = useState('')
+  const [revokeConfirmation, setRevokeConfirmation] = useState('')
+  const [securityReference, setSecurityReference] = useState('')
+  const [riskAcknowledged, setRiskAcknowledged] = useState(false)
+  const [securityFeedback, setSecurityFeedback] = useState<{
+    name: string
+    message: string
+    failed: boolean
+  } | null>(null)
   const [fields, setFields] = useState<FormFields>({
     display_name: '',
     description: '',
@@ -418,6 +531,59 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     }
   }
 
+  async function reviewSecurity(row: Row, action: 'scan' | 'quarantine' | 'approve' | 'revoke', quarantined?: boolean) {
+    setPending(true)
+    setSecurityFeedback(null)
+    try {
+      const response = await fetch('/api/observatory/admin/plugins/' + encodeURIComponent(row.name) + '/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          action,
+          expected_revision: row.revision,
+          ...(action === 'scan'
+            ? { source_code: sourceCode, language: sourceLanguage }
+            : action === 'approve'
+              ? {
+                  reason: securityReason.trim(),
+                  review_reference: securityReference.trim(),
+                  risk_acknowledged: riskAcknowledged,
+                }
+              : action === 'revoke'
+                ? { reason: securityReason.trim() }
+                : { quarantined, reason: securityReason.trim() }),
+        }),
+      })
+      if (!response.ok) throw new Error(response.status === 403 ? t.securityFirstPartyOnly : t.securityError)
+      const result = (await response.json()) as {
+        security: { state: string; last_scan?: { result: string } | null }
+      }
+      const scanResult = result.security.last_scan?.result
+      const message =
+        action === 'scan'
+          ? scanResult === 'critical'
+            ? t.securityCritical
+            : scanResult === 'review'
+              ? t.securityReviewNeeded
+              : t.securityClear
+          : t.securityChanged
+      setSecurityFeedback({ name: row.name, message, failed: false })
+      if (action === 'scan') setSourceCode('')
+      if (action === 'approve') setRiskAcknowledged(false)
+      if (action === 'revoke') setRevokeConfirmation('')
+      await refresh()
+    } catch (cause) {
+      setSecurityFeedback({
+        name: row.name,
+        message: cause instanceof Error ? cause.message : t.securityError,
+        failed: true,
+      })
+    } finally {
+      setPending(false)
+    }
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.container}>
@@ -479,7 +645,15 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   </div>
                   <div className={styles.meta} style={{ marginTop: 0 }}>
                     <span className={styles.pill} data-kind={published ? 'published' : 'unpublished'}>
-                      {published ? t.published : t.unpublished}
+                      {row.security?.state === 'revoked'
+                        ? t.securityRevoked
+                        : row.security?.state === 'quarantined'
+                          ? t.securityQuarantined
+                          : row.source === 'remote' && row.security?.state !== 'approved'
+                            ? t.securityPending
+                            : published
+                              ? t.published
+                              : t.unpublished}
                     </span>
                     {offline && (
                       <span className={styles.pill} data-kind="offline">
@@ -501,6 +675,24 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   >
                     {selected === row.name ? t.collapse : t.edit}
                   </Button>
+                  {row.source === 'remote' && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={pending}
+                      aria-expanded={securityOpen === row.name}
+                      onClick={() => {
+                        setSecurityOpen(securityOpen === row.name ? '' : row.name)
+                        setSecurityFeedback(null)
+                        setSourceCode('')
+                        setSecurityReason('')
+                        setSecurityReference('')
+                        setRiskAcknowledged(false)
+                      }}
+                    >
+                      {securityOpen === row.name ? t.securityClose : t.securityReview}
+                    </Button>
+                  )}
                   {published && (
                     <>
                       <a className={styles.link} href={buildLocalePath(`/plugins/${row.slug || row.name}`, locale)}>
@@ -702,6 +894,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           className={styles.control}
                           disabled={
                             pending ||
+                            (row.source === 'remote' && row.security?.state !== 'approved') ||
                             !row.enabled ||
                             !fields.display_name.trim() ||
                             !fields.capability_id ||
@@ -734,6 +927,160 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         </Button>
                       </div>
                     </form>
+                  </section>
+                )}
+                {securityOpen === row.name && row.source === 'remote' && (
+                  <section className="mt-5 min-w-0 border-t border-white/15 pt-5" aria-label={t.securityReview}>
+                    <h4 className="text-base font-semibold">{t.securityReview}</h4>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">{t.securityCaveat}</p>
+                    {row.security?.state !== 'approved' && (
+                      <p className="mt-2 text-sm text-amber-300">{t.securityRiskWarning}</p>
+                    )}
+                    {row.security?.state === 'approved' && (
+                      <p className="mt-2 text-sm text-emerald-300">{t.securityApproved}</p>
+                    )}
+                    {row.security?.critical_block && (
+                      <p className="mt-2 text-sm text-rose-300">{t.securityCriticalBlocked}</p>
+                    )}
+                    {row.security?.reason && (
+                      <p className="mt-3 break-words text-sm text-rose-300">{row.security.reason}</p>
+                    )}
+                    {row.security?.last_scan && (
+                      <div className="mt-3 text-sm text-slate-300">
+                        <p>
+                          {row.security.last_scan.result} · SHA-256: {row.security.last_scan.source_sha256}
+                        </p>
+                        {row.security.last_scan.findings.map((finding) => (
+                          <p key={finding.id}>
+                            {finding.severity}: {finding.id} · line {finding.line}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-4 grid gap-3">
+                      <label className="grid gap-2 text-sm">
+                        {t.sourceCode}
+                        <textarea
+                          className="min-h-32 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 font-mono text-sm"
+                          value={sourceCode}
+                          maxLength={32768}
+                          onChange={(event) => setSourceCode(event.target.value)}
+                        />
+                      </label>
+                      <select
+                        aria-label="Code language"
+                        className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                        value={sourceLanguage}
+                        onChange={(event) => setSourceLanguage(event.target.value as typeof sourceLanguage)}
+                      >
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="typescript">TypeScript</option>
+                        <option value="shell">Shell</option>
+                      </select>
+                      <Button
+                        type="button"
+                        disabled={
+                          pending ||
+                          row.security?.state === 'revoked' ||
+                          !sourceCode.trim() ||
+                          new TextEncoder().encode(sourceCode).length > 32768
+                        }
+                        onClick={() => void reviewSecurity(row, 'scan')}
+                      >
+                        {pending ? t.busy : t.securityScan}
+                      </Button>
+                      <label className="grid gap-2 text-sm">
+                        {t.securityReason}
+                        <textarea
+                          className="min-h-20 w-full min-w-0 rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                          value={securityReason}
+                          maxLength={1000}
+                          onChange={(event) => setSecurityReason(event.target.value)}
+                        />
+                      </label>
+                      {row.security?.state !== 'revoked' && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          disabled={pending || securityReason.trim().length < 12}
+                          onClick={() => void reviewSecurity(row, 'quarantine', row.security?.state !== 'quarantined')}
+                        >
+                          {row.security?.state === 'quarantined' ? t.release : t.quarantine}
+                        </Button>
+                      )}
+                      {row.security?.state === 'quarantined' && (
+                        <p className="text-sm text-slate-400">{t.securityReleaseHint}</p>
+                      )}
+                      {row.security?.state !== 'revoked' && (
+                        <div className="grid gap-3 border-t border-white/15 pt-4">
+                          <label className="grid gap-2 text-sm">
+                            {t.securityRevokeConfirm}
+                            <input
+                              className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2 text-sm"
+                              value={revokeConfirmation}
+                              onChange={(event) => setRevokeConfirmation(event.target.value)}
+                              autoComplete="off"
+                            />
+                          </label>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={pending || securityReason.trim().length < 20 || revokeConfirmation !== row.name}
+                            onClick={() => void reviewSecurity(row, 'revoke')}
+                          >
+                            {t.securityRevoke}
+                          </Button>
+                        </div>
+                      )}
+                      {row.security?.state !== 'approved' &&
+                        row.security?.state !== 'quarantined' &&
+                        row.security?.state !== 'revoked' &&
+                        !row.security?.critical_block && (
+                          <>
+                            <label className="grid gap-2 text-sm">
+                              {t.securityReference}
+                              <input
+                                className="min-h-11 w-full rounded-lg border border-white/20 bg-slate-950 px-3 py-2"
+                                value={securityReference}
+                                maxLength={256}
+                                onChange={(event) => setSecurityReference(event.target.value)}
+                              />
+                            </label>
+                            <label className="flex items-start gap-3 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={riskAcknowledged}
+                                onChange={(event) => setRiskAcknowledged(event.target.checked)}
+                              />
+                              {t.securityRisk}
+                            </label>
+                            <Button
+                              type="button"
+                              disabled={
+                                pending ||
+                                !riskAcknowledged ||
+                                securityReason.trim().length < 20 ||
+                                securityReference.trim().length < 8 ||
+                                row.security?.last_scan?.result === 'critical'
+                              }
+                              onClick={() => void reviewSecurity(row, 'approve')}
+                            >
+                              {t.securityApprove}
+                            </Button>
+                          </>
+                        )}
+                    </div>
+                    {securityFeedback?.name === row.name && (
+                      <p
+                        role={securityFeedback.failed ? 'alert' : 'status'}
+                        className={
+                          securityFeedback.failed ? 'mt-3 text-sm text-rose-300' : 'mt-3 text-sm text-slate-300'
+                        }
+                      >
+                        {securityFeedback.message}
+                      </p>
+                    )}
                   </section>
                 )}
               </article>
