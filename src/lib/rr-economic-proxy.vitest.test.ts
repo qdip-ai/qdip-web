@@ -76,12 +76,14 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
   it('uses RR_ORG_API_KEY instead of the shared platform key for Core requests', async () => {
     vi.stubEnv('RR_ORG_API_KEY', 'dedicated-rr-organization-key')
     vi.stubEnv('DIP_API_KEY', 'platform-admin-key-must-not-be-used-for-rr')
-    const fetcher = vi.fn(async (_url: string, _init: RequestInit) =>
-      new Response(JSON.stringify({ state: 'COMPILED_PREVIEW_ONLY' }), {
+    const fetcher = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toContain('/economic-v2/preflight')
+      expect(init.method).toBe('POST')
+      return new Response(JSON.stringify({ state: 'COMPILED_PREVIEW_ONLY' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       })
-    )
+    })
     vi.stubGlobal('fetch', fetcher)
     const response = await POST(fakeRequest(), params(['economic-v2', 'preflight']))
     expect(response.status).toBe(200)
