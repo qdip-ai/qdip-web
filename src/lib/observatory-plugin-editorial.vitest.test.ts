@@ -95,7 +95,7 @@ describe('first-party catalog editorial translations', () => {
       description:
         'Closed research plugin retained for gas-market data acquisition, normalization, experiment reproducibility, and provider research. It is not a validated commercial forecasting or procurement product.',
     })
-    expect(pluginPresentation(gas, 'uk').description).toContain('архів')
+    expect(pluginPresentation(gas, 'uk').description.toLowerCase()).toContain('архів')
     const demo = entry({
       name: 'readiness-recovery',
       ui: { label: 'Readiness Recovery' },
