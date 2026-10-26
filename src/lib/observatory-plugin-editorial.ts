@@ -15,11 +15,13 @@ const COPY: Record<string, ProductCopy> = {
   'customer-opportunity': {
     uk: {
       title: 'Пошук перспективних клієнтів',
-      description: 'Оцінює потенційних клієнтів за доказами потреб, можливістю впровадження та невизначеністю. Рекомендує дослідити, зв’язатися або відкласти; не надсилає повідомлень автоматично.',
+      description:
+        'Оцінює потенційних клієнтів за доказами потреб, можливістю впровадження та невизначеністю. Рекомендує дослідити, зв’язатися або відкласти; не надсилає повідомлень автоматично.',
     },
     pl: {
       title: 'Ocena potencjalnych klientów',
-      description: 'Ocenia potencjalnych klientów na podstawie dowodów potrzeb, wykonalności i niepewności. Sugeruje dalsze badania, kontakt lub odroczenie; nie wysyła wiadomości automatycznie.',
+      description:
+        'Ocenia potencjalnych klientów na podstawie dowodów potrzeb, wykonalności i niepewności. Sugeruje dalsze badania, kontakt lub odroczenie; nie wysyła wiadomości automatycznie.',
     },
     englishLabels: ['Customer Opportunity — Lead Prioritization', 'customer-opportunity'],
     englishDescriptions: [
@@ -30,11 +32,13 @@ const COPY: Record<string, ProductCopy> = {
   'futures-mispricing': {
     uk: {
       title: 'Аналіз ф’ючерсів і сигналів хеджування',
-      description: 'Досліджує ціни ф’ючерсів, оцінку справедливої вартості та невизначеність. Експериментальні сигнали для досліджень, а не перевірений прогноз чи інвестиційна порада.',
+      description:
+        'Досліджує ціни ф’ючерсів, оцінку справедливої вартості та невизначеність. Експериментальні сигнали для досліджень, а не перевірений прогноз чи інвестиційна порада.',
     },
     pl: {
       title: 'Analiza wyceny kontraktów futures',
-      description: 'Porównuje ceny kontraktów z szacowanym zakresem wartości i ocenia niepewność oraz moment zabezpieczenia. Sygnały badawcze, a nie sprawdzona prognoza ani porada inwestycyjna.',
+      description:
+        'Porównuje ceny kontraktów z szacowanym zakresem wartości i ocenia niepewność oraz moment zabezpieczenia. Sygnały badawcze, a nie sprawdzona prognoza ani porada inwestycyjna.',
     },
     englishLabels: ['Futures Mispricing — Research Signals', 'futures-mispricing'],
     englishDescriptions: [
@@ -45,11 +49,13 @@ const COPY: Record<string, ProductCopy> = {
   'gas-forecast': {
     uk: {
       title: 'Дослідження газового ринку — архів',
-      description: 'Архів експериментів із даними цін на газ, запасів та прогнозування. Не є активним або перевіреним сервісом рекомендацій із закупівель.',
+      description:
+        'Архів експериментів із даними цін на газ, запасів та прогнозування. Не є активним або перевіреним сервісом рекомендацій із закупівель.',
     },
     pl: {
       title: 'Badania rynku gazu — archiwum',
-      description: 'Archiwum eksperymentów dotyczących cen gazu, zapasów i prognozowania. Nie jest aktywną ani zweryfikowaną usługą rekomendacji zakupowych.',
+      description:
+        'Archiwum eksperymentów dotyczących cen gazu, zapasów i prognozowania. Nie jest aktywną ani zweryfikowaną usługą rekomendacji zakupowych.',
     },
     englishLabels: ['Gas Market Research — Archived Experiments', 'Gas Forecast — Closed R&D', 'gas-forecast'],
     englishDescriptions: [
@@ -60,11 +66,13 @@ const COPY: Record<string, ProductCopy> = {
   'gtm-lab': {
     uk: {
       title: 'GTM Lab — оцінка ринкових можливостей',
-      description: 'Аналізує бізнес-можливості на основі доказів, рівня невизначеності й дослідницьких пріоритетів. Формує попередній план звернення, але не надсилає його автоматично.',
+      description:
+        'Аналізує бізнес-можливості на основі доказів, рівня невизначеності й дослідницьких пріоритетів. Формує попередній план звернення, але не надсилає його автоматично.',
     },
     pl: {
       title: 'GTM Lab — ocena możliwości rynkowych',
-      description: 'Analizuje szanse biznesowe na podstawie dowodów, niepewności i priorytetów badawczych. Przygotowuje szkic kontaktu bez automatycznej wysyłki.',
+      description:
+        'Analizuje szanse biznesowe na podstawie dowodów, niepewności i priorytetów badawczych. Przygotowuje szkic kontaktu bez automatycznej wysyłki.',
     },
     englishLabels: ['GTM Lab — Market Opportunity Assessment', 'GTM Lab', 'gtm-lab'],
     englishDescriptions: [
@@ -75,11 +83,13 @@ const COPY: Record<string, ProductCopy> = {
   'production-decision': {
     uk: {
       title: 'Виробничі рішення — оцінка ризиків',
-      description: 'Аналізує попит, забезпечення матеріалами, виробничі потужності та стан обладнання. Пояснює ризики й пропонує дії; це прототип, який не керує обладнанням.',
+      description:
+        'Аналізує попит, забезпечення матеріалами, виробничі потужності та стан обладнання. Пояснює ризики й пропонує дії; це прототип, який не керує обладнанням.',
     },
     pl: {
       title: 'Decyzje produkcyjne — ocena ryzyka',
-      description: 'Analizuje popyt, materiały, moce produkcyjne i dostępność maszyn. Wyjaśnia ryzyka i sugeruje działania; to prototyp, który nie steruje urządzeniami.',
+      description:
+        'Analizuje popyt, materiały, moce produkcyjne i dostępność maszyn. Wyjaśnia ryzyka i sugeruje działania; to prototyp, który nie steruje urządzeniami.',
     },
     englishLabels: ['Production Decision — Operational Risk', 'production-decision'],
     englishDescriptions: [
@@ -90,11 +100,13 @@ const COPY: Record<string, ProductCopy> = {
   'readiness-recovery': {
     uk: {
       title: 'Відновлення готовності — демонстрація',
-      description: 'Показує, як умовні дії відновлення змінюють готовність, ризик, невизначеність і витрати. Це демо Decision Studio, а не оперативний планувальник ремонту.',
+      description:
+        'Показує, як умовні дії відновлення змінюють готовність, ризик, невизначеність і витрати. Це демо Decision Studio, а не оперативний планувальник ремонту.',
     },
     pl: {
       title: 'Odtwarzanie gotowości — demonstracja',
-      description: 'Pokazuje, jak działania naprawcze wpływają na gotowość, ryzyko, niepewność i koszt. To demo Decision Studio, nie operacyjny harmonogram napraw.',
+      description:
+        'Pokazuje, jak działania naprawcze wpływają na gotowość, ryzyko, niepewność i koszt. To demo Decision Studio, nie operacyjny harmonogram napraw.',
     },
     englishLabels: ['Readiness Recovery — Studio Demonstration', 'Readiness Recovery', 'readiness-recovery'],
     englishDescriptions: [
@@ -105,11 +117,13 @@ const COPY: Record<string, ProductCopy> = {
   'resource-allocation': {
     uk: {
       title: 'Гуманітарний розподіл ресурсів',
-      description: 'Допомагає планувати розподіл команд і ресурсів між громадами, порівнювати сценарії та знаходити дефіцит спроможностей. Не запускає польові операції автоматично.',
+      description:
+        'Допомагає планувати розподіл команд і ресурсів між громадами, порівнювати сценарії та знаходити дефіцит спроможностей. Не запускає польові операції автоматично.',
     },
     pl: {
       title: 'Planowanie zasobów humanitarnych',
-      description: 'Pomaga przydzielać zespoły i zasoby społecznościom, porównywać scenariusze i wykrywać braki potencjału. Nie uruchamia działań terenowych automatycznie.',
+      description:
+        'Pomaga przydzielać zespoły i zasoby społecznościom, porównywać scenariusze i wykrywać braki potencjału. Nie uruchamia działań terenowych automatycznie.',
     },
     englishLabels: ['Resource Allocation — Humanitarian Planning', 'resource-allocation'],
     englishDescriptions: [
@@ -120,11 +134,13 @@ const COPY: Record<string, ProductCopy> = {
   secretary: {
     uk: {
       title: 'VHV — планування справ і часу',
-      description: 'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в VHV.',
+      description:
+        'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в VHV.',
     },
     pl: {
       title: 'VHV — planowanie zadań i czasu',
-      description: 'Pomaga planować zadania i zobowiązania w czasie. Wykonywanie działań i zmiany w kalendarzu wymagają osobnego potwierdzenia w VHV.',
+      description:
+        'Pomaga planować zadania i zobowiązania w czasie. Wykonywanie działań i zmiany w kalendarzu wymagają osobnego potwierdzenia w VHV.',
     },
     englishLabels: ['VHV — Decision Assistant', 'VHV — Task & Time Planning', 'secretary'],
     englishDescriptions: [
@@ -135,13 +151,19 @@ const COPY: Record<string, ProductCopy> = {
   'route-optimizer-sdk02': {
     uk: {
       title: 'Оптимізатор маршрутів — вибір варіантів',
-      description: 'Обирає економні комбінації із заздалегідь підготовлених маршрутів. Не будує автомобільні маршрути за адресами й не обробляє адреси клієнтів.',
+      description:
+        'Обирає економні комбінації із заздалегідь підготовлених маршрутів. Не будує автомобільні маршрути за адресами й не обробляє адреси клієнтів.',
     },
     pl: {
       title: 'Optymalizacja tras — wybór wariantów',
-      description: 'Wybiera najtańsze kombinacje z przygotowanych propozycji tras. Nie wyznacza tras z adresów ani nie przetwarza adresów klientów.',
+      description:
+        'Wybiera najtańsze kombinacje z przygotowanych propozycji tras. Nie wyznacza tras z adresów ani nie przetwarza adresów klientów.',
     },
-    englishLabels: ['Route Optimizer — Candidate Routes', 'Route Optimizer — Candidate Route Selection', 'route-optimizer-sdk02'],
+    englishLabels: [
+      'Route Optimizer — Candidate Routes',
+      'Route Optimizer — Candidate Route Selection',
+      'route-optimizer-sdk02',
+    ],
     englishDescriptions: [
       'Optimizes a bounded set of precomputed routes; no customer addresses or coordinates',
       'Chooses lower-cost routes from provided precomputed candidates. Does not generate routes from addresses.',
@@ -153,8 +175,13 @@ const COPY: Record<string, ProductCopy> = {
  * Arbitrary third-party SDK plugins always retain the publisher's own copy.
  */
 const LEGACY_IDENTITIES = new Set([
-  'customer-opportunity', 'futures-mispricing', 'gas-forecast',
-  'gtm-lab', 'production-decision', 'readiness-recovery', 'resource-allocation',
+  'customer-opportunity',
+  'futures-mispricing',
+  'gas-forecast',
+  'gtm-lab',
+  'production-decision',
+  'readiness-recovery',
+  'resource-allocation',
 ])
 const VERIFIED_REMOTE_IDENTITIES = new Map<string, string>([
   ['remote-04e7c87d7b72111c-secretary', 'secretary'],
@@ -164,7 +191,7 @@ const VERIFIED_REMOTE_IDENTITIES = new Map<string, string>([
 
 export function pluginPresentation(
   plugin: Pick<PluginCatalogEntry, 'name' | 'description' | 'ui' | 'plugin_id' | 'source'>,
-  locale: Locale,
+  locale: Locale
 ): Presentation {
   const originalTitle = plugin.ui?.label || plugin.name
   const originalDescription = plugin.description || ''
@@ -186,7 +213,9 @@ export function pluginPresentation(
   const translated = catalog[locale]
   return {
     title: catalog.englishLabels.includes(originalTitle) ? translated.title : originalTitle,
-    description: !originalDescription || catalog.englishDescriptions.includes(originalDescription)
-      ? translated.description : originalDescription,
+    description:
+      !originalDescription || catalog.englishDescriptions.includes(originalDescription)
+        ? translated.description
+        : originalDescription,
   }
 }
