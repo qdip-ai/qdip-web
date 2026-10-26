@@ -11,7 +11,10 @@ const entry = (patch: Partial<PluginCatalogEntry>): PluginCatalogEntry => ({
   enabled: true,
   capabilities: ['gtm.demo.run'],
   capability_versions: { 'gtm.demo.run': '1' },
-  ui: { label: 'GTM Lab — Market Opportunity Assessment', category: 'Decision support' },
+  ui: {
+    label: 'GTM Lab — Market Opportunity Assessment',
+    category: 'Decision support',
+  },
   published: true,
   revision: 1,
   capability_id: 'gtm.demo.run',
@@ -42,7 +45,10 @@ describe('first-party catalog editorial translations', () => {
   })
 
   it('keeps independently edited admin title and description untouched', () => {
-    const updated = entry({ ui: { label: 'Custom Product by Admin' }, description: 'Custom approved editorial copy.' })
+    const updated = entry({
+      ui: { label: 'Custom Product by Admin' },
+      description: 'Custom approved editorial copy.',
+    })
     expect(pluginPresentation(updated, 'uk')).toEqual({
       title: 'Custom Product by Admin',
       description: 'Custom approved editorial copy.',
@@ -65,13 +71,16 @@ describe('first-party catalog editorial translations', () => {
 
   it('uses exact previously registered VHV / RO identities only', () => {
     const vhv = entry({
-      source: 'remote', name: 'remote-04e7c87d7b72111c-secretary', plugin_id: 'secretary',
+      source: 'remote',
+      name: 'remote-04e7c87d7b72111c-secretary',
+      plugin_id: 'secretary',
       ui: { label: 'VHV — Decision Assistant' },
       description: 'Decision-aware planning of commitments, tasks and calendar slots using QDIP.',
     })
     expect(pluginPresentation(vhv, 'uk').title).toBe('VHV — планування справ і часу')
     const ro = entry({
-      source: 'remote', name: 'remote-b5843b4aa1e11211-route-optimizer-sdk02',
+      source: 'remote',
+      name: 'remote-b5843b4aa1e11211-route-optimizer-sdk02',
       plugin_id: 'route-optimizer-sdk02',
       ui: { label: 'Route Optimizer — Candidate Routes' },
       description: 'Optimizes a bounded set of precomputed routes; no customer addresses or coordinates',
@@ -81,13 +90,17 @@ describe('first-party catalog editorial translations', () => {
 
   it('distinguishes archived market research and a demo from working planners', () => {
     const gas = entry({
-      name: 'gas-forecast', ui: { label: 'Gas Forecast — Closed R&D' },
-      description: 'Closed research plugin retained for gas-market data acquisition, normalization, experiment reproducibility, and provider research. It is not a validated commercial forecasting or procurement product.',
+      name: 'gas-forecast',
+      ui: { label: 'Gas Forecast — Closed R&D' },
+      description:
+        'Closed research plugin retained for gas-market data acquisition, normalization, experiment reproducibility, and provider research. It is not a validated commercial forecasting or procurement product.',
     })
     expect(pluginPresentation(gas, 'uk').description).toContain('архів')
     const demo = entry({
-      name: 'readiness-recovery', ui: { label: 'Readiness Recovery' },
-      description: 'Canonical Decision Studio demo. Exercises generic plugin, capability, profile, dimension-binding and execution contracts without domain-specific frontend logic.',
+      name: 'readiness-recovery',
+      ui: { label: 'Readiness Recovery' },
+      description:
+        'Canonical Decision Studio demo. Exercises generic plugin, capability, profile, dimension-binding and execution contracts without domain-specific frontend logic.',
     })
     expect(pluginPresentation(demo, 'uk').description).toContain('демо')
   })
