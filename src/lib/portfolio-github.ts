@@ -12,8 +12,13 @@ export type PortfolioFeed = {
 function validatePortfolio(input: unknown): PortfolioFeed {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('CORE_PORTFOLIO_INVALID')
   const data = input as Record<string, unknown>
-  if (data.source !== 'github-issues' || typeof data.fetchedAt !== 'string' ||
-      !Array.isArray(data.projects) || data.projects.length === 0 || data.projects.length > 100) {
+  if (
+    data.source !== 'github-issues' ||
+    typeof data.fetchedAt !== 'string' ||
+    !Array.isArray(data.projects) ||
+    data.projects.length === 0 ||
+    data.projects.length > 100
+  ) {
     throw new Error('CORE_PORTFOLIO_INVALID')
   }
   const allowed = new Set(['active', 'gated', 'blocked', 'research', 'paused', 'closed'])
@@ -22,18 +27,25 @@ function validatePortfolio(input: unknown): PortfolioFeed {
     if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('CORE_PORTFOLIO_INVALID')
     const p = item as Record<string, unknown>
     if (
-      typeof p.id !== 'string' || !/^[a-z0-9][a-z0-9-]{0,69}$/.test(p.id) ||
-      typeof p.title !== 'string' || typeof p.group !== 'string' ||
-      typeof p.status !== 'string' || !allowed.has(p.status) ||
-      typeof p.stage !== 'string' || typeof p.next !== 'string' ||
+      typeof p.id !== 'string' ||
+      !/^[a-z0-9][a-z0-9-]{0,69}$/.test(p.id) ||
+      typeof p.title !== 'string' ||
+      typeof p.group !== 'string' ||
+      typeof p.status !== 'string' ||
+      !allowed.has(p.status) ||
+      typeof p.stage !== 'string' ||
+      typeof p.next !== 'string' ||
       typeof p.source !== 'string' ||
       !/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/issues\/[1-9]\d*$/.test(p.source) ||
       typeof p.updatedAt !== 'string' ||
-      !Array.isArray(p.dependencies) || !p.dependencies.every((v) => typeof v === 'string') ||
+      !Array.isArray(p.dependencies) ||
+      !p.dependencies.every((v) => typeof v === 'string') ||
       !Array.isArray(p.missingDependencies) ||
       !p.missingDependencies.every((v) => typeof v === 'string') ||
-      !Array.isArray(p.steps) || !p.steps.every((v) => typeof v === 'string')
-    ) throw new Error('CORE_PORTFOLIO_INVALID')
+      !Array.isArray(p.steps) ||
+      !p.steps.every((v) => typeof v === 'string')
+    )
+      throw new Error('CORE_PORTFOLIO_INVALID')
     projects.push(p as PortfolioProject)
   }
   return { source: 'github-issues', fetchedAt: data.fetchedAt, projects }
