@@ -74,7 +74,8 @@ export async function loadGithubPortfolio(): Promise<PortfolioFeed> {
   }
   const groups = await Promise.all(SEARCH_ORGS.map((org) => searchOrg(org, token)))
   const records = groups.flat().flatMap((item) => {
-    const parsed = parsePortfolioIssue(item)
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return []
+    const parsed = parsePortfolioIssue(item as Record<string, unknown>)
     return parsed ? [parsed] : []
   })
   if (records.length === 0) throw new Error('GITHUB_PORTFOLIO_METADATA_EMPTY')
