@@ -69,7 +69,7 @@ describe('first-party catalog editorial translations', () => {
     })
   })
 
-  it('uses exact previously registered VHV / RO identities only', () => {
+  it('translates verified VHV but does not rebrand retired RO SDK-02 identity', () => {
     const vhv = entry({
       source: 'remote',
       name: 'remote-04e7c87d7b72111c-secretary',
@@ -78,14 +78,17 @@ describe('first-party catalog editorial translations', () => {
       description: 'Decision-aware planning of commitments, tasks and calendar slots using QDIP.',
     })
     expect(pluginPresentation(vhv, 'uk').title).toBe('VHV — планування справ і часу')
-    const ro = entry({
+    const retired = entry({
       source: 'remote',
       name: 'remote-b5843b4aa1e11211-route-optimizer-sdk02',
       plugin_id: 'route-optimizer-sdk02',
       ui: { label: 'Route Optimizer — Candidate Routes' },
-      description: 'Optimizes a bounded set of precomputed routes; no customer addresses or coordinates',
+      description: 'Precomputed route selection is retired.',
     })
-    expect(pluginPresentation(ro, 'pl').description).toContain('Nie wyznacza tras')
+    expect(pluginPresentation(retired, 'pl')).toEqual({
+      title: 'Route Optimizer — Candidate Routes',
+      description: 'Precomputed route selection is retired.',
+    })
   })
 
   it('distinguishes archived market research and a demo from working planners', () => {
