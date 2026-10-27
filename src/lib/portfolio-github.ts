@@ -2,7 +2,11 @@ import 'server-only'
 
 import { createSign } from 'node:crypto'
 
-import { assemblePortfolio, parsePortfolioIssue, type PortfolioProject } from '@/components/observatory/portfolio-roadmap-data'
+import {
+  assemblePortfolio,
+  parsePortfolioIssue,
+  type PortfolioProject,
+} from '@/components/observatory/portfolio-roadmap-data'
 
 type SearchResponse = {
   total_count?: number
@@ -26,8 +30,7 @@ function jwtForGithubApp(): string {
 
   const now = Math.floor(Date.now() / 1000)
   const encode = (v: object) => Buffer.from(JSON.stringify(v)).toString('base64url')
-  const message = encode({ alg: 'RS256', typ: 'JWT' }) + '.' +
-    encode({ iat: now - 60, exp: now + 540, iss: appId })
+  const message = encode({ alg: 'RS256', typ: 'JWT' }) + '.' + encode({ iat: now - 60, exp: now + 540, iss: appId })
   const signer = createSign('RSA-SHA256')
   signer.update(message)
   signer.end()
@@ -48,8 +51,7 @@ async function installToken(org: string): Promise<string> {
   })
   if (!installationResponse.ok) throw new Error('GITHUB_APP_INSTALLATION_' + installationResponse.status)
   const installation: unknown = await installationResponse.json()
-  if (!installation || typeof installation !== 'object' ||
-      typeof (installation as { id?: unknown }).id !== 'number') {
+  if (!installation || typeof installation !== 'object' || typeof (installation as { id?: unknown }).id !== 'number') {
     throw new Error('GITHUB_APP_INSTALLATION_INVALID')
   }
   const id = (installation as { id: number }).id
@@ -89,7 +91,10 @@ async function searchOrg(org: string, token: string) {
   const found: unknown[] = []
   for (let page = 1; page <= MAX_PAGES; page++) {
     const q = encodeURIComponent('org:' + org + ' is:issue in:body "QDIP Portfolio"')
-    const data = await githubJson('https://api.github.com/search/issues?q=' + q + '&per_page=100&page=' + page, token) as SearchResponse
+    const data = (await githubJson(
+      'https://api.github.com/search/issues?q=' + q + '&per_page=100&page=' + page,
+      token
+    )) as SearchResponse
     if (!Array.isArray(data.items) || typeof data.total_count !== 'number' || data.incomplete_results === true) {
       throw new Error('GITHUB_SEARCH_INCOMPLETE')
     }
@@ -130,8 +135,13 @@ export function portfolioErrorLabel(error: unknown) {
   const code = error instanceof Error ? error.message : ''
   if (code === 'GITHUB_APP_NOT_CONFIGURED')
     return 'GitHub App для читання приватних roadmap Issues не налаштовано в серверному середовищі.'
-  if (code.startsWith('GITHUB_APP_') || code.includes('403') || code.includes('401') ||
-      code.includes('404') || code === 'GITHUB_PRIVATE_REPO_ACCESS_NOT_VERIFIED')
+  if (
+    code.startsWith('GITHUB_APP_') ||
+    code.includes('403') ||
+    code.includes('401') ||
+    code.includes('404') ||
+    code === 'GITHUB_PRIVATE_REPO_ACCESS_NOT_VERIFIED'
+  )
     return 'GitHub App не може прочитати всі приватні Issues. Перевірте дві інсталяції та read-only дозволи.'
   if (code === 'GITHUB_SEARCH_INCOMPLETE' || code === 'GITHUB_SEARCH_TRUNCATED')
     return 'GitHub повернув неповну вибірку Issues. Часткову карту приховано.'
