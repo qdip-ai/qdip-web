@@ -7,6 +7,7 @@ import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observato
 import { DIP_USE_CASES } from '@/use-cases/registry'
 import styles from '@/components/observatory/plugin-experience.module.css'
 import { PluginLaunchLink } from '@/components/observatory/plugin-launch-link'
+import { pluginPresentation } from '@/lib/observatory-plugin-editorial'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,6 +81,7 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
   if (name !== canonicalName) redirect(buildLocalePath(`/plugins/${canonicalName}`, locale))
   const t = copy[locale]
   const launch = launchLinkForPlugin(plugin)
+  const presentation = pluginPresentation(plugin, locale)
   const demo = DIP_USE_CASES.find(
     (item) => item.plugin.id === plugin.name && item.plugin.capability === plugin.capability_id
   )
@@ -92,13 +94,13 @@ export default async function PluginDetailsPage({ params }: { params: Promise<{ 
           </a>
           <header className={styles.hero} style={{ marginTop: '1.5rem' }}>
             <p className={styles.eyebrow}>{t.eyebrow}</p>
-            <h1 className={styles.title}>{plugin.ui?.label || plugin.name}</h1>
+            <h1 className={styles.title}>{presentation.title}</h1>
             {plugin.ui?.category && (
               <div className={styles.meta}>
                 <span className={styles.pill}>{pluginCategoryLabel(plugin.ui.category, locale)}</span>
               </div>
             )}
-            <p className={styles.lead}>{plugin.description || t.noDescription}</p>
+            <p className={styles.lead}>{presentation.description || t.noDescription}</p>
           </header>
           {launch ? (
             <section className={styles.launchPanel} aria-label={t.launch}>

@@ -7,6 +7,7 @@ import { DIP_USE_CASES } from '@/use-cases/registry'
 import { notFound } from 'next/navigation'
 import styles from '@/components/observatory/plugin-experience.module.css'
 import { PluginLaunchLink } from '@/components/observatory/plugin-launch-link'
+import { pluginPresentation } from '@/lib/observatory-plugin-editorial'
 
 export const dynamic = 'force-dynamic'
 
@@ -111,6 +112,7 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
               <div className={styles.grid}>
                 {plugins.map((plugin) => {
                   const launch = launchLinkForPlugin(plugin)
+                  const presentation = pluginPresentation(plugin, locale)
                   return (
                     <article key={plugin.name} className={`${styles.card} ${styles.publicCard}`}>
                       <div className={styles.meta}>
@@ -127,9 +129,9 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
                         )}
                       </div>
                       <h3 className={styles.cardTitle} style={{ marginTop: '1rem' }}>
-                        {plugin.ui?.label || plugin.name}
+                        {presentation.title}
                       </h3>
-                      <p className={styles.description}>{plugin.description || t.noDescription}</p>
+                      <p className={styles.description}>{presentation.description || t.noDescription}</p>
                       <div className={styles.actionRow}>
                         <a
                           className={styles.link}
