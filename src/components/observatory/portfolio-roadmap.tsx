@@ -1,13 +1,13 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, GitBranch, Search, ShieldAlert, X } from 'lucide-react'
 
 import {
   dependentsOf,
-  portfolioProjects,
-  PORTFOLIO_VERIFIED_AT,
   statusLabels,
+  type PortfolioProject,
   type PortfolioStatus,
 } from './portfolio-roadmap-data'
 import styles from './portfolio-roadmap.module.css'
@@ -15,19 +15,20 @@ import styles from './portfolio-roadmap.module.css'
 type Filter = PortfolioStatus | 'all'
 const filters: Filter[] = ['all', 'active', 'gated', 'blocked', 'research', 'paused', 'closed']
 
-export function PortfolioRoadmap() {
-  const [selectedId, setSelectedId] = useState('bridge')
+export function PortfolioRoadmap({ projects, fetchedAt, error }: { projects: PortfolioProject[]; fetchedAt: string | null; error?: string }) {
+  const router = useRouter()
+  const [selectedId, setSelectedId] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'map' | 'stages'>('map')
-  const selected = portfolioProjects.find((project) => project.id === selectedId) ?? portfolioProjects[0]
-  const prerequisites = selected.dependencies
-    .map((id) => portfolioProjects.find((project) => project.id === id))
+  const selected = projects.find((project) => project.id === selectedId) ?? projects[0]
+  const prerequisites = (selected?.dependencies ?? [])
+    .map((id) => projects.find((project) => project.id === id))
     .filter((value) => value !== undefined)
-  const dependents = dependentsOf(selected.id)
+  const dependents = selected ? dependentsOf(selected.id, projects) : []
   const filtered = useMemo(
     () =>
-      portfolioProjects.filter((p) => {
+      projects.filter((p) => {
         if (filter !== 'all' && p.status !== filter) return false
         const haystack = [p.title, p.group, p.stage, p.next].join(' ').toLocaleLowerCase('uk')
         return haystack.includes(query.trim().toLocaleLowerCase('uk'))
@@ -53,12 +54,15 @@ export function PortfolioRoadmap() {
           </p>
         </div>
         <div className={styles.freshness}>
-          <div className={styles.snapshot}>Знімок перевірених GitHub roadmap</div>
-          <strong>{PORTFOLIO_VERIFIED_AT}</strong>
-          <span>Не live-моніторинг · джерела відкриваються в GitHub</span>
+          <div className={styles.snapshot}>GitHub Issues · серверна синхронізація</div>
+          <strong>{fetchedAt ? new Date(fetchedAt).toLocaleString('uk-UA') : 'Немає даних'}</strong>
+          <button type="button" className={styles.sourceLink} onClick={() => router.refresh()}>Оновити з GitHub</button>
+          <span>Дані GitHub можуть кешуватися до 60 секунд.</span>
         </div>
       </header>
 
+      {(!selected || error) && <div role="alert" className={styles.warning}>{error ?? 'Поки немає відстежуваних GitHub Issues. Карту не сформовано.'}</div>}
+      {selected && (
       <div className={styles.summary} aria-label="Підсумок портфеля">
         {(['active', 'gated', 'blocked', 'paused'] as const).map((status) => (
           <button
@@ -68,7 +72,7 @@ export function PortfolioRoadmap() {
             onClick={() => setFilter(filter === status ? 'all' : status)}
             aria-pressed={filter === status}
           >
-            <b>{portfolioProjects.filter((p) => p.status === status).length}</b>
+            <b>{projects.filter((p) => p.status === status).length}</b>
             <span>{statusLabels[status]}</span>
           </button>
         ))}
@@ -78,7 +82,7 @@ export function PortfolioRoadmap() {
         <aside className={styles.sidebar} aria-label="Усі проєкти">
           <div className={styles.sidebarTop}>
             <h2>
-              Проєкти <span>{portfolioProjects.length}</span>
+              Проєкти <span>{projects.length}</span>
             </h2>
             <label className={styles.search}>
               <Search size={16} aria-hidden="true" />
@@ -175,9 +179,16 @@ export function PortfolioRoadmap() {
               <div className={styles.diagramGrid}>
                 <div className={styles.diagramColumn}>
                   <h4>ПОПЕРЕДНІ УМОВИ</h4>
-                  {prerequisites.length === 0 && (
+                  {prerequisites.length === 0 && selected.missingDependencies.length === 0 && (
                     <span className={styles.noDeps}>Немає жорсткої залежності в цій карті</span>
                   )}
+                  {selected.missingDependencies.map((url) => (
+                    <a key={url} className={styles.node} href={url} target="_blank" rel="noopener noreferrer">
+                      <span className={[styles.dot, styles.blocked].join(' ')} aria-hidden="true" />
+                      <span><b>Зовнішній GitHub блокер</b><small>Issue ще не додано до портфеля</small></span>
+                      <ArrowUpRight size={14} aria-hidden="true" />
+                    </a>
+                  ))}
                   {prerequisites.map((dependency) => (
                     <button
                       key={dependency.id}
@@ -234,11 +245,8 @@ export function PortfolioRoadmap() {
                   ))}
                 </div>
               </div>
-              {selected.id === 'bridge' && (
-                <div className={styles.warning}>
-                  Жодних персональних даних між Yara та Dzvin.co, доки Core #555, Worker admission, privacy audit і
-                  незалежні negative E2E не завершені.
-                </div>
+              {selected.status === 'blocked' && (
+                <div className={styles.warning}>Інтеграцію заблоковано до виконання вказаних залежностей та перевірки acceptance criteria у GitHub Issue.</div>
               )}
               <div className={styles.diagramHelp}>
                 <ArrowLeft size={13} /> Залежність <ArrowDown size={13} /> обраний проєкт <ArrowRight size={13} />{' '}
@@ -279,9 +287,9 @@ export function PortfolioRoadmap() {
           )}
         </section>
       </div>
+      )}
       <footer className={styles.footer}>
-        Поточні етапи відображено за перевіреними issue/roadmap на {PORTFOLIO_VERIFIED_AT}. Перехід на наступну стадію
-        потребує доказів із GitHub/E2E; деплой сам по собі не є PASS.
+        Джерело: GitHub Issues із явними метаданими QDIP Portfolio. Статуси та залежності оновлюються на сервері; деплой або merge сам по собі не означає acceptance PASS.
       </footer>
     </main>
   )
