@@ -12,8 +12,7 @@ import {
 } from './portfolio-roadmap-data'
 import styles from './portfolio-roadmap.module.css'
 
-const ALL = 'all'
-type Filter = PortfolioStatus | typeof ALL
+type Filter = PortfolioStatus | 'all'
 const filters: Filter[] = [
   'all', 'active', 'gated', 'blocked', 'research', 'paused', 'closed',
 ]
