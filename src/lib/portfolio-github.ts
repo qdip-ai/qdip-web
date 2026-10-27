@@ -1,6 +1,10 @@
 import 'server-only'
 
-import { assemblePortfolio, parsePortfolioIssue, type PortfolioProject } from '@/components/observatory/portfolio-roadmap-data'
+import {
+  assemblePortfolio,
+  parsePortfolioIssue,
+  type PortfolioProject,
+} from '@/components/observatory/portfolio-roadmap-data'
 
 type SearchResponse = {
   total_count?: number
@@ -45,7 +49,10 @@ async function searchOrg(org: string, token: string) {
   const found: unknown[] = []
   for (let page = 1; page <= MAX_PAGES; page++) {
     const q = encodeURIComponent('org:' + org + ' is:issue in:body "QDIP Portfolio"')
-    const data = await githubJson('https://api.github.com/search/issues?q=' + q + '&per_page=100&page=' + page, token) as SearchResponse
+    const data = (await githubJson(
+      'https://api.github.com/search/issues?q=' + q + '&per_page=100&page=' + page,
+      token
+    )) as SearchResponse
     if (!Array.isArray(data.items) || typeof data.total_count !== 'number' || data.incomplete_results === true) {
       throw new Error('GITHUB_SEARCH_INCOMPLETE')
     }
@@ -78,8 +85,12 @@ export function portfolioErrorLabel(error: unknown) {
   const code = error instanceof Error ? error.message : ''
   if (code === 'GITHUB_READ_NOT_CONFIGURED')
     return 'GitHub доступ не налаштовано: необхідний серверний read-only credential до приватних репозиторіїв.'
-  if (code.includes('403') || code.includes('401') || code.includes('404') ||
-      code === 'GITHUB_PRIVATE_REPO_ACCESS_NOT_VERIFIED')
+  if (
+    code.includes('403') ||
+    code.includes('401') ||
+    code.includes('404') ||
+    code === 'GITHUB_PRIVATE_REPO_ACCESS_NOT_VERIFIED'
+  )
     return 'GitHub відхилив доступ до одного з приватних репозиторіїв. Перевірте read-only дозволи сервісу.'
   if (code === 'GITHUB_SEARCH_INCOMPLETE' || code === 'GITHUB_SEARCH_TRUNCATED')
     return 'GitHub повернув неповну вибірку Issues. Часткову карту приховано.'
