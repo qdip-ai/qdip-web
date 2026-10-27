@@ -26,10 +26,15 @@ export default async function PortfolioPage({ params }: { params: Promise<{ loca
   }
   if (!access.allowed) notFound()
 
+  let projects: Awaited<ReturnType<typeof loadGithubPortfolio>>['projects'] = []
+  let fetchedAt: string | null = null
+  let errorMessage: string | undefined
   try {
     const portfolio = await loadGithubPortfolio()
-    return <PortfolioRoadmap projects={portfolio.projects} fetchedAt={portfolio.fetchedAt} />
+    projects = portfolio.projects
+    fetchedAt = portfolio.fetchedAt
   } catch (error) {
-    return <PortfolioRoadmap projects={[]} fetchedAt={null} error={portfolioErrorLabel(error)} />
+    errorMessage = portfolioErrorLabel(error)
   }
+  return <PortfolioRoadmap projects={projects} fetchedAt={fetchedAt} error={errorMessage} />
 }
