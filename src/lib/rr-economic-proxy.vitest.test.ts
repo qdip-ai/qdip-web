@@ -34,6 +34,7 @@ function fakeRequest(): NextRequest {
 beforeEach(() => {
   vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
   vi.stubEnv('DIP_API_KEY', 'test-organization-scoped-key')
+  vi.stubEnv('RR_ORG_API_KEY', '')
   vi.mocked(operatorAuthorized).mockReturnValue(true)
   vi.mocked(sameOrigin).mockReturnValue(true)
 })
@@ -70,6 +71,26 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect(headers['x-qdip-actor-assertion']).toBeUndefined()
     expect(signedRrActorFromRequest).not.toHaveBeenCalled()
     expect(response.headers.get('cache-control')).toBe('no-store')
+  })
+
+  it('uses RR_ORG_API_KEY instead of the shared platform key for Core requests', async () => {
+    vi.stubEnv('RR_ORG_API_KEY', 'dedicated-rr-organization-key')
+    vi.stubEnv('DIP_API_KEY', 'platform-admin-key-must-not-be-used-for-rr')
+    const fetcher = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toContain('/economic-v2/preflight')
+      expect(init.method).toBe('POST')
+      return new Response(JSON.stringify({ state: 'COMPILED_PREVIEW_ONLY' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
+    vi.stubGlobal('fetch', fetcher)
+    const response = await POST(fakeRequest(), params(['economic-v2', 'preflight']))
+    expect(response.status).toBe(200)
+    expect(fetcher).toHaveBeenCalledOnce()
+    const headers = fetcher.mock.calls[0][1].headers as Record<string, string>
+    expect(headers['x-api-key']).toBe('dedicated-rr-organization-key')
+    expect(headers['x-api-key']).not.toBe('platform-admin-key-must-not-be-used-for-rr')
   })
 
   it('rejects unauthenticated and wrong-origin requests before touching Core', async () => {

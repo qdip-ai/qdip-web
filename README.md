@@ -41,7 +41,8 @@ The hostname of each configured origin is automatically registered as the owner 
 Backend integration uses:
 
 - `DIP_API_BASE_URL` — DIP backend base URL
-- `DIP_API_KEY` — API key for server-side QDIP requests
+- `DIP_API_KEY` — legacy/shared API key for server-side QDIP requests (Studio/Observatory). Do not rotate it to an RR-only key.
+- `RR_ORG_API_KEY` — separate **server-only** organization-scoped Core key for the single-organization RR BFF. It must belong to the pre-existing Core organization corresponding to the authorized Zitadel organization, with minimum `decisions:read`, `audit:read`, `decisions:execute` scopes. Provision via a reviewed platform-admin organization-key path; the plugin key UI issues `plugins:*` scopes and is not a substitute. The legacy `DIP_API_KEY` RR fallback is for migration/isolated E2E only; a successful production RR acceptance requires `RR_ORG_API_KEY`.
 
 ### Decision inquiry email delivery
 

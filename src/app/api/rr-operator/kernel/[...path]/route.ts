@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { normalizeDipBaseUrl } from '@/lib/dip-url'
 import { allowedKernelPath } from '@/lib/rr-kernel-route-allowlist'
 import { signedRrActorFromRequest } from '@/lib/rr-actor-assertion'
+import { rrCoreApiKey } from '@/lib/rr-core-credential'
 import { operatorAuthorized, operatorConfigured, safeTransport, sameOrigin } from '@/lib/rr-operator-auth'
 
 export const runtime = 'nodejs'
@@ -23,7 +24,7 @@ async function handle(request: NextRequest, context: Context) {
   if (!allowedKernelPath(path, request.method)) return json('Unsupported RR operation', 404)
 
   const base = normalizeDipBaseUrl(process.env.DIP_API_BASE_URL ?? process.env.DIP_URL)
-  const key = (process.env.DIP_API_KEY ?? '').trim()
+  const key = rrCoreApiKey()
   if (!base || !key) return json('DIP connection is not configured', 503)
   const upstreamBase = new URL(base)
   if (

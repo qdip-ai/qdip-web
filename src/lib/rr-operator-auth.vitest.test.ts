@@ -15,6 +15,7 @@ beforeEach(() => {
   vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', '987654321')
   vi.stubEnv('DIP_API_BASE_URL', 'http://127.0.0.1:8000')
   vi.stubEnv('DIP_API_KEY', 'test-org-scoped-key')
+  vi.stubEnv('RR_ORG_API_KEY', '')
   vi.stubEnv('RR_ACTOR_ASSERTION_SECRET', 'this-is-an-independent-core-rr-actor-signing-secret')
 })
 
@@ -26,6 +27,14 @@ describe('Zitadel-backed RR session boundary', () => {
     expect(operatorConfigured()).toBe(false)
     vi.stubEnv('ZITADEL_QDIP_PROJECT_ID', '123456789')
     vi.stubEnv('ZITADEL_ISSUER', '')
+    expect(operatorConfigured()).toBe(false)
+  })
+
+  it('accepts dedicated RR credential without requiring the platform Core key', () => {
+    vi.stubEnv('DIP_API_KEY', '')
+    vi.stubEnv('RR_ORG_API_KEY', 'dedicated-single-org-rr-key')
+    expect(operatorConfigured()).toBe(true)
+    vi.stubEnv('RR_ORG_API_KEY', '')
     expect(operatorConfigured()).toBe(false)
   })
 

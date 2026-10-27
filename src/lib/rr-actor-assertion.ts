@@ -3,6 +3,7 @@ import 'server-only'
 import { createHash, createHmac } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { canOperateRr, sessionFromRequest } from '@/lib/qdip-oidc'
+import { rrCoreApiKey } from '@/lib/rr-core-credential'
 
 export type RrActorOperation = 'execute' | 'replan'
 
@@ -36,6 +37,6 @@ export function signedRrActorFromRequest(request: NextRequest, operation: RrActo
     session.sub,
     operation,
     process.env.RR_ACTOR_ASSERTION_SECRET ?? '',
-    process.env.DIP_API_KEY?.trim() ?? ''
+    rrCoreApiKey()
   )
 }
