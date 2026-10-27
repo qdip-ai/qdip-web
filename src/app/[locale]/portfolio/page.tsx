@@ -15,11 +15,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export default async function PortfolioPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
+export default async function PortfolioPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params
   if (!isSupportedLocale(locale)) notFound()
 

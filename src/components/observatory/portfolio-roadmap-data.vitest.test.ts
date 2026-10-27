@@ -23,9 +23,7 @@ describe('interactive portfolio dependency graph', () => {
   it('blocks bidirectional personal-data exchange on security and both owner products', () => {
     const project = portfolioProjects.find((item) => item.id === 'bridge')
     expect(project?.status).toBe('blocked')
-    expect(project?.dependencies).toEqual(
-      expect.arrayContaining(['sdk', 'worker', 'yara', 'dzvin'])
-    )
+    expect(project?.dependencies).toEqual(expect.arrayContaining(['sdk', 'worker', 'yara', 'dzvin']))
     expect(project?.next).toContain('calendar')
   })
 

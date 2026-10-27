@@ -13,9 +13,7 @@ import {
 import styles from './portfolio-roadmap.module.css'
 
 type Filter = PortfolioStatus | 'all'
-const filters: Filter[] = [
-  'all', 'active', 'gated', 'blocked', 'research', 'paused', 'closed',
-]
+const filters: Filter[] = ['all', 'active', 'gated', 'blocked', 'research', 'paused', 'closed']
 
 export function PortfolioRoadmap() {
   const [selectedId, setSelectedId] = useState('bridge')
@@ -27,11 +25,15 @@ export function PortfolioRoadmap() {
     .map((id) => portfolioProjects.find((project) => project.id === id))
     .filter((value) => value !== undefined)
   const dependents = dependentsOf(selected.id)
-  const filtered = useMemo(() => portfolioProjects.filter((p) => {
-    if (filter !== 'all' && p.status !== filter) return false
-    const haystack = [p.title, p.group, p.stage, p.next].join(' ').toLocaleLowerCase('uk')
-    return haystack.includes(query.trim().toLocaleLowerCase('uk'))
-  }), [filter, query])
+  const filtered = useMemo(
+    () =>
+      portfolioProjects.filter((p) => {
+        if (filter !== 'all' && p.status !== filter) return false
+        const haystack = [p.title, p.group, p.stage, p.next].join(' ').toLocaleLowerCase('uk')
+        return haystack.includes(query.trim().toLocaleLowerCase('uk'))
+      }),
+    [filter, query]
+  )
 
   function focusProject(id: string) {
     setSelectedId(id)
@@ -42,9 +44,13 @@ export function PortfolioRoadmap() {
     <main id="main-content" className={styles.main}>
       <header className={styles.header}>
         <div>
-          <div className={styles.eyebrow}><GitBranch size={15} aria-hidden="true" /> QDIP / PORTFOLIO CONTROL</div>
+          <div className={styles.eyebrow}>
+            <GitBranch size={15} aria-hidden="true" /> QDIP / PORTFOLIO CONTROL
+          </div>
           <h1 className={styles.h1}>Карта розвитку проєктів</h1>
-          <p className={styles.subtitle}>Поточні етапи, залежності, блокери та наступний крок. Натисніть на проєкт, щоб побачити шлях уперед.</p>
+          <p className={styles.subtitle}>
+            Поточні етапи, залежності, блокери та наступний крок. Натисніть на проєкт, щоб побачити шлях уперед.
+          </p>
         </div>
         <div className={styles.freshness}>
           <div className={styles.snapshot}>Знімок перевірених GitHub roadmap</div>
@@ -71,7 +77,9 @@ export function PortfolioRoadmap() {
       <div className={styles.layout}>
         <aside className={styles.sidebar} aria-label="Усі проєкти">
           <div className={styles.sidebarTop}>
-            <h2>Проєкти <span>{portfolioProjects.length}</span></h2>
+            <h2>
+              Проєкти <span>{portfolioProjects.length}</span>
+            </h2>
             <label className={styles.search}>
               <Search size={16} aria-hidden="true" />
               <input
@@ -80,7 +88,11 @@ export function PortfolioRoadmap() {
                 aria-label="Знайти проєкт"
                 placeholder="Пошук за назвою або етапом"
               />
-              {query && <button type="button" aria-label="Очистити пошук" onClick={() => setQuery('')}><X size={14} /></button>}
+              {query && (
+                <button type="button" aria-label="Очистити пошук" onClick={() => setQuery('')}>
+                  <X size={14} />
+                </button>
+              )}
             </label>
             <div className={styles.filters} aria-label="Фільтр станів">
               {filters.map((item) => (
@@ -122,7 +134,9 @@ export function PortfolioRoadmap() {
             <div className={styles.selectedHeadLeft}>
               <div className={styles.muted}>{selected.group}</div>
               <h2>{selected.title}</h2>
-              <span className={[styles.status, styles[selected.status]].join(' ')}>{statusLabels[selected.status]}</span>
+              <span className={[styles.status, styles[selected.status]].join(' ')}>
+                {statusLabels[selected.status]}
+              </span>
             </div>
             <a className={styles.sourceLink} href={selected.source} rel="noopener noreferrer" target="_blank">
               Джерело <ArrowUpRight size={15} aria-hidden="true" />
@@ -131,12 +145,28 @@ export function PortfolioRoadmap() {
           <div className={styles.currentStage}>
             <span>ПОТОЧНИЙ ЕТАП</span>
             <h3>{selected.stage}</h3>
-            <div className={styles.next}><b>Наступний крок:</b> {selected.next}</div>
+            <div className={styles.next}>
+              <b>Наступний крок:</b> {selected.next}
+            </div>
           </div>
 
           <div className={styles.switcher} role="group" aria-label="Вид карти">
-            <button className={view === 'map' ? styles.viewActive : ''} type="button" aria-pressed={view === 'map'} onClick={() => setView('map')}>Залежності</button>
-            <button className={view === 'stages' ? styles.viewActive : ''} type="button" aria-pressed={view === 'stages'} onClick={() => setView('stages')}>Етапи</button>
+            <button
+              className={view === 'map' ? styles.viewActive : ''}
+              type="button"
+              aria-pressed={view === 'map'}
+              onClick={() => setView('map')}
+            >
+              Залежності
+            </button>
+            <button
+              className={view === 'stages' ? styles.viewActive : ''}
+              type="button"
+              aria-pressed={view === 'stages'}
+              onClick={() => setView('stages')}
+            >
+              Етапи
+            </button>
           </div>
 
           {view === 'map' ? (
@@ -145,58 +175,114 @@ export function PortfolioRoadmap() {
               <div className={styles.diagramGrid}>
                 <div className={styles.diagramColumn}>
                   <h4>ПОПЕРЕДНІ УМОВИ</h4>
-                  {prerequisites.length === 0 && <span className={styles.noDeps}>Немає жорсткої залежності в цій карті</span>}
+                  {prerequisites.length === 0 && (
+                    <span className={styles.noDeps}>Немає жорсткої залежності в цій карті</span>
+                  )}
                   {prerequisites.map((dependency) => (
-                    <button key={dependency.id} className={styles.node} type="button" onClick={() => focusProject(dependency.id)}>
+                    <button
+                      key={dependency.id}
+                      className={styles.node}
+                      type="button"
+                      onClick={() => focusProject(dependency.id)}
+                    >
                       <span className={[styles.dot, styles[dependency.status]].join(' ')} aria-hidden="true" />
-                      <span><b>{dependency.title}</b><small>{statusLabels[dependency.status]} · {dependency.stage}</small></span>
+                      <span>
+                        <b>{dependency.title}</b>
+                        <small>
+                          {statusLabels[dependency.status]} · {dependency.stage}
+                        </small>
+                      </span>
                       <ArrowRight size={14} aria-hidden="true" />
                     </button>
                   ))}
                 </div>
-                <div className={styles.arrowColumn} aria-hidden="true"><ArrowRight size={22} /></div>
+                <div className={styles.arrowColumn} aria-hidden="true">
+                  <ArrowRight size={22} />
+                </div>
                 <div className={styles.centralNode}>
                   <div className={styles.centralTag}>ОБРАНИЙ ПРОЄКТ</div>
                   <strong>{selected.title}</strong>
                   <span>{selected.stage}</span>
-                  {selected.status === 'blocked' && <div className={styles.critical}><ShieldAlert size={15} /> Не переходити до інтеграції</div>}
+                  {selected.status === 'blocked' && (
+                    <div className={styles.critical}>
+                      <ShieldAlert size={15} /> Не переходити до інтеграції
+                    </div>
+                  )}
                 </div>
-                <div className={styles.arrowColumn} aria-hidden="true"><ArrowRight size={22} /></div>
+                <div className={styles.arrowColumn} aria-hidden="true">
+                  <ArrowRight size={22} />
+                </div>
                 <div className={styles.diagramColumn}>
                   <h4>ЗАЛЕЖНІ ПРОЄКТИ</h4>
                   {dependents.length === 0 && <span className={styles.noDeps}>Прямих залежних проєктів немає</span>}
                   {dependents.map((dependency) => (
-                    <button key={dependency.id} className={styles.node} type="button" onClick={() => focusProject(dependency.id)}>
+                    <button
+                      key={dependency.id}
+                      className={styles.node}
+                      type="button"
+                      onClick={() => focusProject(dependency.id)}
+                    >
                       <span className={[styles.dot, styles[dependency.status]].join(' ')} aria-hidden="true" />
-                      <span><b>{dependency.title}</b><small>{statusLabels[dependency.status]} · {dependency.stage}</small></span>
+                      <span>
+                        <b>{dependency.title}</b>
+                        <small>
+                          {statusLabels[dependency.status]} · {dependency.stage}
+                        </small>
+                      </span>
                       <ArrowRight size={14} aria-hidden="true" />
                     </button>
                   ))}
                 </div>
               </div>
-              {selected.id === 'bridge' && <div className={styles.warning}>Жодних персональних даних між Yara та Dzvin.co, доки Core #555, Worker admission, privacy audit і незалежні negative E2E не завершені.</div>}
-              <div className={styles.diagramHelp}><ArrowLeft size={13} /> Залежність <ArrowDown size={13} /> обраний проєкт <ArrowRight size={13} /> споживач результату</div>
+              {selected.id === 'bridge' && (
+                <div className={styles.warning}>
+                  Жодних персональних даних між Yara та Dzvin.co, доки Core #555, Worker admission, privacy audit і
+                  незалежні negative E2E не завершені.
+                </div>
+              )}
+              <div className={styles.diagramHelp}>
+                <ArrowLeft size={13} /> Залежність <ArrowDown size={13} /> обраний проєкт <ArrowRight size={13} />{' '}
+                споживач результату
+              </div>
             </div>
           ) : (
             <div className={styles.stages}>
-              <div className={styles.diagramTitle}>Послідовність контрольних етапів (без вигаданого відсотка готовності)</div>
+              <div className={styles.diagramTitle}>
+                Послідовність контрольних етапів (без вигаданого відсотка готовності)
+              </div>
               {selected.steps.map((step, index) => (
                 <div className={styles.step} key={step}>
-                  <div className={[styles.stepNumber, index === 0 ? styles.stepDone : index === 1 ? styles.stepNow : styles.stepFuture].join(' ')}>
+                  <div
+                    className={[
+                      styles.stepNumber,
+                      index === 0 ? styles.stepDone : index === 1 ? styles.stepNow : styles.stepFuture,
+                    ].join(' ')}
+                  >
                     {index + 1}
                   </div>
                   <div className={styles.stepBody}>
-                    <div className={styles.stepLabel}>{index === 0 ? 'Підтверджений або існуючий базис' : index === 1 ? 'Поточний етап / обмеження' : 'Умова завершення'}</div>
+                    <div className={styles.stepLabel}>
+                      {index === 0
+                        ? 'Підтверджений або існуючий базис'
+                        : index === 1
+                          ? 'Поточний етап / обмеження'
+                          : 'Умова завершення'}
+                    </div>
                     <strong>{step}</strong>
                   </div>
                 </div>
               ))}
-              <a className={styles.bottomLink} href={selected.source} target="_blank" rel="noopener noreferrer">Відкрити acceptance criteria у GitHub <ArrowUpRight size={15} /></a>
+              <a className={styles.bottomLink} href={selected.source} target="_blank" rel="noopener noreferrer">
+                Відкрити acceptance criteria у GitHub <ArrowUpRight size={15} />
+              </a>
             </div>
           )}
         </section>
       </div>
-      <footer className={styles.footer}>Поточні етапи відображено за перевіреними issue/roadmap на {PORTFOLIO_VERIFIED_AT}. Перехід на наступну стадію потребує доказів із GitHub/E2E; деплой сам по собі не є PASS.</footer>
+      <footer className={styles.footer}>
+        Поточні етапи відображено за перевіреними issue/roadmap на {PORTFOLIO_VERIFIED_AT}. Перехід на наступну стадію
+        потребує доказів із GitHub/E2E; деплой сам по собі не є PASS.
+      </footer>
     </main>
   )
 }
