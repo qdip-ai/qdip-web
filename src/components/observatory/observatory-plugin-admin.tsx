@@ -7,6 +7,7 @@ import { safePluginLaunchUrl } from '@qdip/client'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import styles from './plugin-experience.module.css'
 import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
+import { pluginPresentation } from '@/lib/observatory-plugin-editorial'
 
 type Row = {
   name: string
@@ -266,8 +267,14 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     launch_url_verified: false,
   })
   const [error, setError] = useState('')
-  const [mutationError, setMutationError] = useState<{ name: string; message: string } | null>(null)
-  const [mutationSuccess, setMutationSuccess] = useState<{ name: string; message: string } | null>(null)
+  const [mutationError, setMutationError] = useState<{
+    name: string
+    message: string
+  } | null>(null)
+  const [mutationSuccess, setMutationSuccess] = useState<{
+    name: string
+    message: string
+  } | null>(null)
   const editorTitleRef = useRef<HTMLHeadingElement | null>(null)
   const editButtonRef = useRef<HTMLButtonElement | null>(null)
   const confirmationRef = useRef<HTMLParagraphElement | null>(null)
@@ -412,7 +419,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         message: published ? (isPublished(row) ? t.savedChanges : t.saved) : t.hidden,
       })
     } catch (cause) {
-      setMutationError({ name: row.name, message: cause instanceof Error ? cause.message : t.error })
+      setMutationError({
+        name: row.name,
+        message: cause instanceof Error ? cause.message : t.error,
+      })
     } finally {
       setPending(false)
     }
@@ -451,7 +461,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                   : refreshResult
                     ? `${refreshResult.changed === null ? t.refreshed : refreshResult.changed ? t.changed : t.unchanged} · ${t.count}: ${refreshResult.count} · ${t.refreshed}: ${refreshResult.checkedAt.toLocaleTimeString(
                         locale === 'uk' ? 'uk-UA' : locale === 'pl' ? 'pl-PL' : 'en-GB',
-                        { hour: '2-digit', minute: '2-digit', second: '2-digit' }
+                        {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        }
                       )}`
                     : ''}
             </div>
@@ -471,8 +485,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
               <article key={row.name} className={`${styles.card} ${styles.adminCard}`}>
                 <div className={styles.adminTop}>
                   <div className={styles.adminSummary}>
-                    <h3 className={styles.cardTitle}>{row.ui?.label || row.name}</h3>
-                    <p className={styles.description}>{row.description || t.noDescription}</p>
+                    <h3 className={styles.cardTitle}>{pluginPresentation(row, locale).title}</h3>
+                    <p className={styles.description}>
+                      {pluginPresentation(row, locale).description || t.noDescription}
+                    </p>
                     <p className={styles.note} style={{ marginTop: '0.75rem' }}>
                       {t.version}: {row.version}
                     </p>
@@ -558,7 +574,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           required
                           minLength={2}
                           maxLength={120}
-                          onChange={(event) => setFields((prev) => ({ ...prev, display_name: event.target.value }))}
+                          onChange={(event) =>
+                            setFields((prev) => ({
+                              ...prev,
+                              display_name: event.target.value,
+                            }))
+                          }
                         />
                       </label>
                       <label className={styles.field}>
@@ -577,7 +598,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           maxLength={64}
                           pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
                           onChange={(event) =>
-                            setFields((prev) => ({ ...prev, slug: event.target.value.toLowerCase() }))
+                            setFields((prev) => ({
+                              ...prev,
+                              slug: event.target.value.toLowerCase(),
+                            }))
                           }
                         />
                         <span className={styles.fieldHint}>{t.slugHint}</span>
@@ -638,7 +662,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           value={fields.description}
                           rows={4}
                           maxLength={2000}
-                          onChange={(event) => setFields((prev) => ({ ...prev, description: event.target.value }))}
+                          onChange={(event) =>
+                            setFields((prev) => ({
+                              ...prev,
+                              description: event.target.value,
+                            }))
+                          }
                         />
                       </label>
                       <div className={styles.fieldRow}>
@@ -647,7 +676,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           <select
                             className={styles.input}
                             value={fields.category}
-                            onChange={(event) => setFields((prev) => ({ ...prev, category: event.target.value }))}
+                            onChange={(event) =>
+                              setFields((prev) => ({
+                                ...prev,
+                                category: event.target.value,
+                              }))
+                            }
                           >
                             {(categories.includes(fields.category) ? categories : [fields.category, ...categories]).map(
                               (category) => (
@@ -665,7 +699,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                               className={styles.input}
                               value={fields.capability_id}
                               onChange={(event) =>
-                                setFields((prev) => ({ ...prev, capability_id: event.target.value }))
+                                setFields((prev) => ({
+                                  ...prev,
+                                  capability_id: event.target.value,
+                                }))
                               }
                             >
                               {row.capabilities.map((capability) => (
