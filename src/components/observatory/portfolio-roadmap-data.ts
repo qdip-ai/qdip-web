@@ -46,7 +46,7 @@ export type PortfolioRecord = {
 }
 
 const STATUS_VALUES = new Set<PortfolioStatus>(['active', 'gated', 'blocked', 'research', 'paused', 'closed'])
-const PORTFOLIO_MARKER = /<!-- qdip-portfolio:v1 -->\s*```json\s*(\{[\s\S]*?\})\s*```/
+const PORTFOLIO_MARKER = new RegExp(String.raw`<!-- qdip-portfolio:v1 -->\s*` + '```' + String.raw`json\s*(\{[\s\S]*?\})\s*` + '```')
 
 function validIssueUrl(value: unknown): value is string {
   if (typeof value !== 'string') return false
