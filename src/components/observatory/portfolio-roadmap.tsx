@@ -1,7 +1,6 @@
 'use client'
 
 import { Fragment, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, GitBranch, Search, ShieldAlert, X } from 'lucide-react'
 
 import { dependentsOf, statusLabels, type PortfolioProject, type PortfolioStatus } from './portfolio-roadmap-data'
@@ -19,7 +18,6 @@ export function PortfolioRoadmap({
   fetchedAt: string | null
   error?: string
 }) {
-  const router = useRouter()
   const [selectedId, setSelectedId] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
@@ -36,7 +34,7 @@ export function PortfolioRoadmap({
         const haystack = [p.title, p.group, p.stage, p.next].join(' ').toLocaleLowerCase('uk')
         return haystack.includes(query.trim().toLocaleLowerCase('uk'))
       }),
-    [filter, query]
+    [filter, query, projects]
   )
 
   function focusProject(id: string) {
@@ -59,7 +57,7 @@ export function PortfolioRoadmap({
         <div className={styles.freshness}>
           <div className={styles.snapshot}>GitHub Issues · серверна синхронізація</div>
           <strong>{fetchedAt ? new Date(fetchedAt).toLocaleString('uk-UA') : 'Немає даних'}</strong>
-          <button type="button" className={styles.sourceLink} onClick={() => router.refresh()}>
+          <button type="button" className={styles.sourceLink} onClick={() => window.location.reload()}>
             Оновити з GitHub
           </button>
           <span>Дані GitHub можуть кешуватися до 60 секунд.</span>
