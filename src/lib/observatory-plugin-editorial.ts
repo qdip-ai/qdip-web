@@ -148,27 +148,6 @@ const COPY: Record<string, ProductCopy> = {
       'Turns a task or scheduling request into a bounded plan; execution and calendar changes require confirmation in VHV.',
     ],
   },
-  'route-optimizer-sdk02': {
-    uk: {
-      title: 'Оптимізатор маршрутів — вибір варіантів',
-      description:
-        'Обирає економні комбінації із заздалегідь підготовлених маршрутів. Не будує автомобільні маршрути за адресами й не обробляє адреси клієнтів.',
-    },
-    pl: {
-      title: 'Optymalizacja tras — wybór wariantów',
-      description:
-        'Wybiera najtańsze kombinacje z przygotowanych propozycji tras. Nie wyznacza tras z adresów ani nie przetwarza adresów klientów.',
-    },
-    englishLabels: [
-      'Route Optimizer — Candidate Routes',
-      'Route Optimizer — Candidate Route Selection',
-      'route-optimizer-sdk02',
-    ],
-    englishDescriptions: [
-      'Optimizes a bounded set of precomputed routes; no customer addresses or coordinates',
-      'Chooses lower-cost routes from provided precomputed candidates. Does not generate routes from addresses.',
-    ],
-  },
 }
 
 /** Only explicitly known first-party identities receive editorial translations.
@@ -186,7 +165,6 @@ const LEGACY_IDENTITIES = new Set([
 const VERIFIED_REMOTE_IDENTITIES = new Map<string, string>([
   ['remote-04e7c87d7b72111c-secretary', 'secretary'],
   ['remote-3b25f5ae494aa7bf-secretary', 'secretary'],
-  ['remote-b5843b4aa1e11211-route-optimizer-sdk02', 'route-optimizer-sdk02'],
 ])
 
 export function pluginPresentation(

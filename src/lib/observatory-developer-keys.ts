@@ -15,7 +15,7 @@ const ROLE_SCOPES = {
   worker: ['plugins:register'],
 } as const
 
-// #425: these are the two existing development Workers, not tenant aliases.
+// #425: temporary VHV canonical-organization Worker migration only, not tenant aliases.
 // A verified QDIP owner may replace their registration keys in QDIP itself.
 // Other tenants/plugins and all invoke credentials remain isolated.
 const RECREATE_WORKERS = {
@@ -23,11 +23,6 @@ const RECREATE_WORKERS = {
     capability: 'secretary.plan',
     sourceTenant: '1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab',
     sourceName: 'qdip-sdk-app:vhv',
-  },
-  'route-optimizer-sdk02': {
-    capability: 'route-optimizer.select-routes.v1',
-    sourceTenant: 'cbe626fc-e287-4e23-8c1b-001858521c44',
-    sourceName: 'qdip-sdk-plugin:route-optimizer-sdk02',
   },
 } as const
 
@@ -511,7 +506,7 @@ export async function issuePluginCredential(
   if (registered?.source === 'remote') {
     const registrationOrg = registeredRemoteOrg(registered, data)
     if (!registrationOrg) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
-    // Two existing first-party development Workers may be re-registered
+    // The existing first-party VHV development Worker may be re-registered
     // directly in QDIP. This NEVER grants an invoke key to another tenant.
     if (
       registrationOrg.id !== tenant.id &&
