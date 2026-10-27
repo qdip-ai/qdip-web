@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 
 import { PortfolioRoadmap } from '@/components/observatory/portfolio-roadmap'
 import { pageAccess } from '@/lib/qdip-page-access'
+import { loadGithubPortfolio, portfolioErrorLabel } from '@/lib/portfolio-github'
 import { loginUrl } from '@/lib/qdip-oidc'
 import { isSupportedLocale } from '@/lib/observatory-i18n'
 import { observatoryHref } from '@/lib/platform-urls'
@@ -25,5 +26,10 @@ export default async function PortfolioPage({ params }: { params: Promise<{ loca
   }
   if (!access.allowed) notFound()
 
-  return <PortfolioRoadmap />
+  try {
+    const portfolio = await loadGithubPortfolio()
+    return <PortfolioRoadmap projects={portfolio.projects} fetchedAt={portfolio.fetchedAt} />
+  } catch (error) {
+    return <PortfolioRoadmap projects={[]} fetchedAt={null} error={portfolioErrorLabel(error)} />
+  }
 }
