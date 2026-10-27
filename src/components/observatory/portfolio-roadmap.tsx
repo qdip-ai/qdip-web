@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, GitBranch, Search, ShieldAlert, X } from 'lucide-react'
 
@@ -63,6 +63,7 @@ export function PortfolioRoadmap({ projects, fetchedAt, error }: { projects: Por
 
       {(!selected || error) && <div role="alert" className={styles.warning}>{error ?? 'Поки немає відстежуваних GitHub Issues. Карту не сформовано.'}</div>}
       {selected && (
+      <Fragment>
       <div className={styles.summary} aria-label="Підсумок портфеля">
         {(['active', 'gated', 'blocked', 'paused'] as const).map((status) => (
           <button
@@ -287,6 +288,7 @@ export function PortfolioRoadmap({ projects, fetchedAt, error }: { projects: Por
           )}
         </section>
       </div>
+      </Fragment>
       )}
       <footer className={styles.footer}>
         Джерело: GitHub Issues із явними метаданими QDIP Portfolio. Статуси та залежності оновлюються на сервері; деплой або merge сам по собі не означає acceptance PASS.
