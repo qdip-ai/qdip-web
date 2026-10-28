@@ -23,14 +23,6 @@ test('legacy RR Monte Carlo JSON cannot silently execute as Kernel RR', async ({
   expect(await response.json()).toMatchObject({ code: 'RR_LEGACY_SOLVER_RETIRED' })
 })
 
-test('contractor exact template can be re-imported and executed', async ({ page }) => {
-  await page.goto('http://observatory.localhost:3000/uk/contractor-allocation', { waitUntil: 'domcontentloaded' })
-  await downloadAndReimportExact(page)
-  await expect(page.getByText('EXACT INPUT', { exact: true })).toBeVisible()
-  await page.locator('main button.bg-sky-400').first().click()
-  await expect(page.getByText(/Статус моделі|QDIP/i).first()).toBeVisible()
-})
-
 test('supply exact template can be re-imported and run without falling back to demo data', async ({ page }) => {
   let optimizedExactNetwork = false
   await page.route('**/api/supply-network/run', async (route) => {

@@ -21,11 +21,6 @@ const routingContract = [
       ),
   },
   {
-    id: 'contractor-allocation',
-    route: '/contractor-allocation',
-    load: () => import('./contractor-allocation/workspace').then((module) => module.ContractorAllocationWorkspace),
-  },
-  {
     id: 'readiness-recovery',
     route: '/readiness-recovery',
     load: () =>

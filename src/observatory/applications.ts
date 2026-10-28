@@ -21,7 +21,6 @@ const SYSTEM_APPLICATIONS: readonly ObservatoryApplication[] = [
 const USE_CASE_ICONS: Record<string, ObservatoryApplicationIcon> = {
   'resource-allocation': 'heart',
   'supply-network-optimization': 'network',
-  'contractor-allocation': 'network',
   'readiness-recovery': 'network',
   'gtm-lab': 'sparkles',
 }

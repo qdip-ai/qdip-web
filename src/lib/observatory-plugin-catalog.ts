@@ -12,7 +12,6 @@ export type CorePluginPublication = PluginCatalogEntry
 const LEGACY_PUBLIC = new Set([
   'resource-allocation',
   'supply-network-optimization',
-  'contractor-allocation',
   'readiness-recovery',
   'gtm-lab',
 ])

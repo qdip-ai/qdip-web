@@ -63,21 +63,18 @@ const demoTitles: Record<Locale, Record<string, string>> = {
   uk: {
     'resource-allocation': 'Розподіл ресурсів',
     'supply-network-optimization': 'Оптимізація мережі постачання',
-    'contractor-allocation': 'Розподіл підрядників',
     'readiness-recovery': 'Відновлення готовності',
     'gtm-lab': 'GTM Lab',
   },
   en: {
     'resource-allocation': 'Resource allocation',
     'supply-network-optimization': 'Supply network optimization',
-    'contractor-allocation': 'Contractor allocation',
     'readiness-recovery': 'Readiness recovery',
     'gtm-lab': 'GTM Lab',
   },
   pl: {
     'resource-allocation': 'Alokacja zasobów',
     'supply-network-optimization': 'Optymalizacja sieci dostaw',
-    'contractor-allocation': 'Alokacja wykonawców',
     'readiness-recovery': 'Przywracanie gotowości',
     'gtm-lab': 'GTM Lab',
   },

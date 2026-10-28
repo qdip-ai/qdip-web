@@ -29,11 +29,6 @@ describe('public product naming policy', () => {
         uk: 'Оптимізація мережі постачання',
         pl: 'Optymalizacja sieci dostaw',
       },
-      'contractor-allocation': {
-        en: PUBLIC_DEMO_NAMES.contractorAllocation,
-        uk: 'Розподіл робіт між підрядниками',
-        pl: 'Przydział prac wykonawcom',
-      },
       'readiness-recovery': {
         en: PUBLIC_DEMO_NAMES.readinessRecovery,
         uk: 'Планувальник відновлення готовності',

@@ -31,14 +31,6 @@ const useCases = [
     plugin: { id: 'supply-network', capability: 'supply.network.optimize' },
   },
   {
-    id: 'contractor-allocation',
-    route: '/contractor-allocation',
-    navigation: visible(25),
-    decisionPattern: 'allocate',
-    presentation: { icon: 'network', theme: 'cyan' },
-    plugin: { id: 'contractor-allocation', capability: 'operations.contractor-allocation.optimize' },
-  },
-  {
     id: 'readiness-recovery',
     route: '/readiness-recovery',
     navigation: visible(27),

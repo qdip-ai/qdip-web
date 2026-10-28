@@ -17,15 +17,6 @@ const routes = [
     },
   },
   {
-    id: 'contractor-allocation',
-    path: '/contractor-allocation',
-    title: {
-      en: 'Contractor Allocation',
-      uk: 'Розподіл робіт між підрядниками',
-      pl: 'Przydział prac wykonawcom',
-    },
-  },
-  {
     id: 'readiness-recovery',
     path: '/readiness-recovery',
     title: {
@@ -181,5 +172,24 @@ test.describe('Observatory repeated navigation regression', () => {
 
       await expect.poll(() => errors.map((error) => error.message), { timeout: 1_500 }).toEqual([])
     })
+  }
+})
+
+test.describe('retired Contractor Allocation routes', () => {
+  for (const locale of locales) {
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+    ] as const) {
+      test(`${locale} route absent at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+        await page.setViewportSize(viewport)
+        const retired = await page.goto(`http://observatory.localhost:3000/${locale}/contractor-allocation`)
+        expect(retired?.status()).toBe(404)
+        const home = await page.goto(`http://observatory.localhost:3000/${locale}`)
+        expect(home?.status()).toBeLessThan(400)
+        await expect(page.getByRole('link', { name: /Contractor Allocation|Розподіл робіт між підрядниками|Przydział prac wykonawcom/i })).toHaveCount(0)
+      })
+    }
   }
 })
