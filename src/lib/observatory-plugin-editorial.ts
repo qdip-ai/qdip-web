@@ -12,23 +12,6 @@ type ProductCopy = {
 }
 
 const COPY: Record<string, ProductCopy> = {
-  'customer-opportunity': {
-    uk: {
-      title: 'Пошук перспективних клієнтів',
-      description:
-        'Оцінює потенційних клієнтів за доказами потреб, можливістю впровадження та невизначеністю. Рекомендує дослідити, зв’язатися або відкласти; не надсилає повідомлень автоматично.',
-    },
-    pl: {
-      title: 'Ocena potencjalnych klientów',
-      description:
-        'Ocenia potencjalnych klientów na podstawie dowodów potrzeb, wykonalności i niepewności. Sugeruje dalsze badania, kontakt lub odroczenie; nie wysyła wiadomości automatycznie.',
-    },
-    englishLabels: ['Customer Opportunity — Lead Prioritization', 'customer-opportunity'],
-    englishDescriptions: [
-      'Evidence-aware customer opportunity evaluation with explicit uncertainty and outreach actions.',
-      'Prioritizes potential customers using documented needs, implementation feasibility, strategic fit and uncertainty. Recommends whether to research, contact or defer; it does not automatically contact anyone.',
-    ],
-  },
   'futures-mispricing': {
     uk: {
       title: 'Аналіз ф’ючерсів і сигналів хеджування',
@@ -78,23 +61,6 @@ const COPY: Record<string, ProductCopy> = {
     englishDescriptions: [
       'Evidence-driven GTM funnel: prospect evidence, opportunity decisions, uncertainty, research objectives and outreach preview.',
       'Assesses sales opportunities with supporting evidence, uncertainty, research priorities and an outreach preview. Provides a demonstration and decision support; it does not send outreach automatically.',
-    ],
-  },
-  'production-decision': {
-    uk: {
-      title: 'Виробничі рішення — оцінка ризиків',
-      description:
-        'Аналізує попит, забезпечення матеріалами, виробничі потужності та стан обладнання. Пояснює ризики й пропонує дії; це прототип, який не керує обладнанням.',
-    },
-    pl: {
-      title: 'Decyzje produkcyjne — ocena ryzyka',
-      description:
-        'Analizuje popyt, materiały, moce produkcyjne i dostępność maszyn. Wyjaśnia ryzyka i sugeruje działania; to prototyp, który nie steruje urządzeniami.',
-    },
-    englishLabels: ['Production Decision — Operational Risk', 'production-decision'],
-    englishDescriptions: [
-      'Continuous production-state decision prototype. Evaluates demand, material, capacity and machine signals into an explainable action.',
-      'Explains how demand changes, materials, production capacity and machine availability affect operating risk, then suggests a response. Prototype analysis only; it does not control factory equipment.',
     ],
   },
   'readiness-recovery': {
@@ -154,11 +120,9 @@ const COPY: Record<string, ProductCopy> = {
  * Arbitrary third-party SDK plugins always retain the publisher's own copy.
  */
 const LEGACY_IDENTITIES = new Set([
-  'customer-opportunity',
   'futures-mispricing',
   'gas-forecast',
   'gtm-lab',
-  'production-decision',
   'readiness-recovery',
   'resource-allocation',
 ])
