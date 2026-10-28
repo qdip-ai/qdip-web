@@ -188,7 +188,7 @@ test.describe('retired Contractor Allocation routes', () => {
         expect(retired?.status()).toBe(404)
         const home = await page.goto(`http://observatory.localhost:3000/${locale}`)
         expect(home?.status()).toBeLessThan(400)
-        await expect(page.getByRole('link', { name: /Contractor Allocation|Розподіл робіт між підрядниками|Przydział prac wykonawcom/i })).toHaveCount(0)
+        await expect(page.locator('a[href*="/contractor-allocation"]')).toHaveCount(0)
       })
     }
   }

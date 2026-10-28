@@ -9,12 +9,7 @@ export type CorePluginPublication = PluginCatalogEntry
 
 // These specific demos were already publicly listed before the admin controls.
 // New application routes are PRIVATE until explicitly published.
-const LEGACY_PUBLIC = new Set([
-  'resource-allocation',
-  'supply-network-optimization',
-  'readiness-recovery',
-  'gtm-lab',
-])
+const LEGACY_PUBLIC = new Set(['resource-allocation', 'supply-network-optimization', 'readiness-recovery', 'gtm-lab'])
 
 export function corePluginConnection(): { base: string; key: string } {
   const base = normalizeDipBaseUrl(process.env.DIP_API_BASE_URL ?? process.env.DIP_URL)

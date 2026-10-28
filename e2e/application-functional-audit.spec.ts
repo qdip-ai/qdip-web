@@ -38,5 +38,4 @@ test.describe('application-wide analyst context contract', () => {
     })
     expect(oldSolver.status()).toBe(410)
   })
-
 })
