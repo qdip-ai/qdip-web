@@ -14,7 +14,6 @@ export type ObservatoryApplication = {
 
 const SYSTEM_APPLICATIONS: readonly ObservatoryApplication[] = [
   { id: 'decision-challenge', route: '/challenges', kind: 'challenge', order: 10, theme: 'cyan', icon: 'scale' },
-  { id: 'decision-intake', route: '/decision-intake', kind: 'intake', order: 20, theme: 'violet', icon: 'upload' },
   { id: 'model-doctor', route: '/model-doctor', kind: 'tool', order: 25, theme: 'violet', icon: 'stethoscope' },
 ]
 

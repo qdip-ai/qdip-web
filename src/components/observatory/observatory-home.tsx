@@ -21,7 +21,6 @@ export function ObservatoryHome({ locale, visibleIds }: { locale: Locale; visibl
   const questions = t.raw<Array<[string, string]>>('questions')
   const applications = observableApplications(visibleIds)
   const challengeCopy = systemApplicationCopy(locale, 'decision-challenge')
-  const intakeCopy = systemApplicationCopy(locale, 'decision-intake')
   return (
     <main className="observatory-home relative min-h-[calc(100vh-6.5rem)] overflow-hidden px-4 pb-20 pt-8 text-white md:px-6 md:pt-12 xl:px-10">
       <div className="relative z-10 mx-auto max-w-[1500px]">
@@ -37,12 +36,6 @@ export function ObservatoryHome({ locale, visibleIds }: { locale: Locale; visibl
               href={buildLocalePath('/challenges', locale)}
             >
               {challengeCopy.title} <ArrowRight className="h-4 w-4" />
-            </a>
-            <a
-              className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-slate-200"
-              href={buildLocalePath('/decision-intake', locale)}
-            >
-              {intakeCopy.title} <ArrowRight className="h-4 w-4" />
             </a>
           </div>
         </header>
