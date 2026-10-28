@@ -1,10 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-const applications = [
-  '/uk/resource-allocation',
-  '/uk/supply-network-optimization',
-  '/uk/gtm-lab',
-] as const
+const applications = ['/uk/resource-allocation', '/uk/supply-network-optimization', '/uk/gtm-lab'] as const
 
 test.describe('application-wide analyst context contract', () => {
   for (const path of applications) {
