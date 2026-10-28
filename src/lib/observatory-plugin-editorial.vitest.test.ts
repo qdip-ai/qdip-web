@@ -107,4 +107,22 @@ describe('first-party catalog editorial translations', () => {
     })
     expect(pluginPresentation(demo, 'uk').description).toContain('демо')
   })
+  it('does not translate retired prototype identities in leftover legacy records', () => {
+    for (const name of ['customer-opportunity', 'production-decision']) {
+      const removed = entry({
+        name,
+        ui: { label: 'Historical prototype' },
+        description: 'Historical read-only description.',
+      })
+      expect(pluginPresentation(removed, 'uk')).toEqual({
+        title: 'Historical prototype',
+        description: 'Historical read-only description.',
+      })
+      expect(pluginPresentation(removed, 'pl')).toEqual({
+        title: 'Historical prototype',
+        description: 'Historical read-only description.',
+      })
+    }
+  })
+
 })
