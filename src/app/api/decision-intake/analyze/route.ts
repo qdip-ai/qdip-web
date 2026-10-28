@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server'
 
-import { analyzeDecisionDataset, DecisionIntakeApiError } from '@/features/decision-intake/server'
+import {
+  analyzeDecisionDataset,
+  assertDecisionIntakeSameOrigin,
+  DecisionIntakeAccessError,
+  DecisionIntakeApiError,
+} from '@/features/decision-intake/server'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
+    assertDecisionIntakeSameOrigin(request)
     const form = await request.formData()
     const file = form.get('file')
     const businessContext = form.get('business_context')
@@ -16,7 +22,8 @@ export async function POST(request: Request) {
     })
     return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
-    const status = error instanceof DecisionIntakeApiError ? error.status : 500
+    const status =
+      error instanceof DecisionIntakeApiError || error instanceof DecisionIntakeAccessError ? error.status : 500
     const detail = error instanceof Error ? error.message : 'Decision Intake failed.'
     return NextResponse.json({ detail }, { status })
   }

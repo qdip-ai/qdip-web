@@ -75,7 +75,7 @@ test.describe('P1 Observatory consistency gate', () => {
       }
 
       await expect(page.getByRole('heading', { level: 3, name: applicationNames[locale].challenge })).toBeVisible()
-      await expect(page.getByRole('heading', { level: 3, name: applicationNames[locale].intake })).toBeVisible()
+      await expect(page.getByRole('heading', { level: 3, name: applicationNames[locale].intake })).toHaveCount(0)
       await expect(page.locator('[data-use-case="resource-allocation"]')).toBeVisible()
       await expect(page.getByText(legacyAllocationPreview[locale], { exact: true })).toHaveCount(0)
 

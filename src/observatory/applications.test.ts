@@ -8,7 +8,6 @@ test('Observatory discovery exposes system applications and domain use cases fro
     observableApplications().map(({ id, route }) => [id, route]),
     [
       ['decision-challenge', '/challenges'],
-      ['decision-intake', '/decision-intake'],
       ['model-doctor', '/model-doctor'],
       ['resource-allocation', '/resource-allocation'],
       ['supply-network-optimization', '/supply-network-optimization'],
@@ -20,7 +19,7 @@ test('Observatory discovery exposes system applications and domain use cases fro
 })
 
 test('route lookup resolves application subroutes', () => {
-  assert.equal(findObservatoryApplicationByRoute('/decision-intake/review')?.id, 'decision-intake')
+  assert.equal(findObservatoryApplicationByRoute('/decision-intake'), undefined)
   assert.equal(findObservatoryApplicationByRoute('/challenges')?.id, 'decision-challenge')
   assert.equal(findObservatoryApplicationByRoute('/model-doctor')?.id, 'model-doctor')
   assert.equal(findObservatoryApplicationByRoute('/contractor-allocation/replay')?.id, 'contractor-allocation')
