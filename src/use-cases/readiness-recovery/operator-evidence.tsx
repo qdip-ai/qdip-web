@@ -457,7 +457,7 @@ export function OperatorEvidence({
           {cells.map(([label, value]) => (
             <div key={label}>
               <dt className="text-xs text-slate-400">{label}</dt>
-              <dd className="mt-1 break-words text-slate-100">{value ?? t.unknown}</dd>
+              <dd className="mt-1 break-all text-slate-100">{value ?? t.unknown}</dd>
             </div>
           ))}
         </dl>
