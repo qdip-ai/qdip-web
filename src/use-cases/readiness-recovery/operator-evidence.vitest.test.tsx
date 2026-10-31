@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { isKernelRRPresentation, OperatorEvidence } from './operator-evidence'
 
 describe('RR evidence comes from the backend plugin, not UI calculations', () => {
@@ -95,6 +96,33 @@ describe('RR evidence comes from the backend plugin, not UI calculations', () =>
     expect(html).toContain('data-testid="rr-kernel-schedule"')
     expect(html).toContain('job-1')
     expect(html).toContain('не доведені')
+  })
+
+  it('keeps the digest horizontally scrollable and copies its full value on click', async () => {
+    if (!isKernelRRPresentation(valid)) throw new Error('Test fixture must be valid')
+    const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard')
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+    try {
+      const { unmount } = render(<OperatorEvidence locale="en" record={valid} detailed />)
+      const digest = screen.getByTestId('rr-input-digest-scroll')
+      expect(digest.textContent).toBe(valid.payload_digest)
+      expect(digest.className).toContain('overflow-x-auto')
+      expect(digest.className).toContain('whitespace-nowrap')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Copy input digest' }))
+      await waitFor(() => {
+        expect(writeText).toHaveBeenCalledWith(valid.payload_digest)
+        expect(screen.getByTestId('rr-input-digest-copy-status').textContent).toBe('Input digest copied')
+      })
+      unmount()
+    } finally {
+      if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard)
+      else Reflect.deleteProperty(navigator, 'clipboard')
+    }
   })
 
   it('filters only schedule rows, not backend counts or evidence', () => {
