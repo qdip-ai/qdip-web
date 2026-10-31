@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 import type { Locale } from '@/lib/observatory-i18n'
 import { METRIC_KEYS, type KernelMetric } from './operator-presentation'
 
@@ -78,6 +80,9 @@ const copy = {
     decision: 'Decision',
     source: 'Source snapshot',
     digest: 'Input digest',
+    copyDigest: 'Copy input digest',
+    digestCopied: 'Input digest copied',
+    digestCopyFailed: 'Could not copy input digest',
     revision: 'Predecessor',
     authority: 'Kernel evidence',
     allowed: 'Kernel reports actionable',
@@ -132,6 +137,9 @@ const copy = {
     decision: 'Рішення',
     source: 'Snapshot джерела',
     digest: 'Хеш вхідних даних',
+    copyDigest: 'Копіювати хеш вхідних даних',
+    digestCopied: 'Хеш вхідних даних скопійовано',
+    digestCopyFailed: 'Не вдалося скопіювати хеш вхідних даних',
     revision: 'Попереднє виконання',
     authority: 'Докази Kernel',
     allowed: 'Kernel визначив рішення придатним до виконання',
@@ -186,6 +194,9 @@ const copy = {
     decision: 'Decyzja',
     source: 'Migawka źródła',
     digest: 'Skrót danych wejściowych',
+    copyDigest: 'Kopiuj skrót danych wejściowych',
+    digestCopied: 'Skopiowano skrót danych wejściowych',
+    digestCopyFailed: 'Nie udało się skopiować skrótu danych wejściowych',
     revision: 'Poprzednik',
     authority: 'Dowody Kernel',
     allowed: 'Kernel zgłasza wykonalność',
@@ -290,6 +301,7 @@ export function OperatorEvidence({
   detailed?: boolean
 }) {
   const t = copy[locale]
+  const [digestCopy, setDigestCopy] = useState<{ value: string; state: 'copied' | 'failed' } | null>(null)
   if (!record)
     return (
       <p role="status" className="mt-3 text-sm text-amber-200">
@@ -455,9 +467,48 @@ export function OperatorEvidence({
         <summary className="cursor-pointer text-sm text-slate-300">{t.details}</summary>
         <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
           {cells.map(([label, value]) => (
-            <div key={label}>
+            <div key={label} className="min-w-0">
               <dt className="text-xs text-slate-400">{label}</dt>
-              <dd className="mt-1 break-all text-slate-100">{value ?? t.unknown}</dd>
+              {label === t.digest ? (
+                <dd className="mt-1 min-w-0 text-slate-100">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      data-testid="rr-input-digest-scroll"
+                      className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap font-mono"
+                      tabIndex={0}
+                    >
+                      {record.payload_digest}
+                    </span>
+                    <button
+                      type="button"
+                      className="shrink-0 border border-white/25 p-2 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                      aria-label={t.copyDigest}
+                      title={t.copyDigest}
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(record.payload_digest)
+                          setDigestCopy({ value: record.payload_digest, state: 'copied' })
+                        } catch {
+                          setDigestCopy({ value: record.payload_digest, state: 'failed' })
+                        }
+                      }}
+                    >
+                      {digestCopy?.value === record.payload_digest && digestCopy.state === 'copied' ? (
+                        <Check size={16} aria-hidden="true" />
+                      ) : (
+                        <Copy size={16} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  {digestCopy?.value === record.payload_digest && (
+                    <span data-testid="rr-input-digest-copy-status" role="status" className="mt-1 block text-xs">
+                      {digestCopy.state === 'copied' ? t.digestCopied : t.digestCopyFailed}
+                    </span>
+                  )}
+                </dd>
+              ) : (
+                <dd className="mt-1 break-all text-slate-100">{value ?? t.unknown}</dd>
+              )}
             </div>
           ))}
         </dl>
