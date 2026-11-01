@@ -149,15 +149,19 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect((init.headers as Record<string, string>)['x-api-key']).toBe('standalone-org-scoped-key')
     expect((init.headers as Record<string, string>)['x-api-key']).not.toBe('platform-secret-not-valid-for-standalone')
   })
-  it('sets stable, org-scoped standalone idempotency for scheduling and source-import writes only', async () => {
+  it('adds stable idempotency for standalone scheduling', async () => {
     vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('RR_ORG_API_KEY', 'rr-only-key')
     const calls: RequestInit[] = []
-    vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
-      calls.push(init)
-      return new Response('{}', { status: 201, headers: { 'Content-Type': 'application/json' } })
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init: RequestInit) => {
+        expect(url).toContain('/api/v1/readiness-recovery/')
+        calls.push(init)
+        return new Response('{}', { status: 201, headers: { 'Content-Type': 'application/json' } })
+      })
+    )
     const source = ['source-import', 'executions']
     const scheduling = ['executions']
     expect((await POST(fakeRequest(), params(source))).status).toBe(201)
@@ -175,5 +179,4 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect((await POST(fakeRequest(), params(scheduling))).status).toBe(201)
     expect((calls[4].headers as Record<string, string>)['idempotency-key']).toBeUndefined()
   })
-
 })
