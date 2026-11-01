@@ -15,7 +15,7 @@ const ROLE_SCOPES = {
   worker: ['plugins:register'],
 } as const
 
-// #425: temporary VHV canonical-organization Worker migration only, not tenant aliases.
+// #425: temporary Yara canonical-organization Worker migration only, not tenant aliases.
 // A verified QDIP owner may replace their registration keys in QDIP itself.
 // Other tenants/plugins and all invoke credentials remain isolated.
 const RECREATE_WORKERS = {
@@ -381,13 +381,13 @@ function rows(data: Awaited<ReturnType<typeof metadata>>, tenantId: string): Plu
   }
   for (const record of active) {
     // Existing catalog items already own this credential. Do not create a
-    // duplicate legacy-organization card such as "vhv" next to "VHV".
+    // duplicate legacy-organization card such as "vhv" next to "Yara".
     const alreadyShown = [...items.values()].some((p) =>
       p.keys.some((k) => k.id === record.id && k.orgId === record.orgId)
     )
     if (alreadyShown) continue
     const match = /^access\/([A-Za-z0-9_.-]{1,128})\//.exec(record.name)
-    // Backward compatibility for VHV and earlier app keys, without hardcoded names.
+    // Backward compatibility for Yara and earlier app keys, without hardcoded names.
     const legacy = data.stored.find(({ org }) => org.id === record.orgId)?.org.name
     const id = match?.[1] || (legacy?.startsWith('qdip-sdk-app:') ? legacy.slice('qdip-sdk-app:'.length) : '')
     if (!id) continue
@@ -506,7 +506,7 @@ export async function issuePluginCredential(
   if (registered?.source === 'remote') {
     const registrationOrg = registeredRemoteOrg(registered, data)
     if (!registrationOrg) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
-    // The existing first-party VHV development Worker may be re-registered
+    // The existing first-party Yara development Worker may be re-registered
     // directly in QDIP. This NEVER grants an invoke key to another tenant.
     if (
       registrationOrg.id !== tenant.id &&

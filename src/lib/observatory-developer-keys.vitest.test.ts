@@ -131,21 +131,21 @@ describe('Generic developer plugin keys', () => {
     expect(calls).not.toContain('/api/v1/organizations/' + foreign + '/keys/' + KEY_ID + '/revoke')
   })
 
-  it('lists installed plugins dynamically and moves already keyed VHV out of available', async () => {
+  it('lists installed plugins dynamically and moves already keyed Yara out of available', async () => {
     const vhv = {
       name: remoteId(ORG, 'secretary'),
       plugin_id: 'secretary',
       source: 'remote',
       enabled: true,
       capabilities: ['secretary.plan'],
-      ui: { label: 'VHV' },
+      ui: { label: 'Yara' },
     }
     const vhvOrg = { ...org }
     const legacyPlugin = { ...plugin, name: 'GTM Lab' }
     const unrelatedOrg = { id: 'sdk-gate-test-tenant', name: 'SDK qualification tenant' }
     const record = {
       ...key(),
-      name: 'app/VHV/previous-operation',
+      name: 'app/Yara/previous-operation',
       allowed_capabilities: ['secretary.plan'],
     }
     vi.stubGlobal(
@@ -159,7 +159,7 @@ describe('Generic developer plugin keys', () => {
       })
     )
     const inventory = await listPluginCredentials(OWNER)
-    expect(inventory.connected.map((p) => p.label)).toEqual(['VHV'])
+    expect(inventory.connected.map((p) => p.label)).toEqual(['Yara'])
     expect(inventory.available.map((p) => p.label)).toEqual(['Sample Planner'])
     expect(inventory.connected[0].keys).toHaveLength(1)
     expect(JSON.stringify(inventory)).not.toContain(SECRET)
