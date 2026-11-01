@@ -57,6 +57,16 @@ const copy = {
     empty: 'Через QDIP SDK ще не зареєстровано плагінів.',
     formTitle: 'Публікація плагіна',
     registered: 'Публікація в каталозі',
+    approvalTitle: 'Security approval для Remote Worker',
+    approvalReference: 'Посилання на перевірку (review reference)',
+    approvalReason: 'Причина схвалення та результат перевірки',
+    approvalRisk: 'Я перевірив розгорнутий Worker і manifest та усвідомлено приймаю ризик допуску.',
+    approvalHint: 'Core перевіряє trusted manifest і записує audit. Схвалення не публікує застосунок.',
+    approvalButton: 'Схвалити Worker',
+    approvalComplete: 'Security approval підтверджено Core. Тепер можна опублікувати плагін.',
+    approvalUnverified: 'Core не підтвердив approval. Перевірте стан перед повторенням.',
+    approvalFailure: 'Security approval відхилено Core. Перевірте trusted manifest та права адміністратора.',
+    approvalMissingManifest: 'Worker не допущено через trusted manifest allowlist у Core.',
     choose: 'Зареєстрований через SDK плагін',
     select: 'Виберіть плагін…',
     name: 'Назва',
@@ -120,6 +130,16 @@ const copy = {
     empty: 'No plugins have registered through the QDIP SDK yet.',
     formTitle: 'Publish plugin',
     registered: 'Catalog publication',
+    approvalTitle: 'Remote Worker security approval',
+    approvalReference: 'Review reference',
+    approvalReason: 'Review findings and approval reason',
+    approvalRisk: 'I reviewed the deployed Worker and manifest and explicitly accept the admission risk.',
+    approvalHint: 'Core validates the trusted manifest and writes an audit record. Approval does not publish the app.',
+    approvalButton: 'Approve Worker',
+    approvalComplete: 'Security approval confirmed by Core. You can now publish the plugin.',
+    approvalUnverified: 'Core did not confirm approval. Check its state before retrying.',
+    approvalFailure: 'Core rejected security approval. Check the trusted manifest and administrator permissions.',
+    approvalMissingManifest: 'Worker has not passed the Core trusted manifest allowlist.',
     choose: 'SDK-registered plugin',
     select: 'Select a plugin…',
     name: 'Display name',
@@ -182,6 +202,16 @@ const copy = {
     empty: 'Nie zarejestrowano jeszcze wtyczek przez QDIP SDK.',
     formTitle: 'Publikacja wtyczki',
     registered: 'Publikacja w katalogu',
+    approvalTitle: 'Zatwierdzenie bezpieczeństwa Remote Worker',
+    approvalReference: 'Identyfikator przeglądu (review reference)',
+    approvalReason: 'Wynik przeglądu i uzasadnienie zatwierdzenia',
+    approvalRisk: 'Zweryfikowano wdrożony Worker i manifest. Świadomie akceptuję ryzyko dopuszczenia.',
+    approvalHint: 'Core weryfikuje zaufany manifest i zapisuje audyt. Zatwierdzenie nie publikuje aplikacji.',
+    approvalButton: 'Zatwierdź Worker',
+    approvalComplete: 'Core potwierdził zatwierdzenie. Można teraz opublikować wtyczkę.',
+    approvalUnverified: 'Core nie potwierdził zatwierdzenia. Sprawdź stan przed ponowieniem.',
+    approvalFailure: 'Core odrzucił zatwierdzenie. Sprawdź manifest i uprawnienia administratora.',
+    approvalMissingManifest: 'Worker nie przeszedł weryfikacji trusted manifest w Core.',
     choose: 'Wtyczka zarejestrowana przez SDK',
     select: 'Wybierz wtyczkę…',
     name: 'Nazwa wyświetlana',
@@ -240,14 +270,25 @@ function isPublished(row: Row) {
   )
 }
 function initialFields(row: Row): FormFields {
+  const canonicalYara =
+    row.name === 'remote-3b25f5ae494aa7bf-secretary' && row.plugin_id === 'secretary' && row.source === 'remote'
   return {
-    display_name: row.ui?.label || row.name,
+    display_name:
+      canonicalYara && row.ui?.label === 'VHV — Decision Assistant'
+        ? 'Yara — Decision Assistant'
+        : row.ui?.label || row.name,
     description: row.description || '',
     category: row.ui?.category || 'Other',
     capability_id:
       (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) ||
       '',
-    slug: row.slug || (/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '') ? row.plugin_id || '' : ''),
+    slug:
+      row.slug ||
+      (canonicalYara
+        ? 'yara'
+        : /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(row.plugin_id || '')
+          ? row.plugin_id || ''
+          : ''),
     application_launch_url: row.application_launch_url || '',
     launch_url_verified: row.launch_url_verified === true && Boolean(row.application_launch_url),
   }
@@ -278,6 +319,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
   const editorTitleRef = useRef<HTMLHeadingElement | null>(null)
   const editButtonRef = useRef<HTMLButtonElement | null>(null)
   const confirmationRef = useRef<HTMLParagraphElement | null>(null)
+  const [approvalReference, setApprovalReference] = useState('')
+  const [approvalReason, setApprovalReason] = useState('')
+  const [approvalRisk, setApprovalRisk] = useState(false)
   const [pending, setPending] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshResult, setRefreshResult] = useState<{
@@ -363,6 +407,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
     setMutationError(null)
     setMutationSuccess(null)
     setFields(initialFields(row))
+    setApprovalReference('')
+    setApprovalReason('')
+    setApprovalRisk(false)
     setSelected(row.name)
   }
 
@@ -422,6 +469,51 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       setMutationError({
         name: row.name,
         message: cause instanceof Error ? cause.message : t.error,
+      })
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function approve(row: Row) {
+    setPending(true)
+    setMutationError(null)
+    setMutationSuccess(null)
+    try {
+      const response = await fetch(
+        '/api/observatory/admin/plugins/' + encodeURIComponent(row.name) + '/security/approve',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            expected_revision: row.revision,
+            plugin_version: row.version,
+            review_reference: approvalReference.trim(),
+            reason: approvalReason.trim(),
+            risk_acknowledged: approvalRisk,
+          }),
+        }
+      )
+      if (!response.ok)
+        throw new Error(
+          response.status === 409 ? t.conflict : response.status === 403 ? t.approvalMissingManifest : t.approvalFailure
+        )
+      const result: unknown = await response.json()
+      if (
+        !result ||
+        typeof result !== 'object' ||
+        (result as { name?: unknown }).name !== row.name ||
+        (result as { revision?: unknown }).revision !== row.revision + 1 ||
+        (result as { security?: { state?: unknown } }).security?.state !== 'approved'
+      )
+        throw new Error(t.approvalUnverified)
+      setMutationSuccess({ name: row.name, message: t.approvalComplete })
+      await refresh()
+    } catch (cause) {
+      setMutationError({
+        name: row.name,
+        message: cause instanceof Error ? cause.message : t.approvalFailure,
       })
     } finally {
       setPending(false)
@@ -558,6 +650,71 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     >
                       {t.editing}: {row.ui?.label || row.plugin_id || row.name}
                     </h4>
+                    {row.name === 'remote-3b25f5ae494aa7bf-secretary' && row.source === 'remote' && !published && (
+                      <form
+                        className={styles.form}
+                        style={{ marginTop: '1.2rem', marginBottom: '1.2rem' }}
+                        onSubmit={(event) => {
+                          event.preventDefault()
+                          if (
+                            approvalRisk &&
+                            approvalReference.trim().length >= 8 &&
+                            approvalReason.trim().length >= 20
+                          )
+                            void approve(row)
+                        }}
+                      >
+                        <h5 className={styles.formHeading}>{t.approvalTitle}</h5>
+                        <p className={styles.fieldHint}>{t.approvalHint}</p>
+                        <label className={styles.field}>
+                          {t.approvalReference}
+                          <input
+                            className={styles.input}
+                            required
+                            minLength={8}
+                            maxLength={256}
+                            value={approvalReference}
+                            onChange={(event) => setApprovalReference(event.target.value)}
+                          />
+                        </label>
+                        <label className={styles.field}>
+                          {t.approvalReason}
+                          <textarea
+                            className={styles.input}
+                            required
+                            minLength={20}
+                            maxLength={1000}
+                            rows={3}
+                            value={approvalReason}
+                            onChange={(event) => setApprovalReason(event.target.value)}
+                          />
+                        </label>
+                        <label className={styles.field}>
+                          <span>
+                            <input
+                              type="checkbox"
+                              checked={approvalRisk}
+                              required
+                              onChange={(event) => setApprovalRisk(event.target.checked)}
+                            />{' '}
+                            {t.approvalRisk}
+                          </span>
+                        </label>
+                        <Button
+                          type="submit"
+                          variant="secondary"
+                          className={styles.control}
+                          disabled={
+                            pending ||
+                            !approvalRisk ||
+                            approvalReference.trim().length < 8 ||
+                            approvalReason.trim().length < 20
+                          }
+                        >
+                          {t.approvalButton}
+                        </Button>
+                      </form>
+                    )}
                     <form
                       className={styles.form}
                       style={{ marginTop: '1.2rem' }}

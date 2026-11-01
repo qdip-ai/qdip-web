@@ -12,7 +12,7 @@ const vhv: PluginCatalogEntry = {
   enabled: true,
   capabilities: ['secretary.plan'],
   capability_versions: { 'secretary.plan': '1' },
-  ui: { label: 'VHV — Decision Assistant' },
+  ui: { label: 'Yara — Decision Assistant' },
   published: true,
   revision: 3,
   capability_id: 'secretary.plan',
@@ -20,15 +20,26 @@ const vhv: PluginCatalogEntry = {
 }
 
 describe('trusted external application launch links', () => {
-  it('launches the authentic, published VHV application from its canonical short-URL catalog entry', () => {
-    expect(launchLinkForPlugin(vhv)).toEqual({ href: 'https://vhv.qdip.ai', application: 'VHV' })
+  it('launches the authentic, published Yara application from its canonical short-URL catalog entry', () => {
+    expect(launchLinkForPlugin(vhv)).toEqual({ href: 'https://yara.qdip.ai', application: 'Yara' })
   })
 
-  it('supports the published VHV even if the Worker is temporarily offline or the slug changes', () => {
+  it('supports the published Yara even if the Worker is temporarily offline or the slug changes', () => {
     expect(launchLinkForPlugin({ ...vhv, enabled: false, slug: 'secretary' })).toEqual({
-      href: 'https://vhv.qdip.ai',
-      application: 'VHV',
+      href: 'https://yara.qdip.ai',
+      application: 'Yara',
     })
+  })
+
+  it('recognizes the canonical-tenant Yara catalog identity without trusting a lookalike plugin', () => {
+    const canonical = { ...vhv, name: 'remote-3b25f5ae494aa7bf-secretary', slug: 'yara' }
+    expect(launchLinkForPlugin(canonical)).toEqual({
+      href: 'https://yara.qdip.ai',
+      application: 'Yara',
+    })
+    expect(launchLinkForPlugin({ ...canonical, name: 'remote-attacker-secretary' })).toBeNull()
+    expect(launchLinkForPlugin({ ...canonical, plugin_id: 'different-plugin' })).toBeNull()
+    expect(launchLinkForPlugin({ ...canonical, published: false })).toBeNull()
   })
 
   it('never offers a public launch link for unpublished or stale capability versions', () => {
@@ -38,7 +49,7 @@ describe('trusted external application launch links', () => {
     expect(launchLinkForPlugin({ ...vhv, capabilities: [] })).toBeNull()
   })
 
-  it('does not give a fake VHV plugin the application URL', () => {
+  it('does not give a fake Yara plugin the application URL', () => {
     expect(launchLinkForPlugin({ ...vhv, name: 'remote-attacker-secretary' })).toBeNull()
     expect(launchLinkForPlugin({ ...vhv, plugin_id: 'other-plugin' })).toBeNull()
     expect(launchLinkForPlugin({ ...vhv, source: 'embedded' })).toBeNull()
@@ -47,7 +58,7 @@ describe('trusted external application launch links', () => {
         ...vhv,
         name: 'remote-attacker-secretary',
         slug: 'vhv',
-        ui: { label: 'VHV — Decision Assistant' },
+        ui: { label: 'Yara — Decision Assistant' },
       })
     ).toBeNull()
   })

@@ -33,7 +33,7 @@ const vhv: PluginCatalogEntry = {
   capabilities: ['secretary.plan'],
   capability_versions: { 'secretary.plan': '1' },
   capability_id: 'secretary.plan',
-  ui: { label: 'VHV — Decision Assistant', category: 'Decision support' },
+  ui: { label: 'Yara — Decision Assistant', category: 'Decision support' },
   revision: 3,
 }
 
@@ -54,10 +54,10 @@ describe('published plugin detail application launcher', () => {
     ['uk', 'Відкрити застосунок'],
     ['en', 'Open application'],
     ['pl', 'Otwórz aplikację'],
-  ])('renders the visible, translated VHV launch CTA in %s', async (locale, label) => {
+  ])('renders the visible, translated Yara launch CTA in %s', async (locale, label) => {
     const html = await markup(locale, 'vhv')
-    expect(html).toContain(label + ' VHV')
-    expect(html).toContain('href="https://vhv.qdip.ai"')
+    expect(html).toContain(label + ' Yara')
+    expect(html).toContain('href="https://yara.qdip.ai"')
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noopener noreferrer"')
     expect(html).toContain('lucide-arrow-up-right')
@@ -66,19 +66,33 @@ describe('published plugin detail application launcher', () => {
     expect(html).toContain('secretary.plan')
   })
 
-  it('does not show an outbound VHV launch for a different published plugin', async () => {
-    catalog.mockResolvedValue([{ ...vhv, name: 'remote-unrelated', plugin_id: 'other', slug: 'other' }])
-    const html = await markup('uk', 'other')
-    expect(html).not.toContain('https://vhv.qdip.ai')
-    expect(html).not.toContain('Відкрити застосунок VHV')
+  it('launches Yara from the canonical-tenant SDK publication after catalog cutover', async () => {
+    catalog.mockResolvedValue([
+      {
+        ...vhv,
+        name: 'remote-3b25f5ae494aa7bf-secretary',
+        slug: 'yara',
+      },
+    ])
+    const html = await markup('uk', 'yara')
+    expect(html).toContain('href="https://yara.qdip.ai"')
+    expect(html).toContain('Відкрити застосунок Yara')
+    expect(html).toContain('secretary.plan')
   })
 
-  it('does not show a launch link when the catalog has no published VHV', async () => {
+  it('does not show an outbound Yara launch for a different published plugin', async () => {
+    catalog.mockResolvedValue([{ ...vhv, name: 'remote-unrelated', plugin_id: 'other', slug: 'other' }])
+    const html = await markup('uk', 'other')
+    expect(html).not.toContain('https://yara.qdip.ai')
+    expect(html).not.toContain('Відкрити застосунок Yara')
+  })
+
+  it('does not show a launch link when the catalog has no published Yara', async () => {
     catalog.mockResolvedValue([])
     await expect(markup('uk', 'vhv')).rejects.toThrow('NOT_FOUND')
   })
 
-  it('redirects old VHV catalog URLs to the canonical slug while keeping the app target separate', async () => {
+  it('redirects old Yara catalog URLs to the canonical slug while keeping the app target separate', async () => {
     await expect(markup('uk', vhv.name)).rejects.toThrow('REDIRECT:/uk/plugins/vhv')
   })
 })

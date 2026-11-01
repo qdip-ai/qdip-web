@@ -7,7 +7,7 @@ Open `https://observatory.qdip.ai/uk/admin/apps` with a real Zitadel
   in the authoritative QDIP Core SDK catalog and no active execution key.
 - **Credentials issued:** plugins with active organization-scoped keys;
   this is **not** a claim that the Worker is online or that a real E2E has
-  completed. Existing VHV keys are read from Core and thus disappear from
+  completed. Existing Yara keys are read from Core and thus disappear from
   the available list automatically. After revoking a key the item may
   appear again under Available.
 
@@ -49,7 +49,7 @@ The implementation reads Core `plugin-publications`,
 `organizations`, and `organizations/{orgId}/keys`. Org-scoped keys
 are stored in `qdip-sdk-plugin:<pluginId>` (older app organizations
 `qdip-sdk-app:<app>` are recognized for backward compatibility, including
-VHV). Key scope and capability restrictions remain enforced by **Core**.
+the persisted Yara legacy identity `qdip-sdk-app:vhv`). Key scope and capability restrictions remain enforced by **Core**.
 
 ## Important separation
 

@@ -103,7 +103,7 @@ export function QdipAuthControl({
     return () => controller.abort()
   }, [])
 
-  // Match VHV's avatar button: close the popover on outside press or Escape.
+  // Match Yara's avatar button: close the popover on outside press or Escape.
   useEffect(() => {
     if (!profileOpen) return
     const measure = () => {

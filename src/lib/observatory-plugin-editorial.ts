@@ -133,19 +133,19 @@ const COPY: Record<string, ProductCopy> = {
   },
   secretary: {
     uk: {
-      title: 'VHV — планування справ і часу',
+      title: 'Yara — планування справ і часу',
       description:
-        'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в VHV.',
+        'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в Yara.',
     },
     pl: {
-      title: 'VHV — planowanie zadań i czasu',
+      title: 'Yara — planowanie zadań i czasu',
       description:
-        'Pomaga planować zadania i zobowiązania w czasie. Wykonywanie działań i zmiany w kalendarzu wymagają osobnego potwierdzenia w VHV.',
+        'Pomaga planować zadania i zobowiązania w czasie. Wykonywanie działań i zmiany w kalendarzu wymagają osobnego potwierdzenia w Yara.',
     },
-    englishLabels: ['VHV — Decision Assistant', 'VHV — Task & Time Planning', 'secretary'],
+    englishLabels: ['Yara — Decision Assistant', 'Yara — Task & Time Planning', 'secretary'],
     englishDescriptions: [
       'Decision-aware planning of commitments, tasks and calendar slots using QDIP.',
-      'Turns a task or scheduling request into a bounded plan; execution and calendar changes require confirmation in VHV.',
+      'Turns a task or scheduling request into a bounded plan; execution and calendar changes require confirmation in Yara.',
     ],
   },
 }
@@ -173,6 +173,40 @@ export function pluginPresentation(
 ): Presentation {
   const originalTitle = plugin.ui?.label || plugin.name
   const originalDescription = plugin.description || ''
+  // The verified first-party assistant always uses the current product name,
+  // including when Core still serves an earlier public catalog display label.
+  const yaraFirstParty =
+    plugin.source === 'remote' &&
+    VERIFIED_REMOTE_IDENTITIES.get(plugin.name) === 'secretary' &&
+    plugin.plugin_id === 'secretary'
+  if (yaraFirstParty) {
+    // Existing Core publication still contains older default labels. Preserve
+    // administrator-authored copy; only normalize the known shipped defaults.
+    const defaultTitles = [
+      ...COPY.secretary.englishLabels,
+      'VHV — Decision Assistant',
+      'VHV — Task & Time Planning',
+      'VHV — планування справ і часу',
+      'VHV — planowanie zadań i czasu',
+    ]
+    const defaultDescriptions = [
+      ...COPY.secretary.englishDescriptions,
+      'Turns a task or scheduling request into a bounded plan; execution and calendar changes require confirmation in VHV.',
+      'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в VHV.',
+      'Pomaga planować zadania i zobowiązania w czasie. Wykonywanie działań i zmiany w kalendarzu wymagają osobnego potwierdzenia w VHV.',
+    ]
+    const translated =
+      locale === 'en'
+        ? { title: COPY.secretary.englishLabels[0], description: COPY.secretary.englishDescriptions[0] }
+        : COPY.secretary[locale]
+    return {
+      title: defaultTitles.includes(originalTitle) ? translated.title : originalTitle,
+      description:
+        !originalDescription || defaultDescriptions.includes(originalDescription)
+          ? translated.description
+          : originalDescription,
+    }
+  }
   if (locale === 'en') return { title: originalTitle, description: originalDescription }
 
   const identity =

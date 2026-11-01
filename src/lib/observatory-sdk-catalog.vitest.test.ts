@@ -49,11 +49,11 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
           {
             name: 'remote-secretary',
             version: '0.1.0',
-            description: 'VHV planner',
+            description: 'Yara planner',
             enabled: true,
             capabilities: ['secretary.plan'],
             capability_versions: { 'secretary.plan': '1' },
-            ui: { label: 'VHV', category: 'Productivity' },
+            ui: { label: 'Yara', category: 'Productivity' },
             published: false,
             revision: 0,
             capability_id: null,
@@ -65,7 +65,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
     })
     vi.stubGlobal('fetch', fetcher)
     const result = await readCorePublications()
-    expect(result[0].ui.label).toBe('VHV')
+    expect(result[0].ui.label).toBe('Yara')
     expect(result[0].capabilities).toContain('secretary.plan')
     expect(fetcher).toHaveBeenCalledWith(
       'https://core.example.test/api/v1/plugin-publications',
