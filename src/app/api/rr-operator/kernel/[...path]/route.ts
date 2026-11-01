@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { normalizeDipBaseUrl } from '@/lib/dip-url'
 import { allowedKernelPath } from '@/lib/rr-kernel-route-allowlist'
@@ -61,6 +62,14 @@ async function handle(request: NextRequest, context: Context) {
               : null
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'x-api-key': key }
     if (actorOperation) headers['x-qdip-actor-assertion'] = signedRrActorFromRequest(request, actorOperation)
+    if (standalone && actorOperation && (path[0] === 'executions' || path[0] === 'source-import')) {
+      // Stable across network retries; scoped by backend tenant and unique route+body.
+      headers['idempotency-key'] = createHash('sha256')
+        .update(path.join('/'))
+        .update('\\0')
+        .update(body ?? '')
+        .digest('hex')
+    }
     const upstream = await fetch(`${base}/api/v1/readiness-recovery/${path.join('/')}${request.nextUrl.search}`, {
       method: request.method,
       headers,
