@@ -38,6 +38,13 @@ describe('Zitadel-backed RR session boundary', () => {
     expect(operatorConfigured()).toBe(false)
   })
 
+  it('requires the dedicated RR credential in Vercel production before enabling the operator', () => {
+    vi.stubEnv('VERCEL_ENV', 'production')
+    expect(operatorConfigured()).toBe(false)
+    vi.stubEnv('RR_ORG_API_KEY', 'dedicated-single-org-rr-key')
+    expect(operatorConfigured()).toBe(true)
+  })
+
   it('derives operator permission from signed roles, not a matching subject ID', () => {
     expect(operatorConfigured()).toBe(true)
     const req = { nextUrl: new URL('https://observatory.qdip.ai/en/readiness-recovery') } as NextRequest
