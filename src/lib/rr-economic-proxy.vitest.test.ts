@@ -127,13 +127,14 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
     vi.stubEnv('DIP_API_KEY', 'platform-secret-not-valid-for-standalone')
-    const fetcher = vi.fn(
-      async (_url: string, _init: RequestInit) =>
-        new Response('{}', {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
-    )
+    const fetcher = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toContain('/api/v1/readiness-recovery/')
+      expect(init.method).toBe('POST')
+      return new Response('{}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
     vi.stubGlobal('fetch', fetcher)
     const missingKey = await POST(fakeRequest(), params(['economic-v2', 'preflight']))
     expect(missingKey.status).toBe(503)
