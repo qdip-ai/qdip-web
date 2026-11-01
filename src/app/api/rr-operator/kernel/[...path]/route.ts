@@ -23,8 +23,11 @@ async function handle(request: NextRequest, context: Context) {
   const { path } = await context.params
   if (!allowedKernelPath(path, request.method)) return json('Unsupported RR operation', 404)
 
-  const base = normalizeDipBaseUrl(process.env.DIP_API_BASE_URL ?? process.env.DIP_URL)
-  const key = rrCoreApiKey()
+  const standalone = process.env.RR_STANDALONE_ENABLED === '1'
+  const base = normalizeDipBaseUrl(
+    standalone ? process.env.RR_STANDALONE_API_BASE_URL : (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL)
+  )
+  const key = standalone ? (process.env.RR_ORG_API_KEY?.trim() ?? '') : rrCoreApiKey()
   if (!base || !key) return json('DIP connection is not configured', 503)
   const upstreamBase = new URL(base)
   if (

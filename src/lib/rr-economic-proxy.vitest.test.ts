@@ -35,6 +35,8 @@ beforeEach(() => {
   vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
   vi.stubEnv('DIP_API_KEY', 'test-organization-scoped-key')
   vi.stubEnv('RR_ORG_API_KEY', '')
+  vi.stubEnv('RR_STANDALONE_ENABLED', '')
+  vi.stubEnv('RR_STANDALONE_API_BASE_URL', '')
   vi.mocked(operatorAuthorized).mockReturnValue(true)
   vi.mocked(sameOrigin).mockReturnValue(true)
 })
@@ -118,5 +120,33 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
       expect(response.status).toBe(404)
     }
     expect(fetcher).not.toHaveBeenCalled()
+  })
+
+  it('routes to standalone RR only when enabled and refuses the platform credential', async () => {
+    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
+    vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
+    vi.stubEnv('DIP_API_KEY', 'platform-secret-not-valid-for-standalone')
+    const fetcher = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toContain('/api/v1/readiness-recovery/')
+      expect(init.method).toBe('POST')
+      return new Response('{}', {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
+    vi.stubGlobal('fetch', fetcher)
+    const missingKey = await POST(fakeRequest(), params(['economic-v2', 'preflight']))
+    expect(missingKey.status).toBe(503)
+    expect(fetcher).not.toHaveBeenCalled()
+
+    vi.stubEnv('RR_ORG_API_KEY', 'standalone-org-scoped-key')
+    const valid = await POST(fakeRequest(), params(['economic-v2', 'preflight']))
+    expect(valid.status).toBe(200)
+    expect(fetcher).toHaveBeenCalledOnce()
+    const [url, init] = fetcher.mock.calls[0]
+    expect(url).toBe('https://rr.example.test/api/v1/readiness-recovery/economic-v2/preflight')
+    expect((init.headers as Record<string, string>)['x-api-key']).toBe('standalone-org-scoped-key')
+    expect((init.headers as Record<string, string>)['x-api-key']).not.toBe('platform-secret-not-valid-for-standalone')
   })
 })
