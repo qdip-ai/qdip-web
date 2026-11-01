@@ -342,6 +342,27 @@
   font-size: 0.94rem;
   font-weight: 550;
 }
+.approvalRiskLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  color: #f1dfe5;
+  font-size: 0.94rem;
+  font-weight: 450;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.approvalRiskLabel input[type='checkbox'] {
+  flex: 0 0 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  min-height: 1.125rem;
+  margin: 0.1rem 0 0;
+  accent-color: var(--plugin-accent);
+}
+.approvalRiskLabel > span {
+  min-width: 0;
+}
 .input {
   width: 100%;
   min-width: 0;
