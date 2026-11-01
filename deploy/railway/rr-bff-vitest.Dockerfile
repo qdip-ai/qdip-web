@@ -5,4 +5,4 @@ WORKDIR /app
 RUN corepack enable
 COPY . .
 RUN pnpm install --frozen-lockfile
-CMD ["pnpm", "exec", "vitest", "run", "src/lib/rr-economic-proxy.vitest.test.ts"]
+CMD ["sh", "-c", "pnpm exec prettier --check 'src/app/api/rr-operator/kernel/[...path]/route.ts' src/lib/rr-economic-proxy.vitest.test.ts && pnpm exec tsc --noEmit && pnpm exec vitest run src/lib/rr-economic-proxy.vitest.test.ts"]
