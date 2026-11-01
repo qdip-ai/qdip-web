@@ -689,16 +689,14 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                             onChange={(event) => setApprovalReason(event.target.value)}
                           />
                         </label>
-                        <label className={styles.field}>
-                          <span>
-                            <input
-                              type="checkbox"
-                              checked={approvalRisk}
-                              required
-                              onChange={(event) => setApprovalRisk(event.target.checked)}
-                            />{' '}
-                            {t.approvalRisk}
-                          </span>
+                        <label className={styles.approvalRiskLabel}>
+                          <input
+                            type="checkbox"
+                            checked={approvalRisk}
+                            required
+                            onChange={(event) => setApprovalRisk(event.target.checked)}
+                          />
+                          <span>{t.approvalRisk}</span>
                         </label>
                         <Button
                           type="submit"
