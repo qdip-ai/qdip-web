@@ -69,15 +69,15 @@ describe('first-party catalog editorial translations', () => {
     })
   })
 
-  it('translates verified VHV but does not rebrand retired RO SDK-02 identity', () => {
+  it('translates verified Yara but does not rebrand retired RO SDK-02 identity', () => {
     const vhv = entry({
       source: 'remote',
       name: 'remote-04e7c87d7b72111c-secretary',
       plugin_id: 'secretary',
-      ui: { label: 'VHV — Decision Assistant' },
+      ui: { label: 'Yara — Decision Assistant' },
       description: 'Decision-aware planning of commitments, tasks and calendar slots using QDIP.',
     })
-    expect(pluginPresentation(vhv, 'uk').title).toBe('VHV — планування справ і часу')
+    expect(pluginPresentation(vhv, 'uk').title).toBe('Yara — планування справ і часу')
     const retired = entry({
       source: 'remote',
       name: 'remote-b5843b4aa1e11211-route-optimizer-sdk02',
@@ -89,6 +89,55 @@ describe('first-party catalog editorial translations', () => {
       title: 'Route Optimizer — Candidate Routes',
       description: 'Precomputed route selection is retired.',
     })
+  })
+
+  it('normalizes legacy Yara catalog defaults but preserves custom admin copy', () => {
+    const oldCatalog = entry({
+      source: 'remote',
+      name: 'remote-04e7c87d7b72111c-secretary',
+      plugin_id: 'secretary',
+      ui: { label: 'VHV — Decision Assistant' },
+      description:
+        'Turns a task or scheduling request into a bounded plan; execution and calendar changes require confirmation in VHV.',
+    })
+    expect(pluginPresentation(oldCatalog, 'en').title).toBe('Yara — Decision Assistant')
+    expect(pluginPresentation(oldCatalog, 'uk').title).toBe('Yara — планування справ і часу')
+    expect(pluginPresentation(oldCatalog, 'pl').description).toContain('Yara')
+
+    const custom = {
+      ...oldCatalog,
+      ui: { label: 'Custom approved Yara title' },
+      description: 'Publisher-approved description with additional conditions.',
+    }
+    for (const locale of ['en', 'uk', 'pl'] as const) {
+      expect(pluginPresentation(custom, locale)).toEqual({
+        title: 'Custom approved Yara title',
+        description: 'Publisher-approved description with additional conditions.',
+      })
+    }
+  })
+
+  it('rebrands exact Ukrainian legacy copy only for verified Yara identities', () => {
+    for (const name of [
+      'remote-04e7c87d7b72111c-secretary',
+      'remote-3b25f5ae494aa7bf-secretary',
+    ]) {
+      const plugin = entry({
+        source: 'remote',
+        name,
+        plugin_id: 'secretary',
+        ui: { label: 'VHV — планування справ і часу' },
+        description:
+          'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в VHV.',
+      })
+      expect(pluginPresentation(plugin, 'uk')).toEqual({
+        title: 'Yara — планування справ і часу',
+        description:
+          'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в Yara.',
+      })
+      expect(pluginPresentation(plugin, 'pl').title).toBe('Yara — planowanie zadań i czasu')
+      expect(pluginPresentation(plugin, 'en').title).toBe('Yara — Decision Assistant')
+    }
   })
 
   it('distinguishes archived market research and a demo from working planners', () => {
