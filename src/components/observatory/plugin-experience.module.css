@@ -447,6 +447,9 @@
     flex-direction: column;
     align-items: stretch;
   }
+  .adminSummary {
+    flex: 0 1 auto;
+  }
   .actionRow > button {
     min-height: 2.9rem;
   }
