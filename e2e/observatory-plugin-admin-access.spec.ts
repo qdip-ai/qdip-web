@@ -73,7 +73,9 @@ test.describe('Observatory admin route must never hide permission errors as 404'
     ]) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
       await page.goto(adminPage)
-      const card = page.locator('article').filter({ has: page.getByRole('heading', { name: 'Responsive layout fixture' }) })
+      const card = page
+        .locator('article')
+        .filter({ has: page.getByRole('heading', { name: 'Responsive layout fixture' }) })
       await expect(card).toBeVisible()
       const version = card.getByText('Версія: 0.1.0')
       const status = card.getByText('Не опубліковано')
@@ -97,5 +99,4 @@ test.describe('Observatory admin route must never hide permission errors as 404'
       })
     }
   })
-
 })
