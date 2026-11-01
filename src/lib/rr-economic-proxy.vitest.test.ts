@@ -121,15 +121,19 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     }
     expect(fetcher).not.toHaveBeenCalled()
   })
+
   it('routes to standalone RR only when enabled and refuses the platform credential', async () => {
     vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
     vi.stubEnv('DIP_API_KEY', 'platform-secret-not-valid-for-standalone')
-    const fetcher = vi.fn(async () => new Response('{}', {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }))
+    const fetcher = vi.fn(
+      async () =>
+        new Response('{}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+    )
     vi.stubGlobal('fetch', fetcher)
     const missingKey = await POST(fakeRequest(), params(['economic-v2', 'preflight']))
     expect(missingKey.status).toBe(503)
@@ -144,5 +148,4 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect((init.headers as Record<string, string>)['x-api-key']).toBe('standalone-org-scoped-key')
     expect((init.headers as Record<string, string>)['x-api-key']).not.toBe('platform-secret-not-valid-for-standalone')
   })
-
 })
