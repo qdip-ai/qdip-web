@@ -275,7 +275,6 @@ for (const [viewport, width, height] of [
       capability_id: 'secretary.plan',
       slug: 'yara',
       revision: 1,
-      security: { state: 'pending_review' },
       ui: { label: 'Yara — Decision Assistant', category: 'Productivity' },
     }
     await page.route('**/api/observatory/admin/plugins', async (route) => {
@@ -285,9 +284,9 @@ for (const [viewport, width, height] of [
     await page.route('**/api/observatory/admin/plugins/remote-3b25f5ae494aa7bf-secretary', async (route) => {
       publications++
       await route.fulfill({
-        status: 409,
+        status: 403,
         contentType: 'application/json',
-        body: JSON.stringify({ error: 'Remote Worker requires security approval before publication' }),
+        body: JSON.stringify({ error: 'QDIP Core rejected publication by security policy or permissions' }),
       })
     })
     await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
@@ -295,7 +294,7 @@ for (const [viewport, width, height] of [
     await card.getByRole('button', { name: 'Редагувати' }).click()
     await card.getByRole('button', { name: 'Зберегти й опублікувати' }).click()
     await expect(
-      card.getByText('Спочатку схваліть Remote Worker у розділі Security approval. Публікація до схвалення заборонена.')
+      card.getByText('Core відхилив публікацію. Перевірте Security approval Worker та права адміністратора.')
     ).toBeVisible()
     await expect(card.getByText('Не опубліковано', { exact: true })).toBeVisible()
     expect(publications).toBe(1)
