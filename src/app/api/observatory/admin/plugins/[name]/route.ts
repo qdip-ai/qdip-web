@@ -46,13 +46,6 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     const catalog = await readCorePublications()
     const installed = catalog.find((item) => item.name === name)
     if (!installed) return NextResponse.json({ error: 'Plugin not installed' }, { status: 404 })
-    // Core denies publishing pending remote Workers; surface the actual security gate.
-    const reviewState = (installed as typeof installed & { security?: { state?: string } }).security?.state
-    if (update.published && installed.source === 'remote' && reviewState !== 'approved')
-      return NextResponse.json(
-        { error: 'Remote Worker requires security approval before publication' },
-        { status: 409 }
-      )
     // Runtime registration belongs to QDIP Core. Observatory registers only
     // a catalog entry for a plugin/capability already installed and verified.
     const capability =
