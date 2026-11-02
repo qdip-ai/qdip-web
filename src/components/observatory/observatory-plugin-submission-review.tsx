@@ -63,8 +63,6 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
   const [error, setError] = useState('')
 
   const refresh = useCallback(async () => {
-    setLoading(true)
-    setError('')
     try {
       const result = await fetch('/api/observatory/admin/plugin-publication-submissions', {
         credentials: 'same-origin', cache: 'no-store',
@@ -73,6 +71,7 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
       const data: Queue = await result.json()
       if (!Array.isArray(data.items)) throw Error('queue_schema_failure')
       setItems(data.items)
+      setError('')
     } catch {
       setError(copy.failure)
     } finally {
@@ -117,7 +116,7 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
           <h2>{copy.title}</h2>
           <p>{copy.note}</p>
         </div>
-        <button type="button" onClick={() => void refresh()} disabled={loading || busy !== null}>
+        <button type="button" onClick={() => { setLoading(true); setError(''); void refresh() }} disabled={loading || busy !== null}>
           {copy.load}
         </button>
       </div>
