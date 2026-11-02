@@ -109,6 +109,33 @@ describe('verified plugin launch URL admin API security', () => {
     expect(source.read).not.toHaveBeenCalled()
   })
 
+  it('reports security review required for unapproved remote Worker', async () => {
+    source.read.mockResolvedValueOnce([{ ...plugin, source: 'remote', security: { state: 'pending_review' } }])
+    const response = await PUT(request(update), context)
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: 'Remote Worker requires security approval before publication',
+    })
+    expect(source.publish).not.toHaveBeenCalled()
+  })
+
+  it('retains Core security 403 separately from credential 401', async () => {
+    source.publish.mockRejectedValueOnce(new QdipError('POLICY', { httpStatus: 403 }))
+    const policy = await PUT(request(update), context)
+    expect(policy.status).toBe(403)
+    expect((await policy.json()).error).toContain('security policy')
+    source.publish.mockRejectedValueOnce(new QdipError('AUTH', { httpStatus: 401 }))
+    const auth = await PUT(request(update), context)
+    expect(auth.status).toBe(502)
+    expect((await auth.json()).error).toContain('credential rejected')
+  })
+
+  it('allows reviewed remote Worker to reach Core', async () => {
+    source.read.mockResolvedValueOnce([{ ...plugin, source: 'remote', security: { state: 'approved' } }])
+    expect((await PUT(request(update), context)).status).toBe(200)
+    expect(source.publish).toHaveBeenCalledOnce()
+  })
+
   it('rejects stale CAS revision and forged capability without executing a plugin', async () => {
     expect((await PUT(request({ ...update, capability_id: 'other.execute' }), context)).status).toBe(409)
     expect(source.publish).not.toHaveBeenCalled()
