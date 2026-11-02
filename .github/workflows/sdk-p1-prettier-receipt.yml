@@ -1,0 +1,49 @@
+name: SDK P1 Prettier Read-Only Receipt
+on:
+  push:
+    branches:
+      - feat/sdk-p1-publisher-review-ui-407-20261101
+    paths:
+      - .github/workflows/sdk-p1-prettier-receipt.yml
+permissions:
+  contents: read
+jobs:
+  emit-formatted-pr-files:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Emit only PR-scope formatted source as JSON-escaped lines
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          import { execFileSync } from 'node:child_process'
+          const paths = [
+            'src/app/api/observatory/admin/plugin-publication-submissions/[name]/moderate/route.ts',
+            'src/app/api/observatory/admin/plugin-publication-submissions/[name]/moderate/route.vitest.test.ts',
+            'src/app/api/observatory/admin/plugin-publication-submissions/route.ts',
+            'src/app/api/observatory/admin/plugin-publication-submissions/route.vitest.test.ts',
+            'src/components/observatory/observatory-plugin-submission-review.module.css',
+            'src/components/observatory/observatory-plugin-submission-review.tsx',
+          ]
+          for (const [i, path] of paths.entries()) {
+            const formatted = execFileSync('node_modules/.bin/prettier', ['--stdin-filepath', path], {
+              input: readFileSync(path),
+              encoding: 'utf8',
+              maxBuffer: 1_000_000,
+            })
+            console.log('SDKP1_FORMAT_RECEIPT_' + i + '=' + JSON.stringify(formatted))
+          }
+          NODE
