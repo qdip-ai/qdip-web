@@ -88,6 +88,8 @@ describe('Generic developer plugin keys', () => {
           const policy = JSON.parse(String(options.body))
           expect(policy.scopes).toEqual(['plugins:register'])
           expect(policy.allowed_capabilities).toEqual([capability])
+          // Core rejects plugin-scoped credentials without this immutable binding.
+          expect(policy.plugin_id).toBe('new-plugin')
           createdName = policy.name
           keySaved = true
           return Response.json(
@@ -313,6 +315,7 @@ describe('Generic developer plugin keys', () => {
     expect(createdIn).toContain('/organizations/' + ORG + '/keys')
     expect(calls[0].scopes).toEqual(['plugins:read', 'plugins:execute'])
     expect(calls[0].allowed_capabilities).toEqual([cap])
+    expect(calls[0].plugin_id).toBe('route-optimizer-sdk02')
     expect(String(calls[0].name)).toMatch(/^access\/route-optimizer-sdk02\//)
   })
 
