@@ -19,6 +19,16 @@ type Submission = {
 }
 type Queue = { items: Submission[] }
 
+async function fetchQueue(): Promise<Queue> {
+  const response = await fetch('/api/observatory/admin/plugin-publication-submissions', {
+    credentials: 'same-origin', cache: 'no-store',
+  })
+  if (!response.ok) throw Error('queue_http_failure')
+  const data: Queue = await response.json()
+  if (!Array.isArray(data.items)) throw Error('queue_schema_failure')
+  return data
+}
+
 const t = {
   uk: {
     title: 'Заявки сторонніх розробників',
@@ -63,15 +73,11 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
   const [error, setError] = useState('')
 
   const refresh = useCallback(async () => {
+    setLoading(true)
+    setError('')
     try {
-      const result = await fetch('/api/observatory/admin/plugin-publication-submissions', {
-        credentials: 'same-origin', cache: 'no-store',
-      })
-      if (!result.ok) throw Error('queue_http_failure')
-      const data: Queue = await result.json()
-      if (!Array.isArray(data.items)) throw Error('queue_schema_failure')
+      const data = await fetchQueue()
       setItems(data.items)
-      setError('')
     } catch {
       setError(copy.failure)
     } finally {
@@ -79,7 +85,21 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
     }
   }, [copy.failure])
 
-  useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    let active = true
+    void fetchQueue().then((data) => {
+      if (active) {
+        setItems(data.items)
+        setLoading(false)
+      }
+    }).catch(() => {
+      if (active) {
+        setError(copy.failure)
+        setLoading(false)
+      }
+    })
+    return () => { active = false }
+  }, [copy.failure])
 
   const decide = async (item: Submission, action: 'reject' | 'suspend') => {
     const why = reason[item.plugin_name]?.trim()
@@ -116,7 +136,7 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
           <h2>{copy.title}</h2>
           <p>{copy.note}</p>
         </div>
-        <button type="button" onClick={() => { setLoading(true); setError(''); void refresh() }} disabled={loading || busy !== null}>
+        <button type="button" onClick={() => void refresh()} disabled={loading || busy !== null}>
           {copy.load}
         </button>
       </div>
