@@ -6,6 +6,7 @@ import { pageAccess } from '@/lib/qdip-page-access'
 import { loginUrl } from '@/lib/qdip-oidc'
 import { observatoryHref } from '@/lib/platform-urls'
 import { ObservatoryPluginAdmin } from '@/components/observatory/observatory-plugin-admin'
+import { ObservatoryPluginSubmissionReview } from '@/components/observatory/observatory-plugin-submission-review'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,7 @@ export default async function PluginAdministrationPage({ params }: { params: Pro
   return (
     <PrototypeShell locale={locale as Locale} activeRoute="/admin/plugins" theme="burgundy">
       <ObservatoryPluginAdmin locale={locale as Locale} />
+      <ObservatoryPluginSubmissionReview locale={locale as Locale} />
     </PrototypeShell>
   )
 }
