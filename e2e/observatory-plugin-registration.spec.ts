@@ -294,7 +294,9 @@ for (const [viewport, width, height] of [
     const card = page.locator('article').filter({ hasText: 'Yara — планування справ і часу' })
     await card.getByRole('button', { name: 'Редагувати' }).click()
     await card.getByRole('button', { name: 'Зберегти й опублікувати' }).click()
-    await expect(card.getByText('Спочатку схваліть Remote Worker у розділі Security approval. Публікація до схвалення заборонена.')).toBeVisible()
+    await expect(
+      card.getByText('Спочатку схваліть Remote Worker у розділі Security approval. Публікація до схвалення заборонена.')
+    ).toBeVisible()
     await expect(card.getByText('Не опубліковано', { exact: true })).toBeVisible()
     expect(publications).toBe(1)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
