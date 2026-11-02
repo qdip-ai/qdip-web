@@ -456,9 +456,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       if (!response.ok) {
         if (response.status === 409) {
           const failure: unknown = await response.json().catch(() => null)
-          const blocked = (failure as { error?: unknown } | null)?.error ===
-            'Remote Worker requires security approval before publication'
-          throw new Error(blocked ? t.approvalRequired : t.conflict)
+          const failureReason = (failure as { error?: unknown } | null)?.error
+          if (failureReason === 'Remote Worker requires security approval before publication') {
+            throw new Error(t.approvalRequired)
+          }
+          throw new Error(t.conflict)
         }
         throw new Error(t.error)
       }
