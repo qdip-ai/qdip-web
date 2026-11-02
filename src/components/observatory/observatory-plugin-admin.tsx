@@ -109,6 +109,7 @@ const copy = {
     busy: 'Збереження…',
     error: 'Не вдалося зберегти. Перевірте доступність Core та права адміністратора.',
     conflict: 'Запис змінився. Оновіть список і повторіть.',
+    approvalRequired: 'Спочатку схваліть Remote Worker у розділі Security approval. Публікація до схвалення заборонена.',
     hint: 'Реєстрація відбувається автоматично через SDK незалежно від розташування Worker. Ця форма змінює лише дані каталогу та стан публікації.',
     demosTitle: 'Наявні спеціалізовані сторінки',
     demosHint: 'Ці демонстрації вже реалізовані у Web. Вони не є автоматично встановленими плагінами Core.',
@@ -181,6 +182,7 @@ const copy = {
     busy: 'Saving…',
     error: 'Unable to save. Check Core connectivity and administrative permissions.',
     conflict: 'The registry changed. Refresh and retry.',
+    approvalRequired: 'Approve the Remote Worker in Security approval first. Publication is blocked until approval.',
     hint: 'The SDK registers the plugin regardless of worker location. This form only manages catalog metadata and publication.',
     demosTitle: 'Existing application workspaces',
     demosHint: 'These demos are implemented in Web and are not automatically installed Core plugins.',
@@ -253,6 +255,7 @@ const copy = {
     busy: 'Zapisywanie…',
     error: 'Nie udało się zapisać. Sprawdź Core i uprawnienia administratora.',
     conflict: 'Stan rejestru się zmienił. Odśwież i spróbuj ponownie.',
+    approvalRequired: 'Najpierw zatwierdź Remote Worker w sekcji Security approval. Publikacja wymaga zatwierdzenia.',
     hint: 'SDK rejestruje wtyczkę niezależnie od lokalizacji Workera. Formularz zarządza tylko opisem i publikacją.',
     demosTitle: 'Istniejące strony demonstracyjne',
     demosHint: 'Te aplikacje istnieją w Web i nie są automatycznie zainstalowanymi wtyczkami Core.',
@@ -450,7 +453,15 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
             : {}),
         }),
       })
-      if (!response.ok) throw new Error(response.status === 409 ? t.conflict : t.error)
+      if (!response.ok) {
+        if (response.status === 409) {
+          const failure: unknown = await response.json().catch(() => null)
+          const blocked = (failure as { error?: unknown } | null)?.error ===
+            'Remote Worker requires security approval before publication'
+          throw new Error(blocked ? t.approvalRequired : t.conflict)
+        }
+        throw new Error(t.error)
+      }
       // PUT has succeeded: close the editor immediately, independent of the
       // follow-up GET. Keep feedback in this very card while verifying status.
       if (presentation) setSelected('')
