@@ -535,6 +535,7 @@ export async function issuePluginCredential(
       environment: 'production',
       scopes,
       allowed_capabilities: capabilities,
+      plugin_id: credentialPluginId,
       expires_at: expiresAt,
     })
     if (!created || !UUID.test(created.id)) throw new DeveloperKeyError(503, 'Key issuance outcome unverified')
