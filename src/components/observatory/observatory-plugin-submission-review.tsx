@@ -21,7 +21,8 @@ type Queue = { items: Submission[] }
 
 async function fetchQueue(): Promise<Queue> {
   const response = await fetch('/api/observatory/admin/plugin-publication-submissions', {
-    credentials: 'same-origin', cache: 'no-store',
+    credentials: 'same-origin',
+    cache: 'no-store',
   })
   if (!response.ok) throw Error('queue_http_failure')
   const data: Queue = await response.json()
@@ -87,18 +88,22 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
 
   useEffect(() => {
     let active = true
-    void fetchQueue().then((data) => {
-      if (active) {
-        setItems(data.items)
-        setLoading(false)
-      }
-    }).catch(() => {
-      if (active) {
-        setError(copy.failure)
-        setLoading(false)
-      }
-    })
-    return () => { active = false }
+    void fetchQueue()
+      .then((data) => {
+        if (active) {
+          setItems(data.items)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setError(copy.failure)
+          setLoading(false)
+        }
+      })
+    return () => {
+      active = false
+    }
   }, [copy.failure])
 
   const decide = async (item: Submission, action: 'reject' | 'suspend') => {
@@ -108,22 +113,22 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
     setError('')
     try {
       const response = await fetch(
-        '/api/observatory/admin/plugin-publication-submissions/' +
-          encodeURIComponent(item.plugin_name) + '/moderate',
+        '/api/observatory/admin/plugin-publication-submissions/' + encodeURIComponent(item.plugin_name) + '/moderate',
         {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            expected_revision: item.expected_revision, action, reason: why,
+            expected_revision: item.expected_revision,
+            action,
+            reason: why,
           }),
-        },
+        }
       )
       if (!response.ok) throw Error(response.status === 409 ? 'stale' : 'rejected')
       await refresh()
     } catch (cause) {
-      setError(cause instanceof Error && cause.message === 'stale'
-        ? copy.conflict : copy.actionFailure)
+      setError(cause instanceof Error && cause.message === 'stale' ? copy.conflict : copy.actionFailure)
     } finally {
       setBusy(null)
     }
@@ -140,39 +145,50 @@ export function ObservatoryPluginSubmissionReview({ locale }: { locale: Locale }
           {copy.load}
         </button>
       </div>
-      {error && <p role="alert" className={styles.error}>{error}</p>}
-      {loading ? <p role="status">{copy.pending}</p> :
-        items.length === 0 ? <p>{copy.empty}</p> :
-          <div className={styles.items}>
-            {items.map((item) => {
-              const disabled = busy !== null ||
-                (reason[item.plugin_name]?.trim().length ?? 0) < 8
-              return (
-                <article className={styles.item} key={item.plugin_name}>
-                  <h3>{item.catalog.display_name}</h3>
-                  <p className={styles.metadata}>{item.plugin_name} · {item.plugin_version} · {item.capability_id}</p>
-                  <p>{item.status === 'PENDING_SECURITY_REVIEW' ? copy.verified : copy.domain}</p>
-                  {item.catalog.application_launch_url && (
-                    <p className={styles.metadata}>{item.catalog.application_launch_url}</p>
-                  )}
-                  <label htmlFor={'review-reason-' + item.plugin_name}>{copy.reason}</label>
-                  <textarea
-                    id={'review-reason-' + item.plugin_name}
-                    value={reason[item.plugin_name] ?? ''}
-                    maxLength={500}
-                    onChange={(event) => setReason((r) => ({ ...r, [item.plugin_name]: event.target.value }))}
-                  />
-                  <div className={styles.actions}>
-                    <button type="button" disabled={disabled}
-                      onClick={() => void decide(item, 'reject')}>{copy.reject}</button>
-                    <button type="button" disabled={disabled}
-                      onClick={() => void decide(item, 'suspend')}>{copy.suspend}</button>
-                    {busy === item.plugin_name && <span role="status">{copy.busy}</span>}
-                  </div>
-                </article>
-              )
-            })}
-          </div>}
+      {error && (
+        <p role="alert" className={styles.error}>
+          {error}
+        </p>
+      )}
+      {loading ? (
+        <p role="status">{copy.pending}</p>
+      ) : items.length === 0 ? (
+        <p>{copy.empty}</p>
+      ) : (
+        <div className={styles.items}>
+          {items.map((item) => {
+            const disabled = busy !== null || (reason[item.plugin_name]?.trim().length ?? 0) < 8
+            return (
+              <article className={styles.item} key={item.plugin_name}>
+                <h3>{item.catalog.display_name}</h3>
+                <p className={styles.metadata}>
+                  {item.plugin_name} · {item.plugin_version} · {item.capability_id}
+                </p>
+                <p>{item.status === 'PENDING_SECURITY_REVIEW' ? copy.verified : copy.domain}</p>
+                {item.catalog.application_launch_url && (
+                  <p className={styles.metadata}>{item.catalog.application_launch_url}</p>
+                )}
+                <label htmlFor={'review-reason-' + item.plugin_name}>{copy.reason}</label>
+                <textarea
+                  id={'review-reason-' + item.plugin_name}
+                  value={reason[item.plugin_name] ?? ''}
+                  maxLength={500}
+                  onChange={(event) => setReason((r) => ({ ...r, [item.plugin_name]: event.target.value }))}
+                />
+                <div className={styles.actions}>
+                  <button type="button" disabled={disabled} onClick={() => void decide(item, 'reject')}>
+                    {copy.reject}
+                  </button>
+                  <button type="button" disabled={disabled} onClick={() => void decide(item, 'suspend')}>
+                    {copy.suspend}
+                  </button>
+                  {busy === item.plugin_name && <span role="status">{copy.busy}</span>}
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
     </section>
   )
 }
