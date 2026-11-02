@@ -16,8 +16,7 @@ export async function GET(request: NextRequest) {
       redirect: 'error',
       signal: AbortSignal.timeout(12_000),
     })
-    if (!upstream.ok)
-      return NextResponse.json({ error: 'Core review queue unavailable' }, { status: 503 })
+    if (!upstream.ok) return NextResponse.json({ error: 'Core review queue unavailable' }, { status: 503 })
     const payload: unknown = await upstream.json()
     if (!payload || typeof payload !== 'object' || !Array.isArray((payload as { items?: unknown }).items))
       return NextResponse.json({ error: 'Invalid review queue' }, { status: 502 })
