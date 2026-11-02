@@ -120,11 +120,11 @@ describe('verified plugin launch URL admin API security', () => {
   })
 
   it('retains Core security 403 separately from credential 401', async () => {
-    source.publish.mockRejectedValueOnce(new QdipError('POLICY', { httpStatus: 403 }))
+    source.publish.mockRejectedValueOnce(new QdipError('INVALID_REQUEST', { httpStatus: 403 }))
     const policy = await PUT(request(update), context)
     expect(policy.status).toBe(403)
     expect((await policy.json()).error).toContain('security policy')
-    source.publish.mockRejectedValueOnce(new QdipError('AUTH', { httpStatus: 401 }))
+    source.publish.mockRejectedValueOnce(new QdipError('INVALID_REQUEST', { httpStatus: 401 }))
     const auth = await PUT(request(update), context)
     expect(auth.status).toBe(502)
     expect((await auth.json()).error).toContain('credential rejected')
