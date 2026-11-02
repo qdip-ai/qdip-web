@@ -109,14 +109,13 @@ describe('verified plugin launch URL admin API security', () => {
     expect(source.read).not.toHaveBeenCalled()
   })
 
-  it('reports security review required for unapproved remote Worker', async () => {
-    source.read.mockResolvedValueOnce([{ ...plugin, source: 'remote', security: { state: 'pending_review' } }])
+  it('delegates remote admission to Core without trusting stripped SDK security state', async () => {
+    source.read.mockResolvedValueOnce([{ ...plugin, source: 'remote' }])
+    source.publish.mockRejectedValueOnce(new QdipError('INVALID_REQUEST', { httpStatus: 403 }))
     const response = await PUT(request(update), context)
-    expect(response.status).toBe(409)
-    expect(await response.json()).toEqual({
-      error: 'Remote Worker requires security approval before publication',
-    })
-    expect(source.publish).not.toHaveBeenCalled()
+    expect(response.status).toBe(403)
+    expect((await response.json()).error).toContain('security policy')
+    expect(source.publish).toHaveBeenCalledOnce()
   })
 
   it('retains Core security 403 separately from credential 401', async () => {
@@ -131,7 +130,7 @@ describe('verified plugin launch URL admin API security', () => {
   })
 
   it('allows reviewed remote Worker to reach Core', async () => {
-    source.read.mockResolvedValueOnce([{ ...plugin, source: 'remote', security: { state: 'approved' } }])
+    source.read.mockResolvedValueOnce([{ ...plugin, source: 'remote' }])
     expect((await PUT(request(update), context)).status).toBe(200)
     expect(source.publish).toHaveBeenCalledOnce()
   })
