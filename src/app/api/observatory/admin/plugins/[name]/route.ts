@@ -115,8 +115,13 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     if (cause instanceof QdipError) {
       if (cause.httpStatus === 409)
         return NextResponse.json({ error: 'Registry changed. Reload and retry.' }, { status: 409 })
-      if (cause.httpStatus === 401 || cause.httpStatus === 403)
+      if (cause.httpStatus === 401)
         return NextResponse.json({ error: 'QDIP Core administrative credential rejected' }, { status: 502 })
+      if (cause.httpStatus === 403)
+        return NextResponse.json(
+          { error: 'QDIP Core rejected publication by security policy or permissions' },
+          { status: 403 }
+        )
       if (cause.httpStatus === 400 || cause.httpStatus === 422)
         return NextResponse.json({ error: 'Invalid plugin publication' }, { status: 422 })
     }

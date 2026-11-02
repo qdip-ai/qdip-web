@@ -251,3 +251,54 @@ for (const [viewport, width, height] of [
     await expect(card.getByText('Не опубліковано', { exact: true })).toBeVisible()
   })
 }
+
+for (const [viewport, width, height] of [
+  ['desktop', 1440, 900],
+  ['mobile-portrait', 390, 844],
+  ['mobile-landscape', 844, 390],
+] as const) {
+  test(`unapproved Yara publication shows the security approval gate — ${viewport}`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height })
+    await page.context().clearCookies()
+    await page.context().addCookies(oidcTestCookies(['observatory_admin']))
+    const yara = {
+      name: 'remote-3b25f5ae494aa7bf-secretary',
+      plugin_id: 'secretary',
+      source: 'remote',
+      version: '0.1.0',
+      enabled: true,
+      description: 'Decision-aware planning',
+      capabilities: ['secretary.plan'],
+      capability_versions: {},
+      published: false,
+      published_version: null,
+      capability_id: 'secretary.plan',
+      slug: 'yara',
+      revision: 1,
+      ui: { label: 'Yara — Decision Assistant', category: 'Productivity' },
+    }
+    await page.route('**/api/observatory/admin/plugins', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plugins: [yara] }) })
+    })
+    let publications = 0
+    await page.route('**/api/observatory/admin/plugins/remote-3b25f5ae494aa7bf-secretary', async (route) => {
+      publications++
+      await route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'QDIP Core rejected publication by security policy or permissions' }),
+      })
+    })
+    await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
+    const card = page.locator('article').filter({ hasText: 'Yara — планування справ і часу' })
+    await card.getByRole('button', { name: 'Редагувати' }).click()
+    await card.getByRole('button', { name: 'Зберегти й опублікувати' }).click()
+    await expect(
+      card.getByText('Core відхилив публікацію. Перевірте Security approval Worker та права адміністратора.')
+    ).toBeVisible()
+    await expect(card.getByText('Не опубліковано', { exact: true })).toBeVisible()
+    expect(publications).toBe(1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: testInfo.outputPath(`yara-security-gate-${viewport}.png`), fullPage: true })
+  })
+}
