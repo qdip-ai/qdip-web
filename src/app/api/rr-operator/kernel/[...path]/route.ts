@@ -61,14 +61,29 @@ async function handle(request: NextRequest, context: Context) {
               ? 'execute'
               : null
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'x-api-key': key }
-    if (actorOperation) headers['x-qdip-actor-assertion'] = signedRrActorFromRequest(request, actorOperation)
-    if (standalone && actorOperation && (path[0] === 'executions' || path[0] === 'source-import')) {
+    if (standalone && actorOperation) {
       // Stable across network retries; scoped by backend tenant and unique route+body.
       headers['idempotency-key'] = createHash('sha256')
         .update(path.join('/'))
         .update('\\0')
         .update(body ?? '')
         .digest('hex')
+    }
+    if (actorOperation) {
+      if (standalone) {
+        const organizationId = process.env.RR_ORGANIZATION_ID?.trim() ?? ''
+        if (!/^[A-Za-z0-9_.-]{1,128}$/.test(organizationId))
+          return json('RR organization binding is not configured', 503)
+        headers['x-qdip-actor-assertion'] = signedRrActorFromRequest(request, actorOperation, {
+          organizationId,
+          method: request.method,
+          path: `/api/v1/readiness-recovery/${path.join('/')}${request.nextUrl.search}`,
+          body: body ?? '',
+          idempotencyKey: headers['idempotency-key'],
+        })
+      } else {
+        headers['x-qdip-actor-assertion'] = signedRrActorFromRequest(request, actorOperation)
+      }
     }
     const upstream = await fetch(`${base}/api/v1/readiness-recovery/${path.join('/')}${request.nextUrl.search}`, {
       method: request.method,

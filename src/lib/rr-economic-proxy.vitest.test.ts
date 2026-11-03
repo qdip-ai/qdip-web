@@ -37,6 +37,7 @@ beforeEach(() => {
   vi.stubEnv('RR_ORG_API_KEY', '')
   vi.stubEnv('RR_STANDALONE_ENABLED', '')
   vi.stubEnv('RR_STANDALONE_API_BASE_URL', '')
+  vi.stubEnv('RR_ORGANIZATION_ID', '')
   vi.mocked(operatorAuthorized).mockReturnValue(true)
   vi.mocked(sameOrigin).mockReturnValue(true)
 })
@@ -153,6 +154,7 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('RR_ORG_API_KEY', 'rr-only-key')
+    vi.stubEnv('RR_ORGANIZATION_ID', 'core-rr-organization')
     const calls: RequestInit[] = []
     vi.stubGlobal(
       'fetch',
@@ -174,9 +176,27 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect(headers[0]['idempotency-key']).not.toBe(headers[2]['idempotency-key'])
     expect(headers[3]['idempotency-key']).toBeUndefined()
     expect(headers[0]['x-qdip-actor-assertion']).toBe('signed-actor')
+    expect(signedRrActorFromRequest).toHaveBeenCalledWith(expect.anything(), 'execute', {
+      organizationId: 'core-rr-organization',
+      method: 'POST',
+      path: '/api/v1/readiness-recovery/source-import/executions',
+      body: input,
+      idempotencyKey: headers[0]['idempotency-key'],
+    })
 
     vi.stubEnv('RR_STANDALONE_ENABLED', '')
     expect((await POST(fakeRequest(), params(scheduling))).status).toBe(201)
     expect((calls[4].headers as Record<string, string>)['idempotency-key']).toBeUndefined()
+  })
+
+  it('fails closed before execution when the standalone organization binding is absent', async () => {
+    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
+    vi.stubEnv('RR_ORG_API_KEY', 'rr-only-key')
+    const fetcher = vi.fn()
+    vi.stubGlobal('fetch', fetcher)
+    const response = await POST(fakeRequest(), params(['executions']))
+    expect(response.status).toBe(503)
+    expect(fetcher).not.toHaveBeenCalled()
   })
 })
