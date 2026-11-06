@@ -93,12 +93,14 @@ export function oidcConfigured() {
 }
 
 export function operatorConfigured() {
-  return Boolean(
-    oidcConfigured() &&
-    (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) &&
-    rrCoreApiKey() &&
-    (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32
-  )
+  const standalone = process.env.RR_STANDALONE_ENABLED === '1'
+  const backendConfigured = standalone
+    ? process.env.RR_STANDALONE_API_BASE_URL?.trim() &&
+      process.env.RR_ORG_API_KEY?.trim() &&
+      process.env.RR_ORGANIZATION_ID?.trim()
+    : (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) && rrCoreApiKey()
+
+  return Boolean(oidcConfigured() && backendConfigured && (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32)
 }
 
 // The server trusts only permissions derived from verified project- and org-bound
