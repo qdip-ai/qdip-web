@@ -38,6 +38,28 @@ describe('Zitadel-backed RR session boundary', () => {
     expect(operatorConfigured()).toBe(false)
   })
 
+  it('uses standalone RR binding without requiring any legacy Core URL or key', () => {
+    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
+    vi.stubEnv('DIP_API_BASE_URL', '')
+    vi.stubEnv('DIP_URL', '')
+    vi.stubEnv('DIP_API_KEY', '')
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr-qa.example.test')
+    vi.stubEnv('RR_ORG_API_KEY', 'isolated-qa-org-key')
+    vi.stubEnv('RR_ORGANIZATION_ID', '987654321')
+    expect(operatorConfigured()).toBe(true)
+    vi.stubEnv('RR_ORG_API_KEY', '')
+    expect(operatorConfigured()).toBe(false)
+    vi.stubEnv('RR_ORG_API_KEY', 'isolated-qa-org-key')
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', '')
+    expect(operatorConfigured()).toBe(false)
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr-qa.example.test')
+    vi.stubEnv('RR_ORGANIZATION_ID', '')
+    expect(operatorConfigured()).toBe(false)
+    vi.stubEnv('RR_ORGANIZATION_ID', '987654321')
+    vi.stubEnv('RR_ACTOR_ASSERTION_SECRET', '')
+    expect(operatorConfigured()).toBe(false)
+  })
+
   it('requires the dedicated RR credential in Vercel production before enabling the operator', () => {
     vi.stubEnv('VERCEL_ENV', 'production')
     expect(operatorConfigured()).toBe(false)
