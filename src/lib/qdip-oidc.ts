@@ -191,8 +191,12 @@ export function authOrigin() {
   if (
     origin.protocol !== 'https:' ||
     !/^[a-z0-9-]+\.up\.railway\.app$/i.test(origin.hostname) ||
-    origin.port || origin.username || origin.password ||
-    origin.pathname !== '/' || origin.search || origin.hash
+    origin.port ||
+    origin.username ||
+    origin.password ||
+    origin.pathname !== '/' ||
+    origin.search ||
+    origin.hash
   ) {
     throw new Error('RR QA OIDC origin must be an isolated Railway HTTPS host')
   }
