@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authOrigin, authorizationUrl, discoverOidc, oidcConfigured, onSiteOrigin, safeReturnTo, startFlow } from '@/lib/qdip-oidc'
+import {
+  authOrigin,
+  authorizationUrl,
+  discoverOidc,
+  oidcConfigured,
+  onSiteOrigin,
+  safeReturnTo,
+  startFlow,
+} from '@/lib/qdip-oidc'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
