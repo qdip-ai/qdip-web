@@ -2,7 +2,7 @@ import { createHash, createHmac } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import { signRrActor } from './rr-actor-assertion'
+import { signRrActor, signRrRequestActor } from './rr-actor-assertion'
 
 const issuer = 'https://identity.example.test'
 const subject = 'oidc-sub-123'
@@ -32,5 +32,63 @@ describe('authenticated RR operator audit assertion', () => {
     expect(() => signRrActor(issuer, '', 'execute', secret, apiKey)).toThrow()
     expect(() => signRrActor(issuer, subject, 'execute', 'short', apiKey)).toThrow()
     expect(() => signRrActor(issuer, subject, 'execute', secret, '')).toThrow()
+  })
+})
+
+describe('request-bound standalone RR assertion', () => {
+  const context = {
+    organizationId: 'core-rr-organization',
+    method: 'POST',
+    path: '/api/v1/readiness-recovery/executions',
+    body: '{"execution_id":"rr-fixture"}',
+    idempotencyKey: 'idempotent-rr-fixture',
+  }
+
+  it('binds the exact UTF-8 body, route, method, organization and idempotency identity', () => {
+    const assertion = signRrRequestActor(
+      issuer,
+      subject,
+      'execute',
+      secret,
+      apiKey,
+      context,
+      1791676800000,
+      'a'.repeat(32)
+    )
+    const [version, payload, mac] = assertion.split('.')
+    expect(version).toBe('v3')
+    const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+    expect(claims).toEqual({
+      actor_id: 'zitadel:' + createHash('sha256').update(issuer).update('\0').update(subject).digest('hex'),
+      assertion_id: 'a'.repeat(32),
+      expires_at: 1791676830,
+      organization_id: context.organizationId,
+      operation: 'execute',
+      method: 'POST',
+      path: context.path,
+      body_sha256: createHash('sha256').update(context.body, 'utf8').digest('hex'),
+      idempotency_key: context.idempotencyKey,
+    })
+    expect(mac).toBe(
+      createHmac('sha256', secret)
+        .update('v3.' + payload)
+        .update('\0')
+        .update(apiKey)
+        .digest('hex')
+    )
+  })
+
+  it('issues a fresh assertion identity while keeping the legitimate retry context unchanged', () => {
+    const first = signRrRequestActor(issuer, subject, 'execute', secret, apiKey, context)
+    const second = signRrRequestActor(issuer, subject, 'execute', secret, apiKey, context)
+    const claims = (token: string) => JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'))
+    expect(claims(first).assertion_id).not.toBe(claims(second).assertion_id)
+    expect(claims(first).idempotency_key).toBe(claims(second).idempotency_key)
+    expect(claims(first).body_sha256).toBe(claims(second).body_sha256)
+  })
+
+  it('rejects missing organization/idempotency bindings and noncanonical operations', () => {
+    for (const invalid of [{ organizationId: '' }, { idempotencyKey: '' }, { method: 'GET' }, { path: '/unrelated' }])
+      expect(() => signRrRequestActor(issuer, subject, 'execute', secret, apiKey, { ...context, ...invalid })).toThrow()
   })
 })
