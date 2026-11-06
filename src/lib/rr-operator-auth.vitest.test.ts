@@ -56,9 +56,12 @@ describe('Zitadel-backed RR session boundary', () => {
     expect(onSiteOrigin(productionHost)).toBe(false)
     const sessionResponse = NextResponse.json({})
     attachSession(sessionResponse, qaRequest, {
-      sub: 'qa-user', roles: ['rr_operator'],
-      projectId: '123456789', organizationId: '987654321',
-      issuer: 'https://identity.example.test', clientId: '394566248211424533',
+      sub: 'qa-user',
+      roles: ['rr_operator'],
+      projectId: '123456789',
+      organizationId: '987654321',
+      issuer: 'https://identity.example.test',
+      clientId: '394566248211424533',
       expiresAt: Math.floor(Date.now() / 1000) + 300,
     })
     expect(sessionResponse.cookies.get('qdip_oidc_session')?.domain).toBeUndefined()
