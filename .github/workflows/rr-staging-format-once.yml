@@ -1,0 +1,39 @@
+name: RR staging format-once diagnostic
+on:
+  push:
+    branches: [fix/rr-standalone-bff-railway-qa]
+    paths:
+      - .github/workflows/rr-staging-format-once.yml
+permissions:
+  contents: read
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.22.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format only the three touched source files and emit exact source for GitHub patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec prettier --write \
+            'src/app/api/observatory/organizations/route.ts' \
+            'src/app/[locale]/admin/apps/page.tsx' \
+            'src/components/observatory/observatory-developer-keys.tsx'
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for path in ['src/app/api/observatory/organizations/route.ts',
+                       'src/app/[locale]/admin/apps/page.tsx',
+                       'src/components/observatory/observatory-developer-keys.tsx']:
+              print('RR_FORMAT_RESULT::' + path + '::' + json.dumps(Path(path).read_text(), ensure_ascii=True), flush=True)
+          PY
