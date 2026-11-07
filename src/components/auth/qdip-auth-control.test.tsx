@@ -55,7 +55,9 @@ describe('QDIP shared authentication control', () => {
       expect(target.origin).toBe('https://qdip.ai')
 
       rerender(<QdipAuthControl locale="en" returnTo="https://qdip.ai/en" />)
-      expect(new URL(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')!).origin).toBe('https://qdip.ai')
+      expect(new URL(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')!).origin).toBe(
+        'https://qdip.ai'
+      )
     } finally {
       urls.observatory = original
     }
