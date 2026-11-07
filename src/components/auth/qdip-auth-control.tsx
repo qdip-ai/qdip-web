@@ -70,9 +70,9 @@ function loginHref(returnTo: string) {
     const destination = new URL(returnTo)
     if (
       observatory.protocol === 'https:' &&
-      /^[a-z0-9-]+\\.up\\.railway\\.app$/i.test(observatory.hostname) &&
+      /^[a-z0-9-]+[.]up[.]railway[.]app$/i.test(observatory.hostname) &&
       destination.origin === observatory.origin &&
-      /^\\/(en|uk|pl)\\/readiness-recovery\\/?$/.test(destination.pathname)
+      /^[/](en|uk|pl)[/]readiness-recovery[/]?$/.test(destination.pathname)
     ) {
       origin = observatory.origin
     }
