@@ -100,29 +100,7 @@ export function operatorConfigured() {
       process.env.RR_ORGANIZATION_ID?.trim()
     : (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) && rrCoreApiKey()
 
-  const configured = Boolean(oidcConfigured() && backendConfigured && (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32)
-  if (!configured && standalone && process.env.RAILWAY_ENVIRONMENT_NAME === 'qa') {
-    // Only labels, never credentials or IDs. Remove after isolated QA root cause is established.
-    const checks = {
-      issuer: Boolean(configuredIssuer()),
-      client: Boolean(process.env.ZITADEL_CLIENT_ID?.trim()),
-      cookie: Boolean(sharedSecret()),
-      role: Boolean(roleConfig()),
-      rrBase: Boolean(process.env.RR_STANDALONE_API_BASE_URL?.trim()),
-      rrKey: Boolean(process.env.RR_ORG_API_KEY?.trim()),
-      rrOrg: Boolean(process.env.RR_ORGANIZATION_ID?.trim()),
-      actor: (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32,
-    }
-    console.warn(
-      'RR_QA_BFF_MISSING_CONFIG=' +
-        Object.entries(checks)
-          .filter(([, present]) => !present)
-          .map(([name]) => name)
-          .join(',')
-    )
-  }
-  return configured
-}
+  return Boolean(oidcConfigured() && backendConfigured && (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32)
 
 // The server trusts only permissions derived from verified project- and org-bound
 // Zitadel ID-token claims and stored in the signed, short-lived session cookie.
