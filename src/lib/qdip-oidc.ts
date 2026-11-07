@@ -101,6 +101,7 @@ export function operatorConfigured() {
     : (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) && rrCoreApiKey()
 
   return Boolean(oidcConfigured() && backendConfigured && (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32)
+}
 
 // The server trusts only permissions derived from verified project- and org-bound
 // Zitadel ID-token claims and stored in the signed, short-lived session cookie.
