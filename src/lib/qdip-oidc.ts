@@ -93,12 +93,14 @@ export function oidcConfigured() {
 }
 
 export function operatorConfigured() {
-  return Boolean(
-    oidcConfigured() &&
-    (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) &&
-    rrCoreApiKey() &&
-    (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32
-  )
+  const standalone = process.env.RR_STANDALONE_ENABLED === '1'
+  const backendConfigured = standalone
+    ? process.env.RR_STANDALONE_API_BASE_URL?.trim() &&
+      process.env.RR_ORG_API_KEY?.trim() &&
+      process.env.RR_ORGANIZATION_ID?.trim()
+    : (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) && rrCoreApiKey()
+
+  return Boolean(oidcConfigured() && backendConfigured && (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32)
 }
 
 // The server trusts only permissions derived from verified project- and org-bound
@@ -174,6 +176,33 @@ function unseal<T>(signed: string | undefined, purpose: string): T | null {
   }
 }
 
+/** Isolated Railway RR QA must complete OIDC on its own host. Production uses the canonical site. */
+export function authOrigin() {
+  if (process.env.RR_STANDALONE_ENABLED !== '1' || process.env.RAILWAY_ENVIRONMENT_NAME !== 'qa') {
+    return PLATFORM_ORIGINS.site
+  }
+  const configured = process.env.NEXT_PUBLIC_OBSERVATORY_URL ?? ''
+  let origin: URL
+  try {
+    origin = new URL(configured)
+  } catch {
+    throw new Error('RR QA OIDC origin missing')
+  }
+  if (
+    origin.protocol !== 'https:' ||
+    !/^[a-z0-9-]+\.up\.railway\.app$/i.test(origin.hostname) ||
+    origin.port ||
+    origin.username ||
+    origin.password ||
+    origin.pathname !== '/' ||
+    origin.search ||
+    origin.hash
+  ) {
+    throw new Error('RR QA OIDC origin must be an isolated Railway HTTPS host')
+  }
+  return origin.origin
+}
+
 export function safeReturnTo(value: string | null | undefined) {
   if (!value || value.length > 2048) return PLATFORM_ORIGINS.site + '/en'
   try {
@@ -188,7 +217,7 @@ export function safeReturnTo(value: string | null | undefined) {
 }
 
 export function loginUrl(returnTo: string) {
-  const url = new URL('/api/auth/login', PLATFORM_ORIGINS.site)
+  const url = new URL('/api/auth/login', authOrigin())
   url.searchParams.set('return_to', safeReturnTo(returnTo))
   return url.toString()
 }
@@ -197,7 +226,7 @@ export function onSiteOrigin(request: NextRequest) {
   // Next.js can expose its internal listener (127.0.0.1) through nextUrl,
   // even when a trusted proxy routes the external canonical site host.
   // Use the actual Host header, never spoofable x-forwarded-host.
-  const canonical = new URL(PLATFORM_ORIGINS.site)
+  const canonical = new URL(authOrigin())
   const host = request.headers.get('host') ?? request.nextUrl.host
   if (!host || /[,\s@/?#]/.test(host)) return false
   let observed: URL
@@ -222,7 +251,7 @@ export function onSiteOrigin(request: NextRequest) {
 function cookieOptions(request: NextRequest, maxAge: number, shared: boolean) {
   // The authenticated cookie is intentionally shared by qdip.ai and its two product subdomains.
   // PKCE flow cookie is host-only, preventing subdomains from reading or overwriting it.
-  const root = new URL(PLATFORM_ORIGINS.site)
+  const root = new URL(authOrigin())
   return {
     httpOnly: true,
     secure: root.protocol === 'https:',
@@ -320,7 +349,7 @@ export function authorizationUrl(config: OidcDiscovery, flow: Pending) {
     // The verified project/org membership is enforced by rolesFromClaims after token issuance.
     `openid profile email urn:zitadel:iam:org:project:id:${roleSettings.projectId}:aud urn:iam:org:project:roles urn:zitadel:iam:org:projects:roles`
   )
-  url.searchParams.set('redirect_uri', new URL(AUTH_CALLBACK_PATH, PLATFORM_ORIGINS.site).toString())
+  url.searchParams.set('redirect_uri', new URL(AUTH_CALLBACK_PATH, authOrigin()).toString())
   url.searchParams.set('state', flow.state)
   url.searchParams.set('nonce', flow.nonce)
   url.searchParams.set('code_challenge', createHash('sha256').update(flow.verifier).digest('base64url'))
@@ -412,7 +441,7 @@ export async function exchangeCode(code: string, flow: Pending, config: OidcDisc
     grant_type: 'authorization_code',
     code,
     client_id: process.env.ZITADEL_CLIENT_ID?.trim() ?? '',
-    redirect_uri: new URL(AUTH_CALLBACK_PATH, PLATFORM_ORIGINS.site).toString(),
+    redirect_uri: new URL(AUTH_CALLBACK_PATH, authOrigin()).toString(),
     code_verifier: flow.verifier,
   })
   const payload = await readJson(config.token_endpoint, {

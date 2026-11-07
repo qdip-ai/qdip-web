@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server'
 vi.mock('server-only', () => ({}))
 
 import { operatorAuthorized, operatorConfigured, safeTransport, sameOrigin } from './rr-operator-auth'
-import { attachSession, canOperateRr, getQdipSession, safeReturnTo } from './qdip-oidc'
+import { attachSession, authOrigin, canOperateRr, getQdipSession, onSiteOrigin, safeReturnTo } from './qdip-oidc'
 import { NextResponse } from 'next/server'
 
 beforeEach(() => {
@@ -35,6 +35,61 @@ describe('Zitadel-backed RR session boundary', () => {
     vi.stubEnv('RR_ORG_API_KEY', 'dedicated-single-org-rr-key')
     expect(operatorConfigured()).toBe(true)
     vi.stubEnv('RR_ORG_API_KEY', '')
+    expect(operatorConfigured()).toBe(false)
+  })
+
+  it('pins isolated Railway QA Zitadel callback to its own HTTPS host and rejects other origins', () => {
+    const qaOrigin = 'https://rr-standalone-web-qa-qa.up.railway.app'
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'qa')
+    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
+    vi.stubEnv('NEXT_PUBLIC_OBSERVATORY_URL', qaOrigin)
+    expect(authOrigin()).toBe(qaOrigin)
+    const qaRequest = {
+      nextUrl: new URL('http://127.0.0.1:3000/api/auth/callback/zitadel'),
+      headers: new Headers({ host: 'rr-standalone-web-qa-qa.up.railway.app', 'x-forwarded-proto': 'https' }),
+    } as unknown as NextRequest
+    expect(onSiteOrigin(qaRequest)).toBe(true)
+    const productionHost = {
+      nextUrl: qaRequest.nextUrl,
+      headers: new Headers({ host: 'qdip.ai', 'x-forwarded-proto': 'https' }),
+    } as unknown as NextRequest
+    expect(onSiteOrigin(productionHost)).toBe(false)
+    const sessionResponse = NextResponse.json({})
+    attachSession(sessionResponse, qaRequest, {
+      sub: 'qa-user',
+      roles: ['rr_operator'],
+      projectId: '123456789',
+      organizationId: '987654321',
+      issuer: 'https://identity.example.test',
+      clientId: '394566248211424533',
+      expiresAt: Math.floor(Date.now() / 1000) + 300,
+    })
+    expect(sessionResponse.cookies.get('qdip_oidc_session')?.domain).toBeUndefined()
+    vi.stubEnv('NEXT_PUBLIC_OBSERVATORY_URL', 'https://observatory.qdip.ai')
+    expect(() => authOrigin()).toThrow('isolated Railway HTTPS host')
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'production')
+    expect(authOrigin()).toBe('https://qdip.ai')
+  })
+
+  it('uses standalone RR binding without requiring any legacy Core URL or key', () => {
+    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
+    vi.stubEnv('DIP_API_BASE_URL', '')
+    vi.stubEnv('DIP_URL', '')
+    vi.stubEnv('DIP_API_KEY', '')
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr-qa.example.test')
+    vi.stubEnv('RR_ORG_API_KEY', 'isolated-qa-org-key')
+    vi.stubEnv('RR_ORGANIZATION_ID', '987654321')
+    expect(operatorConfigured()).toBe(true)
+    vi.stubEnv('RR_ORG_API_KEY', '')
+    expect(operatorConfigured()).toBe(false)
+    vi.stubEnv('RR_ORG_API_KEY', 'isolated-qa-org-key')
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', '')
+    expect(operatorConfigured()).toBe(false)
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr-qa.example.test')
+    vi.stubEnv('RR_ORGANIZATION_ID', '')
+    expect(operatorConfigured()).toBe(false)
+    vi.stubEnv('RR_ORGANIZATION_ID', '987654321')
+    vi.stubEnv('RR_ACTOR_ASSERTION_SECRET', '')
     expect(operatorConfigured()).toBe(false)
   })
 
