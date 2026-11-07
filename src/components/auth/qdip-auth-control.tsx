@@ -62,7 +62,24 @@ const labels = {
 } as const
 
 function loginHref(returnTo: string) {
-  const url = new URL('/api/auth/login', PLATFORM_URLS.site)
+  let origin: string = PLATFORM_URLS.site
+  // The RR Railway QA browser must start PKCE on the same host that owns
+  // its host-only flow cookie and callback. Other surfaces keep site login.
+  const observatory = new URL(PLATFORM_URLS.observatory)
+  try {
+    const destination = new URL(returnTo)
+    if (
+      observatory.protocol === 'https:' &&
+      /^[a-z0-9-]+\\.up\\.railway\\.app$/i.test(observatory.hostname) &&
+      destination.origin === observatory.origin &&
+      /^\\/(en|uk|pl)\\/readiness-recovery\\/?$/.test(destination.pathname)
+    ) {
+      origin = observatory.origin
+    }
+  } catch {
+    // Invalid return URL cannot alter the canonical login origin.
+  }
+  const url = new URL('/api/auth/login', origin)
   url.searchParams.set('return_to', returnTo)
   return url.toString()
 }
