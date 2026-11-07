@@ -33,7 +33,11 @@ async function handle(request: NextRequest, context: Context) {
   const upstreamBase = new URL(base)
   if (
     upstreamBase.protocol !== 'https:' &&
-    !(upstreamBase.protocol === 'http:' && (['localhost', '127.0.0.1'].includes(upstreamBase.hostname) || (standalone && upstreamBase.hostname.endsWith('.railway.internal'))))
+    !(
+      upstreamBase.protocol === 'http:' &&
+      (['localhost', '127.0.0.1'].includes(upstreamBase.hostname) ||
+        (standalone && upstreamBase.hostname.endsWith('.railway.internal')))
+    )
   )
     return json('DIP backend requires TLS', 503)
 
