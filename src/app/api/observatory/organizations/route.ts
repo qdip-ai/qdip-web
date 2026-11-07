@@ -1,13 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sessionFromRequest } from '@/lib/qdip-oidc'
 import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
-import { signZitadelOwnerLink } from '@/lib/zitadel-org-link-assertion'
+import { signZitadelOwnerLink, signZitadelOwnerList } from '@/lib/zitadel-org-link-assertion'
 import { isSurfaceHost } from '@/routing-config'
 import {
   listOwnedZitadelOrganizations,
   verifyOwnedZitadelOrganization,
   OwnerOrganizationError,
 } from '@/lib/zitadel-owner-organizations'
+
+const RR_QA_PROJECT = '4665798b-2012-466e-be91-2555d76f36c2'
+const QDIP_ZITADEL_ORG = '368555767923594379'
+
+/** Explicit RR QA-only backend; production never routes an owner action to staging. */
+function rrStagingOwnerBridge(): string | null {
+  if (process.env.RAILWAY_PROJECT_ID !== RR_QA_PROJECT || process.env.RAILWAY_ENVIRONMENT_NAME !== 'qa') return null
+  const configured = process.env.RR_STAGING_OWNER_LINK_URL?.trim()
+  if (!configured) return null
+  const url = new URL(configured)
+  if (
+    url.protocol !== 'https:' ||
+    !url.hostname.endsWith('.up.railway.app') ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash ||
+    url.pathname !== '/qa/rr/owner-link'
+  )
+    throw new OwnerOrganizationError(503, 'Invalid RR staging owner bridge')
+  return url.href
+}
+
+async function rrStagingOwnerRequest(
+  bridge: string,
+  action: 'list' | 'link',
+  session: { issuer: string; sub: string },
+  organizationId?: string
+): Promise<unknown> {
+  const proof =
+    action === 'list'
+      ? signZitadelOwnerList(session)
+      : signZitadelOwnerLink({ ...session, organizationId: organizationId ?? '' })
+  let result: Response
+  try {
+    result = await fetch(bridge, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({
+        action,
+        issuer: session.issuer,
+        authenticated_subject: session.sub,
+        ...(action === 'link' ? { organization_id: organizationId } : {}),
+        ...proof,
+      }),
+      cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(12_000),
+    })
+  } catch {
+    throw new OwnerOrganizationError(503, 'RR staging owner bridge unavailable')
+  }
+  if (!result.ok) {
+    await result.body?.cancel().catch(() => undefined)
+    throw new OwnerOrganizationError(result.status === 403 ? 403 : 503, 'RR staging owner verification failed')
+  }
+  const raw = await result.text()
+  if (raw.length > 16_384) throw new OwnerOrganizationError(503, 'RR staging owner response too large')
+  try {
+    return JSON.parse(raw) as unknown
+  } catch {
+    throw new OwnerOrganizationError(503, 'Invalid RR staging owner response')
+  }
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,6 +96,27 @@ export async function GET(request: NextRequest) {
   const session = sessionFromRequest(request)
   if (!session) return response({ error: 'Sign in required' }, 401)
   try {
+    const bridge = rrStagingOwnerBridge()
+    if (bridge) {
+      const result = await rrStagingOwnerRequest(bridge, 'list', { issuer: session.issuer, sub: session.sub })
+      if (
+        !result ||
+        typeof result !== 'object' ||
+        !('organizations' in result) ||
+        !Array.isArray(result.organizations) ||
+        !result.organizations.every(
+          (org: unknown) =>
+            org &&
+            typeof org === 'object' &&
+            'id' in org &&
+            org.id === QDIP_ZITADEL_ORG &&
+            'state' in org &&
+            org.state === 'active'
+        )
+      )
+        return response({ error: 'Invalid staging owner verification' }, 503)
+      return response({ organizations: result.organizations }, 200)
+    }
     const organizations = await listOwnedZitadelOrganizations({ issuer: session.issuer, sub: session.sub })
     return response({ organizations }, 200)
   } catch (error) {
@@ -90,6 +175,27 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const bridge = rrStagingOwnerBridge()
+    if (bridge) {
+      if (id !== QDIP_ZITADEL_ORG) return response({ error: 'Only the canonical QDIP QA organization is allowed' }, 403)
+      const result = await rrStagingOwnerRequest(bridge, 'link', { issuer: session.issuer, sub: session.sub }, id)
+      if (
+        !result ||
+        typeof result !== 'object' ||
+        !('linked' in result) ||
+        result.linked !== true ||
+        !('coreTenantId' in result) ||
+        typeof result.coreTenantId !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(result.coreTenantId) ||
+        !('organization' in result) ||
+        !result.organization ||
+        typeof result.organization !== 'object' ||
+        !('id' in result.organization) ||
+        result.organization.id !== id
+      )
+        return response({ error: 'RR staging tenant identity mismatch' }, 503)
+      return response(result as Record<string, unknown>, 200)
+    }
     const selection = await verifyOwnedZitadelOrganization({ issuer: session.issuer, sub: session.sub }, id)
 
     const { base, key } = corePluginConnection()
