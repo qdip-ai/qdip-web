@@ -17,7 +17,7 @@ export default async function DeveloperApplicationsPage({ params }: { params: Pr
   if (!session) redirect(loginUrl(observatoryHref('/admin/apps', locale)))
   return (
     <PrototypeShell locale={locale as Locale} activeRoute="/admin/apps">
-      <ObservatoryDeveloperKeys locale={locale as Locale} />
+      <ObservatoryDeveloperKeys locale={locale as Locale} stagingOwnerLink={process.env.RAILWAY_PROJECT_ID === '4665798b-2012-466e-be91-2555d76f36c2' && process.env.RAILWAY_ENVIRONMENT_NAME === 'qa' && Boolean(process.env.RR_STAGING_OWNER_LINK_URL)} />
     </PrototypeShell>
   )
 }
