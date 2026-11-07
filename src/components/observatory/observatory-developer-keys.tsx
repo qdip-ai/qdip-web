@@ -202,7 +202,7 @@ async function send<T>(method: 'GET' | 'POST' | 'DELETE', organizationId: string
   return data as T
 }
 
-export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
+export function ObservatoryDeveloperKeys({ locale, stagingOwnerLink = false }: { locale: Locale; stagingOwnerLink?: boolean }) {
   const t = translations[locale]
   const [inventory, setInventory] = useState<Inventory | null>(null)
   const [ownedOrganizations, setOwnedOrganizations] = useState<OwnedOrganization[] | null>(null)
@@ -293,6 +293,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       setSelectedId('')
       setSelectedCapabilities([])
       setLinkedOrg(org.id)
+      if (stagingOwnerLink) return // staging verification does not issue or migrate plugin credentials
       setLoading(true)
       try {
         const result = await send<Inventory>('GET', org.id)
@@ -369,8 +370,8 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
       <h1 className="mt-3 text-3xl font-semibold">{t.title}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{t.description}</p>
       <section className="mt-6 min-w-0 rounded-xl border border-white/15 bg-slate-900 p-5" aria-label={t.ownerTitle}>
-        <h2 className="text-base font-semibold">{t.ownerTitle}</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-300">{t.ownerHelp}</p>
+        <h2 className="text-base font-semibold">{stagingOwnerLink ? 'RR staging — підтвердження організації' : t.ownerTitle}</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-300">{stagingOwnerLink ? 'Прив’язка лише до ізольованого Core staging; production і ключі плагінів не змінюються.' : t.ownerHelp}</p>
         {linkError ? (
           <p role="alert" className="mt-3 text-sm text-red-300">
             {t.ownerLinkError}
@@ -396,7 +397,7 @@ export function ObservatoryDeveloperKeys({ locale }: { locale: Locale }) {
             </button>
             {linkedOrg === org.id ? (
               <p role="status" className="mt-2 text-sm text-slate-300">
-                {t.ownerLinked}
+                {stagingOwnerLink ? 'QDIP прив’язано до Core staging.' : t.ownerLinked}
               </p>
             ) : null}
           </div>
