@@ -42,9 +42,7 @@ describe('QDIP shared authentication control', () => {
     const qaOrigin = 'https://rr-standalone-web-qa-qa.up.railway.app'
     urls.observatory = qaOrigin
     try {
-      const { rerender } = render(
-        <QdipAuthControl locale="en" returnTo={qaOrigin + '/en/readiness-recovery'} />
-      )
+      const { rerender } = render(<QdipAuthControl locale="en" returnTo={qaOrigin + '/en/readiness-recovery'} />)
       let login = screen.getByRole('link', { name: 'Sign in' })
       let target = new URL(login.getAttribute('href')!)
       expect(target.origin).toBe(qaOrigin)
@@ -57,9 +55,7 @@ describe('QDIP shared authentication control', () => {
       expect(target.origin).toBe('https://qdip.ai')
 
       rerender(<QdipAuthControl locale="en" returnTo="https://qdip.ai/en" />)
-      expect(new URL(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')!).origin).toBe(
-        'https://qdip.ai'
-      )
+      expect(new URL(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')!).origin).toBe('https://qdip.ai')
     } finally {
       urls.observatory = original
     }
