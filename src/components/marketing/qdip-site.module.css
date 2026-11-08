@@ -778,6 +778,37 @@
   font-weight: 600;
 }
 
+.ecosystemCard {
+  max-width: 820px;
+  padding: var(--ds-space-8);
+  border: 1px solid var(--line);
+  border-radius: var(--ds-radius-marketing);
+  background: var(--ds-surface-raised);
+}
+.ecosystemCard h3 {
+  margin: 0 0 var(--ds-space-2);
+  font-size: var(--ds-text-h3);
+}
+.ecosystemCategory {
+  color: var(--accent);
+  font-size: var(--ds-text-sm);
+  font-weight: 650;
+}
+.ecosystemCard p {
+  max-width: 680px;
+  margin: var(--ds-space-5) 0;
+  color: var(--muted);
+  font-size: var(--ds-text-body);
+  line-height: var(--ds-leading-body);
+}
+.ecosystemCard a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  color: var(--accent);
+  font-weight: 650;
+}
+
 .adoptionSection {
   background: var(--ds-surface-raised);
 }

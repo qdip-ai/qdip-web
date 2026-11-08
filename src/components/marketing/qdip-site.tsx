@@ -100,6 +100,19 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
             </MarketingTrackedLink>
           </div>
         </section>
+        <section className={styles.section} aria-labelledby="ecosystem-title">
+          <div className={styles.sectionIntro}>
+            <h2 id="ecosystem-title">{c.ecosystem.heading}</h2>
+          </div>
+          <article className={styles.ecosystemCard}>
+            <h3>Dzvin.co</h3>
+            <span className={styles.ecosystemCategory}>{c.ecosystem.category}</span>
+            <p>{c.ecosystem.description}</p>
+            <a href="https://dzvin.co">
+              {c.ecosystem.cta} <ArrowRight size={15} aria-hidden="true" />
+            </a>
+          </article>
+        </section>
         <section className={styles.finalCta}>
           <h2>{c.conversion[0]}</h2>
           <p>{c.conversion[1]}</p>
