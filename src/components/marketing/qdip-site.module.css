@@ -790,12 +790,8 @@
   font-size: var(--ds-text-h3);
 }
 .ecosystemBrand {
-  display: inline-flex;
-  align-items: center;
+  display: block;
   max-width: 100%;
-  overflow: hidden;
-  border-radius: var(--ds-radius-control);
-  background: #fff;
 }
 .ecosystemBrand img {
   display: block;
