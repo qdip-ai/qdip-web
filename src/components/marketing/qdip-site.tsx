@@ -1,4 +1,5 @@
 import { ArrowRight, Play } from 'lucide-react'
+import Image from 'next/image'
 import { DesignSystemProvider } from '@/design-system'
 import { marketingLocaleHref, observatoryHref } from '@/lib/platform-urls'
 import { marketingCopy, type MarketingLocale } from './qdip-copy'
@@ -99,6 +100,21 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
               {c.conversion[2]} <ArrowRight size={14} />
             </MarketingTrackedLink>
           </div>
+        </section>
+        <section className={styles.section} aria-labelledby="ecosystem-title">
+          <div className={styles.sectionIntro}>
+            <h2 id="ecosystem-title">{c.ecosystem.heading}</h2>
+          </div>
+          <article className={styles.ecosystemCard}>
+            <h3 className={styles.ecosystemBrand}>
+              <Image src="/brands/dzvin-wordmark.png" alt="Dzvin.co" width={183} height={64} />
+            </h3>
+            <span className={styles.ecosystemCategory}>{c.ecosystem.category}</span>
+            <p>{c.ecosystem.description}</p>
+            <a href="https://dzvin.co">
+              {c.ecosystem.cta} <ArrowRight size={15} aria-hidden="true" />
+            </a>
+          </article>
         </section>
         <section className={styles.finalCta}>
           <h2>{c.conversion[0]}</h2>

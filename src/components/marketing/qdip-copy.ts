@@ -91,6 +91,13 @@ export const marketingCopy = {
       'Measure value',
       'Expand if useful',
     ],
+    ecosystem: {
+      heading: 'Applications built in the QDIP ecosystem',
+      category: 'Mental Wellbeing Application',
+      description:
+        'Dzvin is a mental wellbeing application in the QDIP ecosystem, exploring decision intelligence to support more informed, explainable decisions.',
+      cta: 'Explore Dzvin',
+    },
     conversion: [
       'What decision does your team make repeatedly?',
       'Show us one recurring decision, the information used to make it, and the constraints that matter. We can determine whether it is a good fit for QDIP.',
@@ -176,6 +183,13 @@ export const marketingCopy = {
       'Оцініть цінність',
       'Розширюйте використання, якщо це корисно',
     ],
+    ecosystem: {
+      heading: 'Застосунки екосистеми QDIP',
+      category: 'Застосунок для ментального добробуту',
+      description:
+        'Dzvin — застосунок для ментального добробуту в екосистемі QDIP, що досліджує можливості Decision Intelligence для підтримки більш обґрунтованих і зрозумілих рішень.',
+      cta: 'Дізнатися про Dzvin',
+    },
     conversion: [
       'Яке рішення ваша команда приймає регулярно?',
       'Опишіть одне регулярне рішення, інформацію, яку ви використовуєте, та важливі обмеження. Ми визначимо, чи підходить для нього QDIP.',
@@ -261,6 +275,13 @@ export const marketingCopy = {
       'Oceń wartość',
       'Rozszerz zastosowanie, jeśli ma to sens',
     ],
+    ecosystem: {
+      heading: 'Aplikacje w ekosystemie QDIP',
+      category: 'Aplikacja wspierająca dobrostan psychiczny',
+      description:
+        'Dzvin to aplikacja wspierająca dobrostan psychiczny w ekosystemie QDIP, która bada wykorzystanie Decision Intelligence do podejmowania bardziej świadomych i wyjaśnialnych decyzji.',
+      cta: 'Poznaj Dzvin',
+    },
     conversion: [
       'Jaką decyzję Twój zespół podejmuje regularnie?',
       'Opisz jedną regularnie podejmowaną decyzję, wykorzystywane informacje i istotne ograniczenia. Możemy ocenić, czy QDIP pasuje do tego przypadku.',
