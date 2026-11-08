@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { marketingCopy, marketingLocales } from './qdip-copy'
 
 const homepage = readFileSync('src/components/marketing/qdip-site.tsx', 'utf8')
+const marketingStyles = readFileSync('src/components/marketing/qdip-site.module.css', 'utf8')
 
 describe('QDIP ecosystem showcase', () => {
   it.each(marketingLocales)('%s has a distinct, accurate Dzvin product description', (locale) => {
@@ -34,5 +35,13 @@ describe('QDIP ecosystem showcase', () => {
     const file = readFileSync('public/brands/dzvin-wordmark.png')
     expect(Array.from(file.subarray(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
     expect(file.byteLength).toBeGreaterThan(1000)
+  })
+
+  it('keeps the wordmark above its category without a white label panel', () => {
+    const brandRule = marketingStyles.match(/\.ecosystemBrand\s*\{([^}]*)\}/)?.[1]
+    expect(brandRule).toContain('display: block')
+    expect(brandRule).not.toMatch(/display:\s*inline-flex|background:|border-radius:|overflow:/)
+    expect(homepage).toContain('<h3 className={styles.ecosystemBrand}>')
+    expect(homepage).toContain('<span className={styles.ecosystemCategory}>')
   })
 })
