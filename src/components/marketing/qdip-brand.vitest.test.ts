@@ -26,5 +26,13 @@ describe('QDIP ecosystem showcase', () => {
     expect(homepage).toContain('{c.ecosystem.heading}')
     expect(homepage).toContain('{c.ecosystem.description}')
     expect(homepage).toContain('{c.ecosystem.cta}')
+    expect(homepage).toContain('src="/brands/dzvin-wordmark.png"')
+    expect(homepage).toContain('alt="Dzvin.co"')
+  })
+
+  it('ships the branded wordmark as an actual local PNG asset', () => {
+    const file = readFileSync('public/brands/dzvin-wordmark.png')
+    expect(Array.from(file.subarray(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
+    expect(file.byteLength).toBeGreaterThan(1000)
   })
 })

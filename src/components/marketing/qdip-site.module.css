@@ -789,6 +789,19 @@
   margin: 0 0 var(--ds-space-2);
   font-size: var(--ds-text-h3);
 }
+.ecosystemBrand {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--ds-radius-control);
+  background: #fff;
+}
+.ecosystemBrand img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
 .ecosystemCategory {
   color: var(--accent);
   font-size: var(--ds-text-sm);
