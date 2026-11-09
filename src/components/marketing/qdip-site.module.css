@@ -133,6 +133,8 @@
   right: 0;
   display: flex;
   width: min(300px, calc(100vw - 48px));
+  max-height: calc(100dvh - var(--ds-header-height) - var(--ds-space-2));
+  overflow-y: auto;
   padding: var(--ds-space-3);
   flex-direction: column;
   border: 1px solid var(--line);
