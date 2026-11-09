@@ -53,7 +53,9 @@ test.describe('current marketing routing', () => {
       const card = page.locator('article[class*="ecosystemCard"]')
       const wordmark = card.getByRole('img', { name: 'Dzvin.co' })
       const category = card.locator('span[class*="ecosystemCategory"]')
+      await wordmark.scrollIntoViewIfNeeded()
       await expect(wordmark).toBeVisible()
+      await expect(wordmark).toHaveJSProperty('complete', true)
       await expect(wordmark).toHaveCSS('filter', 'brightness(0) invert(1)')
       const imageBox = await wordmark.boundingBox()
       const categoryBox = await category.boundingBox()
@@ -62,9 +64,9 @@ test.describe('current marketing routing', () => {
       expect(Math.abs(imageBox!.x - categoryBox!.x)).toBeLessThanOrEqual(1)
 
       // Check rendered alpha pixels; DOM alignment alone misses PNG whitespace.
-      const transparentLeft = await wordmark.evaluate(async (node) => {
+      const transparentLeft = await wordmark.evaluate((node) => {
         const image = node as HTMLImageElement
-        await image.decode()
+        if (image.naturalWidth === 0) throw new Error('Dzvin image failed to load')
         const canvas = document.createElement('canvas')
         canvas.width = image.naturalWidth
         canvas.height = image.naturalHeight
