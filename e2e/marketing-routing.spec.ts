@@ -41,12 +41,12 @@ const whyLabels = {
 } as const
 
 test.describe('current marketing routing', () => {
-  test('Dzvin wordmark has no left padding and follows the active appearance', async ({ page }) => {
-    for (const viewport of [
-      { width: 1366, height: 900 },
-      { width: 390, height: 844 },
-      { width: 844, height: 390 },
-    ]) {
+  for (const viewport of [
+    { width: 1366, height: 900 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    test(`Dzvin wordmark aligns and follows appearance at ${viewport.width}x${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport)
       await page.goto('http://qdip.localhost:3000/en')
 
@@ -92,8 +92,8 @@ test.describe('current marketing routing', () => {
       await toggle.click()
       await expect(wordmark).toHaveCSS('filter', 'none')
       await card.screenshot({ path: `test-results/dzvin-light-${viewport.width}x${viewport.height}.png` })
-    }
-  })
+    })
+  }
 
   test('marketing header uses an accessible custom icon without visible Sign in text', async ({ page }) => {
     await page.route('**/api/auth/session', (route) =>
