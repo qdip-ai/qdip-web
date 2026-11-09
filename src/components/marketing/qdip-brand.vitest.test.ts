@@ -35,6 +35,9 @@ describe('QDIP ecosystem showcase', () => {
     const file = readFileSync('public/brands/dzvin-wordmark.png')
     expect(Array.from(file.subarray(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
     expect(file.byteLength).toBeGreaterThan(1000)
+    // Cropped to painted pixels; the original PNG had transparent margins.
+    expect(file.readUInt32BE(16)).toBe(287)
+    expect(file.readUInt32BE(20)).toBe(68)
   })
 
   it('keeps the wordmark above its category without a white label panel', () => {
@@ -43,5 +46,8 @@ describe('QDIP ecosystem showcase', () => {
     expect(brandRule).not.toMatch(/display:\s*inline-flex|background:|border-radius:|overflow:/)
     expect(homepage).toContain('<h3 className={styles.ecosystemBrand}>')
     expect(homepage).toContain('<span className={styles.ecosystemCategory}>')
+    expect(homepage).toContain('width={144} height={34}')
+    expect(marketingStyles).toMatch(/\.ecosystemBrand img\s*\{[^}]*filter:\s*brightness\(0\) invert\(1\)/)
+    expect(marketingStyles).toMatch(/data-marketing-appearance='light'[^}]*filter:\s*none/)
   })
 })

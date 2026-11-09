@@ -107,7 +107,7 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
           </div>
           <article className={styles.ecosystemCard}>
             <h3 className={styles.ecosystemBrand}>
-              <Image src="/brands/dzvin-wordmark.png" alt="Dzvin.co" width={183} height={64} />
+              <Image src="/brands/dzvin-wordmark.png" alt="Dzvin.co" width={144} height={34} />
             </h3>
             <span className={styles.ecosystemCategory}>{c.ecosystem.category}</span>
             <p>{c.ecosystem.description}</p>
