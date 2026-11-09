@@ -797,6 +797,10 @@
   display: block;
   max-width: 100%;
   height: auto;
+  filter: brightness(0) invert(1);
+}
+.site:global([data-marketing-appearance='light']) .ecosystemBrand img {
+  filter: none;
 }
 .ecosystemCategory {
   color: var(--accent);
