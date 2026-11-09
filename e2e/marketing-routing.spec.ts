@@ -87,6 +87,13 @@ test.describe('current marketing routing', () => {
       let toggle = page.locator('[data-testid="marketing-theme-toggle"]:visible')
       if (!(await toggle.count())) {
         await page.locator('header button[aria-controls="mobile-navigation"]').click()
+        if (viewport.height < 400) {
+          const menu = page.locator('#mobile-navigation')
+          const bounds = await menu.boundingBox()
+          expect(bounds).not.toBeNull()
+          expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height)
+          await expect(menu).toHaveCSS('overflow-y', 'auto')
+        }
         toggle = page.locator('[data-testid="marketing-theme-toggle"]:visible')
       }
       await toggle.click()
