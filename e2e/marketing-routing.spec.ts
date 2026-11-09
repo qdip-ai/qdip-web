@@ -46,7 +46,7 @@ test.describe('current marketing routing', () => {
     { width: 390, height: 844 },
     { width: 844, height: 390 },
   ]) {
-    test(`Dzvin wordmark aligns and follows appearance at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    test(`Dzvin wordmark ${viewport.width}x${viewport.height} theme and alignment`, async ({ page }) => {
       await page.setViewportSize(viewport)
       await page.goto('http://qdip.localhost:3000/en')
 
