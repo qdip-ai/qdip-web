@@ -205,7 +205,9 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('RR_ORG_API_KEY', 'rr-scoped-only')
     vi.stubEnv('RR_ORGANIZATION_ID', 'rr-test-org')
-    const fetcher = vi.fn(async (_url: string, _init: RequestInit) => {
+    const fetcher = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toContain('/economic-v2/scenario-advice')
+      expect(init.method).toBe('POST')
       return new Response(JSON.stringify({ actionable: false }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
