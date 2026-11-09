@@ -205,7 +205,7 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('RR_ORG_API_KEY', 'rr-scoped-only')
     vi.stubEnv('RR_ORGANIZATION_ID', 'rr-test-org')
-    const fetcher = vi.fn(async () => {
+    const fetcher = vi.fn(async (_url: string, _init: RequestInit) => {
       return new Response(JSON.stringify({ actionable: false }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -216,7 +216,7 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     const result = await POST(fakeRequest(), params(path))
     expect(result.status).toBe(200)
     expect(fetcher).toHaveBeenCalledOnce()
-    const [url, init] = fetcher.mock.calls[0] as [string, RequestInit]
+    const [url, init] = fetcher.mock.calls[0]
     expect(url).toBe('https://rr.example.test/api/v1/readiness-recovery/economic-v2/scenario-advice')
     const headers = init.headers as Record<string, string>
     expect(headers['x-api-key']).toBe('rr-scoped-only')
