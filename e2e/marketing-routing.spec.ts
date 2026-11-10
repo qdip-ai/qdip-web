@@ -41,6 +41,67 @@ const whyLabels = {
 } as const
 
 test.describe('current marketing routing', () => {
+  for (const viewport of [
+    { width: 1366, height: 900 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    test(`Dzvin wordmark ${viewport.width}x${viewport.height} theme and alignment`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await page.goto('http://qdip.localhost:3000/en')
+
+      const card = page.locator('article[class*="ecosystemCard"]')
+      const wordmark = card.getByRole('img', { name: 'Dzvin.co' })
+      const category = card.locator('span[class*="ecosystemCategory"]')
+      await wordmark.scrollIntoViewIfNeeded()
+      await expect(wordmark).toBeVisible()
+      await expect(wordmark).toHaveJSProperty('complete', true)
+      await expect(wordmark).toHaveCSS('filter', 'brightness(0) invert(1)')
+      const imageBox = await wordmark.boundingBox()
+      const categoryBox = await category.boundingBox()
+      expect(imageBox).not.toBeNull()
+      expect(categoryBox).not.toBeNull()
+      expect(Math.abs(imageBox!.x - categoryBox!.x)).toBeLessThanOrEqual(1)
+
+      // Check rendered alpha pixels; DOM alignment alone misses PNG whitespace.
+      const transparentLeft = await wordmark.evaluate((node) => {
+        const image = node as HTMLImageElement
+        if (image.naturalWidth === 0) throw new Error('Dzvin image failed to load')
+        const canvas = document.createElement('canvas')
+        canvas.width = image.naturalWidth
+        canvas.height = image.naturalHeight
+        const context = canvas.getContext('2d')
+        if (!context) throw new Error('Canvas 2D context unavailable')
+        context.drawImage(image, 0, 0)
+        const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+        for (let x = 0; x < canvas.width; x++) {
+          for (let y = 0; y < canvas.height; y++) {
+            if (data[(y * canvas.width + x) * 4 + 3] > 0) return x
+          }
+        }
+        throw new Error('Wordmark has no visible pixels')
+      })
+      expect(transparentLeft).toBeLessThanOrEqual(1)
+      await card.screenshot({ path: `test-results/dzvin-dark-${viewport.width}x${viewport.height}.png` })
+
+      let toggle = page.locator('[data-testid="marketing-theme-toggle"]:visible')
+      if (!(await toggle.count())) {
+        await page.locator('header button[aria-controls="mobile-navigation"]').click()
+        if (viewport.height < 400) {
+          const menu = page.locator('#mobile-navigation')
+          const bounds = await menu.boundingBox()
+          expect(bounds).not.toBeNull()
+          expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport.height)
+          await expect(menu).toHaveCSS('overflow-y', 'auto')
+        }
+        toggle = page.locator('[data-testid="marketing-theme-toggle"]:visible')
+      }
+      await toggle.click()
+      await expect(wordmark).toHaveCSS('filter', 'none')
+      await card.screenshot({ path: `test-results/dzvin-light-${viewport.width}x${viewport.height}.png` })
+    })
+  }
+
   test('marketing header uses an accessible custom icon without visible Sign in text', async ({ page }) => {
     await page.route('**/api/auth/session', (route) =>
       route.fulfill({
