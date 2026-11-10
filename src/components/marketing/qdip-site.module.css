@@ -133,6 +133,8 @@
   right: 0;
   display: flex;
   width: min(300px, calc(100vw - 48px));
+  max-height: calc(100dvh - var(--ds-header-height) - var(--ds-space-2));
+  overflow-y: auto;
   padding: var(--ds-space-3);
   flex-direction: column;
   border: 1px solid var(--line);
@@ -797,6 +799,10 @@
   display: block;
   max-width: 100%;
   height: auto;
+  filter: brightness(0) invert(1);
+}
+.site:global([data-marketing-appearance='light']) .ecosystemBrand img {
+  filter: none;
 }
 .ecosystemCategory {
   color: var(--accent);

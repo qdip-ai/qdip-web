@@ -61,7 +61,7 @@ async function handle(request: NextRequest, context: Context) {
             ? path.length === 2
               ? 'execute'
               : 'replan'
-            : path[0] === 'economic-v2' && ['snapshots', 'advice'].includes(path[1])
+            : path[0] === 'economic-v2' && ['snapshots', 'advice', 'scenario-advice'].includes(path[1])
               ? 'execute'
               : null
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'x-api-key': key }
@@ -95,7 +95,7 @@ async function handle(request: NextRequest, context: Context) {
       body,
       redirect: 'error',
       cache: 'no-store',
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(path[0] === 'economic-v2' && path[1] === 'scenario-advice' ? 160_000 : 45_000),
     })
     const maxResponse = 4_194_304
     if (Number(upstream.headers.get('content-length') ?? 0) > maxResponse)
