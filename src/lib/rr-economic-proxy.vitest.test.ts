@@ -199,4 +199,45 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect(response.status).toBe(503)
     expect(fetcher).not.toHaveBeenCalled()
   })
+
+  it('forwards scenario advice with the same tenant-scoped actor proof and blocks unknown paths', async () => {
+    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
+    vi.stubEnv('RR_ORG_API_KEY', 'rr-scoped-only')
+    vi.stubEnv('RR_ORGANIZATION_ID', 'rr-test-org')
+    const fetcher = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toContain('/economic-v2/scenario-advice')
+      expect(init.method).toBe('POST')
+      return new Response(JSON.stringify({ actionable: false }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    })
+    vi.stubGlobal('fetch', fetcher)
+    const path = ['economic-v2', 'scenario-advice']
+    const result = await POST(fakeRequest(), params(path))
+    expect(result.status).toBe(200)
+    expect(fetcher).toHaveBeenCalledOnce()
+    const [url, init] = fetcher.mock.calls[0]
+    expect(url).toBe('https://rr.example.test/api/v1/readiness-recovery/economic-v2/scenario-advice')
+    const headers = init.headers as Record<string, string>
+    expect(headers['x-api-key']).toBe('rr-scoped-only')
+    expect(headers['idempotency-key']).toMatch(/^[0-9a-f]{64}$/)
+    expect(headers['x-qdip-actor-assertion']).toBe('signed-actor')
+    expect(signedRrActorFromRequest).toHaveBeenCalledWith(expect.anything(), 'execute', {
+      organizationId: 'rr-test-org',
+      method: 'POST',
+      path: '/api/v1/readiness-recovery/economic-v2/scenario-advice',
+      body: input,
+      idempotencyKey: headers['idempotency-key'],
+    })
+    const deniedPath = await POST(fakeRequest(), params(['economic-v2', 'scenario-execute']))
+    expect(deniedPath.status).toBe(404)
+    expect(fetcher).toHaveBeenCalledOnce()
+    vi.mocked(operatorAuthorized).mockReturnValue(false)
+    expect((await POST(fakeRequest(), params(path))).status).toBe(401)
+    vi.mocked(operatorAuthorized).mockReturnValue(true)
+    vi.mocked(sameOrigin).mockReturnValue(false)
+    expect((await POST(fakeRequest(), params(path))).status).toBe(403)
+  })
 })

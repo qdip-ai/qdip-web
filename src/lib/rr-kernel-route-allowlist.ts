@@ -5,6 +5,8 @@ export function allowedKernelPath(path: string[], method: string) {
   if (path.some((part) => !identifier.test(part) || part === '.' || part === '..')) return false
   if (path.length === 1 && path[0] === 'preflight') return method === 'POST'
   if (path[0] === 'economic-v2') {
+    if (path.length === 2 && path[1] === 'scenario-advice') return method === 'POST'
+    if (path.length === 3 && path[1] === 'scenario-advice') return method === 'GET'
     if (path.length === 2 && path[1] === 'advice') return method === 'POST' || method === 'GET'
     if (path.length === 2 && ['preflight', 'snapshots'].includes(path[1])) return method === 'POST'
     if (path.length === 3 && path[1] === 'advice') return method === 'GET'
