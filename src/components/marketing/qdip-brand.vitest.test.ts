@@ -10,7 +10,8 @@ describe('QDIP ecosystem showcase', () => {
     const copy = marketingCopy[locale].ecosystem
     expect(copy.heading.length).toBeGreaterThan(0)
     expect(copy.category.length).toBeGreaterThan(0)
-    expect(copy.description).toContain('Dzvin')
+    expect(copy.description).toContain('Dzvin.co')
+    expect(copy.cta).toContain('Dzvin.co')
     expect(copy.cta.length).toBeGreaterThan(0)
     expect(JSON.stringify(copy)).not.toMatch(/Powered by QDIP/i)
   })
