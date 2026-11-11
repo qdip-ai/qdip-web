@@ -95,8 +95,8 @@ export const marketingCopy = {
       heading: 'Applications built in the QDIP ecosystem',
       category: 'Mental Wellbeing Application',
       description:
-        'Dzvin is a mental wellbeing application in the QDIP ecosystem, exploring decision intelligence to support more informed, explainable decisions.',
-      cta: 'Explore Dzvin',
+        'Dzvin.co is a mental wellbeing application in the QDIP ecosystem, exploring decision intelligence to support more informed, explainable decisions.',
+      cta: 'Explore Dzvin.co',
     },
     conversion: [
       'What decision does your team make repeatedly?',
@@ -187,8 +187,8 @@ export const marketingCopy = {
       heading: 'Застосунки екосистеми QDIP',
       category: 'Застосунок для ментального добробуту',
       description:
-        'Dzvin — застосунок для ментального добробуту в екосистемі QDIP, що досліджує можливості Decision Intelligence для підтримки більш обґрунтованих і зрозумілих рішень.',
-      cta: 'Дізнатися про Dzvin',
+        'Dzvin.co — застосунок для ментального добробуту в екосистемі QDIP, що досліджує можливості Decision Intelligence для підтримки більш обґрунтованих і зрозумілих рішень.',
+      cta: 'Дізнатися про Dzvin.co',
     },
     conversion: [
       'Яке рішення ваша команда приймає регулярно?',
@@ -279,8 +279,8 @@ export const marketingCopy = {
       heading: 'Aplikacje w ekosystemie QDIP',
       category: 'Aplikacja wspierająca dobrostan psychiczny',
       description:
-        'Dzvin to aplikacja wspierająca dobrostan psychiczny w ekosystemie QDIP, która bada wykorzystanie Decision Intelligence do podejmowania bardziej świadomych i wyjaśnialnych decyzji.',
-      cta: 'Poznaj Dzvin',
+        'Dzvin.co to aplikacja wspierająca dobrostan psychiczny w ekosystemie QDIP, która bada wykorzystanie Decision Intelligence do podejmowania bardziej świadomych i wyjaśnialnych decyzji.',
+      cta: 'Poznaj Dzvin.co',
     },
     conversion: [
       'Jaką decyzję Twój zespół podejmuje regularnie?',
