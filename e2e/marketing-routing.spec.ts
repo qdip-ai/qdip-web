@@ -56,7 +56,6 @@ test.describe('current marketing routing', () => {
       await wordmark.scrollIntoViewIfNeeded()
       await expect(wordmark).toBeVisible()
       await expect(wordmark).toHaveJSProperty('complete', true)
-      await expect(wordmark).toHaveCSS('content', 'normal')
       await expect(wordmark).toHaveCSS('filter', 'none')
       await expect(wordmark).toHaveCSS('content', /dzvin-wordmark-dark\.png/)
       const imageBox = await wordmark.boundingBox()
@@ -99,6 +98,7 @@ test.describe('current marketing routing', () => {
         toggle = page.locator('[data-testid="marketing-theme-toggle"]:visible')
       }
       await toggle.click()
+      await expect(wordmark).toHaveCSS('content', 'normal')
       await expect(wordmark).toHaveCSS('filter', 'none')
       await card.screenshot({ path: `test-results/dzvin-light-${viewport.width}x${viewport.height}.png` })
     })
