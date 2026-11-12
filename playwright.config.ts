@@ -17,10 +17,19 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
+  webServer: [
+    {
+      command: 'node e2e/fixtures/core-catalog-server.mjs',
+      url: 'http://127.0.0.1:3199/health',
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
+    {
     command: 'pnpm start --hostname 127.0.0.1',
     env: {
       QDIP_PLAYWRIGHT_LEGACY_CATALOG: '1',
+      DIP_API_BASE_URL: 'http://127.0.0.1:3199',
+      DIP_ADMIN_API_KEY: 'playwright-catalog-only',
       ZITADEL_ISSUER: oidcTestConfig.issuer,
       ZITADEL_CLIENT_ID: oidcTestConfig.clientId,
       ZITADEL_QDIP_PROJECT_ID: oidcTestConfig.projectId,
@@ -30,5 +39,6 @@ export default defineConfig({
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
-  },
+    },
+  ],
 })
