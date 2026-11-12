@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { CoreApplicationPublication } from '@/lib/observatory-application-catalog'
 
@@ -11,7 +10,6 @@ export function ApplicationPublicationControls({
   application: CoreApplicationPublication
   locale: 'uk' | 'en' | 'pl'
 }) {
-  const router = useRouter()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const canPublish = application.status !== 'published' && application.admission.ready
@@ -39,7 +37,7 @@ export function ApplicationPublicationControls({
         const result: { error?: string; reasons?: string[] } = await response.json()
         throw new Error([result.error, ...(result.reasons ?? [])].filter(Boolean).join(': '))
       }
-      router.refresh()
+      window.location.reload()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Publication operation failed')
       router.refresh()
