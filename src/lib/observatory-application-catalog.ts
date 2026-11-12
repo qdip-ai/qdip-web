@@ -1,7 +1,5 @@
 import 'server-only'
 
-import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
-
 export type CoreApplicationPublication = {
   application_id: string
   version: string
@@ -21,8 +19,8 @@ export type CoreApplicationPublication = {
   visible: boolean
 }
 
-export async function readCoreApplications(): Promise<CoreApplicationPublication[]> {
-  const { base, key } = corePluginConnection()
+export async function readCoreApplications(connection: { base: string; key: string }): Promise<CoreApplicationPublication[]> {
+  const { base, key } = connection
   const response = await fetch(`${base}/api/v1/applications`, {
     headers: { 'x-api-key': key, accept: 'application/json' },
     cache: 'no-store',
