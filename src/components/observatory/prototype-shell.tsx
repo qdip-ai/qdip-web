@@ -142,7 +142,6 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
         <Blocks className={styles.navIcon} aria-hidden />
         <span>{({ en: 'Plugins', uk: 'Плагіни', pl: 'Wtyczki' } as const)[locale]}</span>
       </a>
-
     </nav>
   )
 
