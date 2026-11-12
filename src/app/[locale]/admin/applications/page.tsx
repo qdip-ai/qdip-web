@@ -33,9 +33,42 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
   }
   const byName = new Map(records?.map((record) => [record.name, record]) ?? [])
   const labels = {
-    uk: { title: 'Керування застосунками', description: 'Стан доступності застосунків. Публікація SDK-плагіна не публікує застосунок автоматично.', unavailable: 'Стан Core недоступний', missing: 'Плагін не зареєстровано', disabled: 'Плагін вимкнений', unpublished: 'Плагін не опубліковано', mismatch: 'Capability застосунку не збігається з Core', version: 'Версія публікації не збігається', available: 'Доступний у каталозі', pending: 'Окреме керування публікацією застосунків ще не реалізовано' },
-    en: { title: 'Manage applications', description: 'Application availability diagnostics. Publishing an SDK plugin does not automatically publish an application.', unavailable: 'Core status unavailable', missing: 'Plugin not registered', disabled: 'Plugin disabled', unpublished: 'Plugin not published', mismatch: 'Application capability differs from Core', version: 'Published version differs', available: 'Visible in catalog', pending: 'Independent application publishing controls are not implemented yet' },
-    pl: { title: 'Zarządzaj aplikacjami', description: 'Diagnostyka dostępności aplikacji. Publikacja wtyczki SDK nie publikuje automatycznie aplikacji.', unavailable: 'Status Core niedostępny', missing: 'Wtyczka niezarejestrowana', disabled: 'Wtyczka wyłączona', unpublished: 'Wtyczka nieopublikowana', mismatch: 'Niezgodna funkcja aplikacji i Core', version: 'Niezgodna wersja publikacji', available: 'Widoczna w katalogu', pending: 'Niezależne sterowanie publikacją aplikacji nie jest jeszcze dostępne' },
+    uk: {
+      title: 'Керування застосунками',
+      description: 'Стан доступності застосунків. Публікація SDK-плагіна не публікує застосунок автоматично.',
+      unavailable: 'Стан Core недоступний',
+      missing: 'Плагін не зареєстровано',
+      disabled: 'Плагін вимкнений',
+      unpublished: 'Плагін не опубліковано',
+      mismatch: 'Capability застосунку не збігається з Core',
+      version: 'Версія публікації не збігається',
+      available: 'Доступний у каталозі',
+      pending: 'Окреме керування публікацією застосунків ще не реалізовано',
+    },
+    en: {
+      title: 'Manage applications',
+      description: 'Application availability diagnostics. Publishing an SDK plugin does not automatically publish an application.',
+      unavailable: 'Core status unavailable',
+      missing: 'Plugin not registered',
+      disabled: 'Plugin disabled',
+      unpublished: 'Plugin not published',
+      mismatch: 'Application capability differs from Core',
+      version: 'Published version differs',
+      available: 'Visible in catalog',
+      pending: 'Independent application publishing controls are not implemented yet',
+    },
+    pl: {
+      title: 'Zarządzaj aplikacjami',
+      description: 'Diagnostyka dostępności aplikacji. Publikacja wtyczki SDK nie publikuje automatycznie aplikacji.',
+      unavailable: 'Status Core niedostępny',
+      missing: 'Wtyczka niezarejestrowana',
+      disabled: 'Wtyczka wyłączona',
+      unpublished: 'Wtyczka nieopublikowana',
+      mismatch: 'Niezgodna funkcja aplikacji i Core',
+      version: 'Niezgodna wersja publikacji',
+      available: 'Widoczna w katalogu',
+      pending: 'Niezależne sterowanie publikacją aplikacji nie jest jeszcze dostępne',
+    },
   }[locale]
 
   return (
