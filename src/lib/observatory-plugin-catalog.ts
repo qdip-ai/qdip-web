@@ -72,7 +72,7 @@ export function visibleUseCases(
 export async function visiblePluginUseCaseIds(): Promise<string[]> {
   const [plugins, applications] = await Promise.allSettled([
     readCorePublications(),
-    readCoreApplications(corePluginConnection()),
+    (async () => readCoreApplications(corePluginConnection()))(),
   ])
   // A failure of one independent catalog cannot silently authorize the other.
   const appRecords = applications.status === 'fulfilled' ? applications.value : []
