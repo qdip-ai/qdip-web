@@ -6,7 +6,7 @@ import { LogIn, LogOut, UserRound } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { PLATFORM_URLS, type PlatformLocale } from '@/lib/platform-urls'
+import { PLATFORM_URLS, observatoryHref, type PlatformLocale } from '@/lib/platform-urls'
 import styles from './qdip-auth-control.module.css'
 
 type ProfilePlacement = {
@@ -27,6 +27,8 @@ type AuthSession = {
 
 const labels = {
   en: {
+    applicationsKeys: 'Applications & keys',
+    managePlugins: 'Manage plugins',
     signIn: 'Sign in',
     signOut: 'Sign out',
     signedIn: 'Signed in',
@@ -38,6 +40,8 @@ const labels = {
     operator: 'RR operator',
   },
   uk: {
+    applicationsKeys: 'Застосунки та ключі',
+    managePlugins: 'Керування плагінами',
     signIn: 'Увійти',
     signOut: 'Вийти',
     signedIn: 'Ви увійшли',
@@ -49,6 +53,8 @@ const labels = {
     operator: 'Оператор RR',
   },
   pl: {
+    applicationsKeys: 'Aplikacje i klucze',
+    managePlugins: 'Zarządzaj wtyczkami',
     signIn: 'Zaloguj się',
     signOut: 'Wyloguj się',
     signedIn: 'Zalogowano',
@@ -225,6 +231,12 @@ export function QdipAuthControl({
                 {identity?.email && identity.email !== display ? (
                   <span className={styles.profileEmail}>{identity.email}</span>
                 ) : null}
+                <nav className={styles.profileLinks} aria-label={copy.account}>
+                  <a href={observatoryHref('/admin/apps', locale)}>{copy.applicationsKeys}</a>
+                  {session.observatoryAdmin && (
+                    <a href={observatoryHref('/admin/plugins', locale)}>{copy.managePlugins}</a>
+                  )}
+                </nav>
                 <p className={styles.profileTitle}>{copy.roles}</p>
                 <div className={styles.roleList}>
                   {roles.length ? (
