@@ -7,8 +7,6 @@ import {
   FlaskConical,
   Home,
   Menu,
-  ShieldCheck,
-  KeyRound,
   Network,
   Blocks,
   Scale,
@@ -58,7 +56,6 @@ const NAV_ICONS = {
 export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }: PrototypeShellProps) {
   const activeNavRef = useRef<HTMLAnchorElement>(null)
   const [visibleIds, setVisibleIds] = useState<string[]>([])
-  const [isAdmin, setIsAdmin] = useState(false)
   const navItems = observableApplications(visibleIds)
   useEffect(() => {
     const controller = new AbortController()
@@ -69,15 +66,6 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
       .then(async (response) => (response.ok ? response.json() : { visibleIds: [] }))
       .then((data: { visibleIds?: string[] }) => {
         if (!controller.signal.aborted && Array.isArray(data.visibleIds)) setVisibleIds(data.visibleIds)
-      })
-      .catch(() => {})
-    void fetch('/api/auth/session', {
-      cache: 'no-store',
-      signal: controller.signal,
-    })
-      .then(async (response) => (response.ok ? response.json() : {}))
-      .then((data: { observatoryAdmin?: boolean }) => {
-        if (!controller.signal.aborted) setIsAdmin(data.observatoryAdmin === true)
       })
       .catch(() => {})
     return () => controller.abort()
@@ -154,46 +142,7 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
         <Blocks className={styles.navIcon} aria-hidden />
         <span>{({ en: 'Plugins', uk: 'Плагіни', pl: 'Wtyczki' } as const)[locale]}</span>
       </a>
-      {isAdmin && (
-        <a
-          className={styles.navLink}
-          href={buildLocalePath('/admin/apps', locale)}
-          aria-current={activeRoute === '/admin/apps' ? 'page' : undefined}
-        >
-          <KeyRound className={styles.navIcon} aria-hidden />
-          <span>
-            {
-              (
-                {
-                  en: 'Applications & keys',
-                  uk: 'Застосунки та ключі',
-                  pl: 'Aplikacje i klucze',
-                } as const
-              )[locale]
-            }
-          </span>
-        </a>
-      )}
-      {isAdmin && (
-        <a
-          className={styles.navLink}
-          href={buildLocalePath('/admin/plugins', locale)}
-          aria-current={activeRoute === '/admin/plugins' ? 'page' : undefined}
-        >
-          <ShieldCheck className={styles.navIcon} aria-hidden />
-          <span>
-            {
-              (
-                {
-                  en: 'Manage plugins',
-                  uk: 'Керування плагінами',
-                  pl: 'Zarządzaj wtyczkami',
-                } as const
-              )[locale]
-            }
-          </span>
-        </a>
-      )}
+
     </nav>
   )
 
