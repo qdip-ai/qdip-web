@@ -10,22 +10,19 @@ import { corePluginConnection, readCorePublications } from '@/lib/observatory-pl
 import { readCoreApplications } from '@/lib/observatory-application-catalog'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
-export const dynamic = 'force-dynamic'
-
-export default async function ManageApplicationsPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params
-  if (!isSupportedLocale(locale)) notFound()
-  const access = await pageAccess('observatory_admin')
-  if (!access.authenticated) redirect(loginUrl(observatoryHref('/admin/applications', locale)))
-  if (!access.allowed)
-    return (
-      <QdipAccessGate locale={locale as Locale} role="observatory_admin"
-        returnTo={observatoryHref('/admin/applications', locale as Locale)} authenticated={true} />
+export const dynamic = 'force-dynamic'dipAccessGate
+        locale={locale as Locale}
+        role="observatory_admin"
+        returnTo={observatoryHref('/admin/applications', locale as Locale)}
+        authenticated={true}
+      />
     )
 
   const [publications, applications] = await Promise.all([
     readCorePublications().catch(() => null),
-    Promise.resolve().then(() => readCoreApplications(corePluginConnection())).catch(() => null),
+    Promise.resolve()
+      .then(() => readCoreApplications(corePluginConnection()))
+      .catch(() => null),
   ])
   const byName = new Map(publications?.map((record) => [record.name, record]) ?? [])
   const rrPublication = applications?.find((item) => item.application_id === 'readiness-recovery')
@@ -85,13 +82,18 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
               return (
                 <li key={app.id}>
                   <strong>{app.id}</strong> — {rrPublication?.status ?? labels.unavailable}
-                  {' · '}{rrPublication?.visible ? labels.available :
-                    rrPublication?.admission.ready ? labels.ready : labels.blocked}
+                  {' · '}
+                  {rrPublication?.visible
+                    ? labels.available
+                    : rrPublication?.admission.ready
+                      ? labels.ready
+                      : labels.blocked}
                   {rrPublication && (
                     <>
                       <div>
-                        {rrPublication.admission.reasons.length > 0 &&
-                          <span role="status">{rrPublication.admission.reasons.join(', ')}</span>}
+                        {rrPublication.admission.reasons.length > 0 && (
+                          <span role="status">{rrPublication.admission.reasons.join(', ')}</span>
+                        )}
                       </div>
                       <ApplicationPublicationControls application={rrPublication} locale={locale as Locale} />
                     </>
@@ -104,8 +106,11 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
             if (!publications) status = labels.unavailable
             else if (!plugin) status = labels.missing
             else if (!plugin.enabled) status = labels.disabled
-            else if (!plugin.capabilities.includes(app.plugin.capability) ||
-              plugin.capability_id !== app.plugin.capability) status = labels.mismatch
+            else if (
+              !plugin.capabilities.includes(app.plugin.capability) ||
+              plugin.capability_id !== app.plugin.capability
+            )
+              status = labels.mismatch
             else if (plugin.published !== true) status = labels.unpublished
             else if (plugin.published_version !== plugin.version) status = labels.version
             return (
