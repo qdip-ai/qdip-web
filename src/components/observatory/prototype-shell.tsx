@@ -34,6 +34,7 @@ export type ObservatoryRoute =
   | '/decisions'
   | '/plugins'
   | '/admin/plugins'
+  | '/admin/applications'
   | '/admin/apps'
   | UseCaseRoute
 
@@ -88,7 +89,15 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
       ? caseT(`${item.useCaseId}.title`)
       : systemApplicationCopy(locale, item.id as 'decision-challenge' | 'decision-intake' | 'model-doctor').title
   const activeLabel =
-    activeRoute === '/admin/apps'
+    activeRoute === '/admin/applications'
+      ? (
+          {
+            en: 'Manage applications',
+            uk: 'Керування застосунками',
+            pl: 'Zarządzaj aplikacjami',
+          } as const
+        )[locale]
+      : activeRoute === '/admin/apps'
       ? (
           {
             en: 'Developer applications',
