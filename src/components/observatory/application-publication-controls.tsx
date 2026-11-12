@@ -43,7 +43,6 @@ export function ApplicationPublicationControls({
       window.location.reload()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Publication operation failed')
-      router.refresh()
     } finally {
       setPending(false)
     }
