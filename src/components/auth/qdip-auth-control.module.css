@@ -222,3 +222,29 @@
   opacity: 0.6;
   cursor: wait;
 }
+
+.profileLinks {
+  display: grid;
+  gap: 4px;
+}
+
+.profileLinks a {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: var(--ds-radius-action);
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  text-decoration: none;
+}
+
+.profileLinks a:hover {
+  color: var(--ds-accent);
+  background: var(--ds-hover);
+}
+
+.profileLinks a:focus-visible {
+  outline: 3px solid var(--ds-focus);
+  outline-offset: 2px;
+}
