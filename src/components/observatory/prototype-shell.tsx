@@ -106,24 +106,24 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
             } as const
           )[locale]
         : activeRoute === '/admin/plugins'
-        ? (
-            {
-              en: 'Plugin administration',
-              uk: 'Керування плагінами',
-              pl: 'Administracja wtyczkami',
-            } as const
-          )[locale]
-        : activeRoute === '/plugins'
           ? (
               {
-                en: 'Plugin catalog',
-                uk: 'Каталог плагінів',
-                pl: 'Katalog wtyczek',
+                en: 'Plugin administration',
+                uk: 'Керування плагінами',
+                pl: 'Administracja wtyczkami',
               } as const
             )[locale]
-          : activeItem
-            ? labelFor(activeItem)
-            : 'Observatory'
+          : activeRoute === '/plugins'
+            ? (
+                {
+                  en: 'Plugin catalog',
+                  uk: 'Каталог плагінів',
+                  pl: 'Katalog wtyczek',
+                } as const
+              )[locale]
+            : activeItem
+              ? labelFor(activeItem)
+              : 'Observatory'
 
   const nav = (
     <nav className={styles.navigation} aria-label={observatory('applications')}>
