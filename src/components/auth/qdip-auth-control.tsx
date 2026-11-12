@@ -28,6 +28,7 @@ type AuthSession = {
 const labels = {
   en: {
     applicationsKeys: 'Applications & keys',
+    manageApplications: 'Manage applications',
     managePlugins: 'Manage plugins',
     signIn: 'Sign in',
     signOut: 'Sign out',
@@ -41,6 +42,7 @@ const labels = {
   },
   uk: {
     applicationsKeys: 'Застосунки та ключі',
+    manageApplications: 'Керування застосунками',
     managePlugins: 'Керування плагінами',
     signIn: 'Увійти',
     signOut: 'Вийти',
@@ -54,6 +56,7 @@ const labels = {
   },
   pl: {
     applicationsKeys: 'Aplikacje i klucze',
+    manageApplications: 'Zarządzaj aplikacjami',
     managePlugins: 'Zarządzaj wtyczkami',
     signIn: 'Zaloguj się',
     signOut: 'Wyloguj się',
@@ -234,7 +237,10 @@ export function QdipAuthControl({
                 <nav className={styles.profileLinks} aria-label={copy.account}>
                   <a href={observatoryHref('/admin/apps', locale)}>{copy.applicationsKeys}</a>
                   {session.observatoryAdmin && (
-                    <a href={observatoryHref('/admin/plugins', locale)}>{copy.managePlugins}</a>
+                    <>
+                      <a href={observatoryHref('/admin/applications', locale)}>{copy.manageApplications}</a>
+                      <a href={observatoryHref('/admin/plugins', locale)}>{copy.managePlugins}</a>
+                    </>
                   )}
                 </nav>
                 <p className={styles.profileTitle}>{copy.roles}</p>
