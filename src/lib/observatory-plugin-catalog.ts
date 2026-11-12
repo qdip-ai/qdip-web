@@ -3,6 +3,7 @@ import 'server-only'
 import { QdipClient, type PluginCatalogEntry } from '@qdip/client'
 
 import { normalizeDipBaseUrl } from '@/lib/dip-url'
+import { readCoreApplications, type CoreApplicationPublication } from '@/lib/observatory-application-catalog'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
 export type CorePluginPublication = PluginCatalogEntry
@@ -44,9 +45,16 @@ export async function readCorePublications(): Promise<CorePluginPublication[]> {
   return coreCatalogClient().catalog.list()
 }
 
-export function visibleUseCases(records: readonly CorePluginPublication[]): string[] {
+export function visibleUseCases(
+  records: readonly CorePluginPublication[],
+  applications: readonly CoreApplicationPublication[] = []
+): string[] {
   const byName = new Map(records.map((item) => [item.name, item]))
   return DIP_USE_CASES.filter((item) => {
+    if (item.id === 'readiness-recovery') {
+      const publication = applications.find((app) => app.application_id === item.id)
+      return Boolean(publication && publication.status === 'published' && publication.admission.ready && publication.visible)
+    }
     const record = byName.get(item.plugin.id)
     if (!record) return LEGACY_PUBLIC.has(item.id)
     if (!record.enabled || !record.capabilities.includes(item.plugin.capability)) return false
@@ -61,7 +69,11 @@ export function visibleUseCases(records: readonly CorePluginPublication[]): stri
 
 export async function visiblePluginUseCaseIds(): Promise<string[]> {
   try {
-    return visibleUseCases(await readCorePublications())
+    const records = await readCorePublications()
+    // App publication is independent of the SDK plugin catalog. A failing
+    // admission or unavailable Core application API hides RR, not legacy apps.
+    const applications = await readCoreApplications(corePluginConnection()).catch(() => [])
+    return visibleUseCases(records, applications)
   } catch {
     // Existing browser fixtures intentionally run without Core; this explicit
     // Playwright-only override is set by playwright.config.ts, never by Web.
