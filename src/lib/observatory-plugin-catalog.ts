@@ -53,9 +53,7 @@ export function visibleUseCases(
   return DIP_USE_CASES.filter((item) => {
     if (item.id === 'readiness-recovery') {
       const publication = applications.find((app) => app.application_id === item.id)
-      return Boolean(
-        publication && publication.status === 'published' && publication.admission.ready && publication.visible
-      )
+      return Boolean(publication && publication.status === 'published' && publication.admission.ready && publication.visible)
     }
     const record = byName.get(item.plugin.id)
     if (!record) return LEGACY_PUBLIC.has(item.id)
@@ -79,13 +77,14 @@ export async function visiblePluginUseCaseIds(): Promise<string[]> {
   const rrIds = visibleUseCases([], appRecords).filter((id) => id === 'readiness-recovery')
   if (plugins.status === 'rejected') {
     // Only the existing Playwright harness may display legacy mock cards.
-    const fallback =
-      process.env.QDIP_PLAYWRIGHT_LEGACY_CATALOG === '1'
-        ? visibleUseCases([]).filter((id) => id !== 'readiness-recovery')
-        : []
+    const fallback = process.env.QDIP_PLAYWRIGHT_LEGACY_CATALOG === '1'
+      ? visibleUseCases([]).filter((id) => id !== 'readiness-recovery') : []
     return [...fallback, ...rrIds]
   }
-  return [...visibleUseCases(plugins.value).filter((id) => id !== 'readiness-recovery'), ...rrIds]
+  return [
+    ...visibleUseCases(plugins.value).filter((id) => id !== 'readiness-recovery'),
+    ...rrIds,
+  ]
 }
 
 /** Public-facing catalog entries are server-derived and expose no infrastructure keys. */
