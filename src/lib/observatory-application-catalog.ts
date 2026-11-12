@@ -19,7 +19,9 @@ export type CoreApplicationPublication = {
   visible: boolean
 }
 
-export async function readCoreApplications(connection: { base: string; key: string }): Promise<CoreApplicationPublication[]> {
+export async function readCoreApplications(
+  connection: { base: string; key: string }
+): Promise<CoreApplicationPublication[]> {
   const { base, key } = connection
   const response = await fetch(`${base}/api/v1/applications`, {
     headers: { 'x-api-key': key, accept: 'application/json' },
