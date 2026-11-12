@@ -98,14 +98,14 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
           } as const
         )[locale]
       : activeRoute === '/admin/apps'
-      ? (
-          {
-            en: 'Developer applications',
-            uk: 'Застосунки та ключі',
-            pl: 'Aplikacje i klucze',
-          } as const
-        )[locale]
-      : activeRoute === '/admin/plugins'
+        ? (
+            {
+              en: 'Developer applications',
+              uk: 'Застосунки та ключі',
+              pl: 'Aplikacje i klucze',
+            } as const
+          )[locale]
+        : activeRoute === '/admin/plugins'
         ? (
             {
               en: 'Plugin administration',
