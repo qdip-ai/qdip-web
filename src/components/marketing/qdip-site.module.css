@@ -799,10 +799,10 @@
   display: block;
   max-width: 100%;
   height: auto;
-  filter: brightness(0) invert(1);
+  content: url('/brands/dzvin-wordmark-dark.png');
 }
 .site:global([data-marketing-appearance='light']) .ecosystemBrand img {
-  filter: none;
+  content: normal;
 }
 .ecosystemCategory {
   color: var(--accent);

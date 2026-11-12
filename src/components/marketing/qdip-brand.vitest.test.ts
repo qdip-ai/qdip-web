@@ -48,7 +48,9 @@ describe('QDIP ecosystem showcase', () => {
     expect(homepage).toContain('<h3 className={styles.ecosystemBrand}>')
     expect(homepage).toContain('<span className={styles.ecosystemCategory}>')
     expect(homepage).toContain('width={144} height={34}')
-    expect(marketingStyles).toMatch(/\.ecosystemBrand img\s*\{[^}]*filter:\s*brightness\(0\) invert\(1\)/)
-    expect(marketingStyles).toMatch(/data-marketing-appearance='light'[^}]*filter:\s*none/)
+    expect(marketingStyles).toMatch(
+      /\.ecosystemBrand img\s*\{[^}]*content:\s*url\('\/brands\/dzvin-wordmark-dark\.png'\)/
+    )
+    expect(marketingStyles).toMatch(/data-marketing-appearance='light'[^}]*content:\s*normal/)
   })
 })
