@@ -14,12 +14,9 @@ export function ApplicationPublicationControls({
   const [error, setError] = useState('')
   const canPublish = application.status !== 'published' && application.admission.ready
   const canUnpublish = application.status === 'published'
-  const label =
-    locale === 'uk'
-      ? { publish: 'Опублікувати', unpublish: 'Зняти з публікації', busy: 'Збереження…' }
-      : locale === 'pl'
-        ? { publish: 'Opublikuj', unpublish: 'Cofnij publikację', busy: 'Zapisywanie…' }
-        : { publish: 'Publish', unpublish: 'Unpublish', busy: 'Saving…' }
+  const label = locale === 'uk' ? { publish: 'Опублікувати', unpublish: 'Зняти з публікації', busy: 'Збереження…' }
+    : locale === 'pl' ? { publish: 'Opublikuj', unpublish: 'Cofnij publikację', busy: 'Zapisywanie…' }
+      : { publish: 'Publish', unpublish: 'Unpublish', busy: 'Saving…' }
 
   async function change(action: 'publish' | 'unpublish') {
     if (pending) return
@@ -51,27 +48,17 @@ export function ApplicationPublicationControls({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2" aria-busy={pending}>
-      <button
-        type="button"
-        disabled={!canPublish || pending}
+      <button type="button" disabled={!canPublish || pending}
         className="rounded border border-current px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-        onClick={() => void change('publish')}
-      >
+        onClick={() => void change('publish')}>
         {pending ? label.busy : label.publish}
       </button>
-      <button
-        type="button"
-        disabled={!canUnpublish || pending}
+      <button type="button" disabled={!canUnpublish || pending}
         className="rounded border border-current px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-        onClick={() => void change('unpublish')}
-      >
+        onClick={() => void change('unpublish')}>
         {label.unpublish}
       </button>
-      {error && (
-        <span role="alert" className="text-sm text-red-400">
-          {error}
-        </span>
-      )}
+      {error && <span role="alert" className="text-sm text-red-400">{error}</span>}
     </span>
   )
 }
