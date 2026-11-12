@@ -19,9 +19,10 @@ export type CoreApplicationPublication = {
   visible: boolean
 }
 
-export async function readCoreApplications(
-  connection: { base: string; key: string }
-): Promise<CoreApplicationPublication[]> {
+export async function readCoreApplications(connection: {
+  base: string
+  key: string
+}): Promise<CoreApplicationPublication[]> {
   const { base, key } = connection
   const response = await fetch(`${base}/api/v1/applications`, {
     headers: { 'x-api-key': key, accept: 'application/json' },
@@ -35,16 +36,26 @@ export async function readCoreApplications(
     throw new Error('Invalid application catalog response')
   return result.items.map((item: unknown) => {
     if (
-      !item || typeof item !== 'object' ||
-      !('application_id' in item) || typeof item.application_id !== 'string' ||
-      !('status' in item) || !['draft', 'published', 'unpublished'].includes(item.status as string) ||
-      !('visible' in item) || typeof item.visible !== 'boolean' ||
-      !('revision' in item) || !Number.isSafeInteger(item.revision) ||
-      !('admission' in item) || !item.admission || typeof item.admission !== 'object' ||
-      !('ready' in item.admission) || typeof item.admission.ready !== 'boolean' ||
-      !('reasons' in item.admission) || !Array.isArray(item.admission.reasons) ||
+      !item ||
+      typeof item !== 'object' ||
+      !('application_id' in item) ||
+      typeof item.application_id !== 'string' ||
+      !('status' in item) ||
+      !['draft', 'published', 'unpublished'].includes(item.status as string) ||
+      !('visible' in item) ||
+      typeof item.visible !== 'boolean' ||
+      !('revision' in item) ||
+      !Number.isSafeInteger(item.revision) ||
+      !('admission' in item) ||
+      !item.admission ||
+      typeof item.admission !== 'object' ||
+      !('ready' in item.admission) ||
+      typeof item.admission.ready !== 'boolean' ||
+      !('reasons' in item.admission) ||
+      !Array.isArray(item.admission.reasons) ||
       !item.admission.reasons.every((reason: unknown) => typeof reason === 'string')
-    ) throw new Error('Invalid application publication record')
+    )
+      throw new Error('Invalid application publication record')
     return item as CoreApplicationPublication
   })
 }
