@@ -34,6 +34,7 @@ export type ObservatoryRoute =
   | '/decisions'
   | '/plugins'
   | '/admin/plugins'
+  | '/admin/applications'
   | '/admin/apps'
   | UseCaseRoute
 
@@ -88,33 +89,41 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
       ? caseT(`${item.useCaseId}.title`)
       : systemApplicationCopy(locale, item.id as 'decision-challenge' | 'decision-intake' | 'model-doctor').title
   const activeLabel =
-    activeRoute === '/admin/apps'
+    activeRoute === '/admin/applications'
       ? (
           {
-            en: 'Developer applications',
-            uk: 'Застосунки та ключі',
-            pl: 'Aplikacje i klucze',
+            en: 'Manage applications',
+            uk: 'Керування застосунками',
+            pl: 'Zarządzaj aplikacjami',
           } as const
         )[locale]
-      : activeRoute === '/admin/plugins'
+      : activeRoute === '/admin/apps'
         ? (
             {
-              en: 'Plugin administration',
-              uk: 'Керування плагінами',
-              pl: 'Administracja wtyczkami',
+              en: 'Developer applications',
+              uk: 'Застосунки та ключі',
+              pl: 'Aplikacje i klucze',
             } as const
           )[locale]
-        : activeRoute === '/plugins'
+        : activeRoute === '/admin/plugins'
           ? (
               {
-                en: 'Plugin catalog',
-                uk: 'Каталог плагінів',
-                pl: 'Katalog wtyczek',
+                en: 'Plugin administration',
+                uk: 'Керування плагінами',
+                pl: 'Administracja wtyczkami',
               } as const
             )[locale]
-          : activeItem
-            ? labelFor(activeItem)
-            : 'Observatory'
+          : activeRoute === '/plugins'
+            ? (
+                {
+                  en: 'Plugin catalog',
+                  uk: 'Каталог плагінів',
+                  pl: 'Katalog wtyczek',
+                } as const
+              )[locale]
+            : activeItem
+              ? labelFor(activeItem)
+              : 'Observatory'
 
   const nav = (
     <nav className={styles.navigation} aria-label={observatory('applications')}>
