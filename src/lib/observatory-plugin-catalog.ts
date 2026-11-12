@@ -68,21 +68,23 @@ export function visibleUseCases(
 }
 
 export async function visiblePluginUseCaseIds(): Promise<string[]> {
-  try {
-    const records = await readCorePublications()
-    // App publication is independent of the SDK plugin catalog. A failing
-    // admission or unavailable Core application API hides RR, not legacy apps.
-    const applications = await readCoreApplications(corePluginConnection()).catch(() => [])
-    return visibleUseCases(records, applications)
-  } catch {
-    // Existing browser fixtures intentionally run without Core; this explicit
-    // Playwright-only override is set by playwright.config.ts, never by Web.
-    // Production fails closed if Core cannot verify publication status.
-    if (process.env.QDIP_PLAYWRIGHT_LEGACY_CATALOG === '1') {
-      return visibleUseCases([])
-    }
-    return []
+  const [plugins, applications] = await Promise.allSettled([
+    readCorePublications(),
+    readCoreApplications(corePluginConnection()),
+  ])
+  // A failure of one independent catalog cannot silently authorize the other.
+  const appRecords = applications.status === 'fulfilled' ? applications.value : []
+  const rrIds = visibleUseCases([], appRecords).filter((id) => id === 'readiness-recovery')
+  if (plugins.status === 'rejected') {
+    // Only the existing Playwright harness may display legacy mock cards.
+    const fallback = process.env.QDIP_PLAYWRIGHT_LEGACY_CATALOG === '1'
+      ? visibleUseCases([]).filter((id) => id !== 'readiness-recovery') : []
+    return [...fallback, ...rrIds]
   }
+  return [
+    ...visibleUseCases(plugins.value).filter((id) => id !== 'readiness-recovery'),
+    ...rrIds,
+  ]
 }
 
 /** Public-facing catalog entries are server-derived and expose no infrastructure keys. */
