@@ -80,19 +80,22 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
         <ul>
           {DIP_USE_CASES.map((app) => {
             const plugin = byName.get(app.plugin.id)
-            const status = !records
-              ? labels.unavailable
-              : !plugin
-                ? labels.missing
-                : !plugin.enabled
-                  ? labels.disabled
-                  : !plugin.capabilities.includes(app.plugin.capability) || plugin.capability_id !== app.plugin.capability
-                    ? labels.mismatch
-                    : plugin.published !== true
-                      ? labels.unpublished
-                      : plugin.published_version !== plugin.version
-                        ? labels.version
-                        : labels.available
+            let status = labels.available
+            if (!records) {
+              status = labels.unavailable
+            } else if (!plugin) {
+              status = labels.missing
+            } else if (!plugin.enabled) {
+              status = labels.disabled
+            } else if (!plugin.capabilities.includes(app.plugin.capability)) {
+              status = labels.mismatch
+            } else if (plugin.capability_id !== app.plugin.capability) {
+              status = labels.mismatch
+            } else if (plugin.published !== true) {
+              status = labels.unpublished
+            } else if (plugin.published_version !== plugin.version) {
+              status = labels.version
+            }
             return (
               <li key={app.id}>
                 <strong>{app.id}</strong> — {status}
