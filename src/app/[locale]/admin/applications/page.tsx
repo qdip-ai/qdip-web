@@ -47,7 +47,8 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
     },
     en: {
       title: 'Manage applications',
-      description: 'Application availability diagnostics. Publishing an SDK plugin does not automatically publish an application.',
+      description:
+        'Application availability diagnostics. Publishing an SDK plugin does not automatically publish an application.',
       unavailable: 'Core status unavailable',
       missing: 'Plugin not registered',
       disabled: 'Plugin disabled',
