@@ -26,17 +26,9 @@ beforeEach(() => {
   vi.resetAllMocks()
   state.authenticated = true
   state.admin = true
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue(
-      Response.json({
-        application_id: id,
-        status: 'published',
-        revision: 2,
-        visible: true,
-      })
-    )
-  )
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+    application_id: id, status: 'published', revision: 2, visible: true,
+  })))
 })
 
 describe('independent admin application lifecycle proxy', () => {
@@ -55,13 +47,10 @@ describe('independent admin application lifecycle proxy', () => {
     expect((await POST(request({ expected_revision: 1 }), context('publish', 'untrusted'))).status).toBe(404)
     expect((await POST(request({ expected_revision: 1 }), context('reset'))).status).toBe(404)
     for (const payload of [
-      { expected_revision: -1 },
-      { expected_revision: 1.5 },
-      { expected_revision: '1' },
-      { expected_revision: 0, arbitrary: true },
+      { expected_revision: -1 }, { expected_revision: 1.5 },
+      { expected_revision: '1' }, { expected_revision: 0, arbitrary: true },
       {},
-    ])
-      expect((await POST(request(payload), context())).status).toBe(422)
+    ]) expect((await POST(request(payload), context())).status).toBe(422)
     expect(fetch).not.toHaveBeenCalled()
   })
 
@@ -72,47 +61,30 @@ describe('independent admin application lifecycle proxy', () => {
     expect(url).toBe('https://core.qdip.test/api/v1/applications/readiness-recovery/publish')
     expect(init?.redirect).toBe('error')
     expect(init?.cache).toBe('no-store')
-    expect(init?.headers).toEqual(
-      expect.objectContaining({
-        'x-api-key': 'server-only-admin-key',
-        'x-qdip-actor': 'verified-admin',
-      })
-    )
+    expect(init?.headers).toEqual(expect.objectContaining({
+      'x-api-key': 'server-only-admin-key', 'x-qdip-actor': 'verified-admin',
+    }))
     expect(init?.body).toBe(JSON.stringify({ expected_revision: 1 }))
   })
 
   it('does not report success on runtime admission denial or malformed Core response', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      Response.json(
-        {
-          detail: { code: 'runtime_admission_denied', reasons: ['RR_SCHEDULING_WORKER_UNAVAILABLE'] },
-        },
-        { status: 409 }
-      )
-    )
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({
+      detail: { code: 'runtime_admission_denied', reasons: ['RR_SCHEDULING_WORKER_UNAVAILABLE'] },
+    }, { status: 409 }))
     const denied = await POST(request({ expected_revision: 1 }), context())
     expect(denied.status).toBe(409)
     expect((await denied.json()).reasons).toEqual(['RR_SCHEDULING_WORKER_UNAVAILABLE'])
 
-    vi.mocked(fetch).mockResolvedValueOnce(
-      Response.json({
-        application_id: id,
-        status: 'draft',
-        revision: 2,
-      })
-    )
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({
+      application_id: id, status: 'draft', revision: 2,
+    }))
     expect((await POST(request({ expected_revision: 1 }), context())).status).toBe(502)
   })
 
   it('unpublish returns only a verified status transition', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      Response.json({
-        application_id: id,
-        status: 'unpublished',
-        revision: 3,
-        visible: false,
-      })
-    )
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({
+      application_id: id, status: 'unpublished', revision: 3, visible: false,
+    }))
     expect((await POST(request({ expected_revision: 2 }), context('unpublish'))).status).toBe(200)
   })
 })
