@@ -34,7 +34,7 @@ export default defineConfig({
         ZITADEL_CLIENT_ID: oidcTestConfig.clientId,
         ZITADEL_QDIP_PROJECT_ID: oidcTestConfig.projectId,
         ZITADEL_QDIP_ORGANIZATION_ID: oidcTestConfig.organizationId,
-          QDIP_AUTH_COOKIE_SECRET: oidcTestConfig.signingSecret,
+        QDIP_AUTH_COOKIE_SECRET: oidcTestConfig.signingSecret,
       },
       url: 'http://127.0.0.1:3000',
       reuseExistingServer: !process.env.CI,
