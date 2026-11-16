@@ -2,7 +2,12 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { PrototypeShell } from '@/features/observatory'
-import { buildLocalePath, isSupportedLocale, SUPPORTED_LOCALES, type Locale } from '@/lib/observatory-i18n'
+import {
+  buildLocalePath,
+  isSupportedLocale,
+  SUPPORTED_LOCALES,
+  type Locale,
+} from '@/lib/observatory-i18n'
 
 const copy = {
   uk: {
@@ -173,7 +178,9 @@ const callerExample = [
 
 function CodeSample({ children }: { children: string }) {
   return (
-    <pre className="mt-4 overflow-x-auto rounded-xl border border-white/15 bg-slate-950/80 p-4 text-sm leading-6 text-slate-100">
+    <pre
+      className="mt-4 overflow-x-auto rounded-xl border border-white/15 bg-slate-950/80 p-4 text-sm leading-6 text-slate-100"
+    >
       <code>{children}</code>
     </pre>
   )
@@ -186,7 +193,10 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params
   if (!isSupportedLocale(locale)) return {}
-  return { title: copy[locale].title + ' — QDIP Observatory', description: copy[locale].lead }
+  return {
+    title: copy[locale].title + ' — QDIP Observatory',
+    description: copy[locale].lead,
+  }
 }
 
 export default async function DeveloperGuidePage({ params }: { params: Promise<{ locale: string }> }) {
@@ -250,7 +260,9 @@ export default async function DeveloperGuidePage({ params }: { params: Promise<{
           <a
             href={buildLocalePath('/plugins', locale)}
             className="mt-5 inline-flex min-h-11 items-center rounded-lg border border-cyan-400/40 px-4 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/10"
-          >{t.catalog}</a>
+          >
+            {t.catalog}
+          </a>
         </section>
 
         <section className={section} aria-labelledby="sdk-errors">
