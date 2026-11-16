@@ -13,6 +13,20 @@ export function allowedKernelPath(path: string[], method: string) {
     if (path.length === 4 && path[1] === 'advice' && path[3] === 'integrity') return method === 'GET'
     return false
   }
+  if (path[0] === 'forecasts') {
+    // RR Future Engine (mode B) on the standalone RR API; sealed artifacts only.
+    const [, kind, id, action] = path
+    if (path.length === 2) return method === 'POST' && ['parts', 'decisions', 'portfolio'].includes(kind)
+    if (path.length === 3)
+      return method === 'GET' && ['parts', 'decisions', 'portfolio', 'purchase-order-reviews'].includes(kind) && !!id
+    if (path.length === 4 && kind === 'portfolio')
+      return (
+        (action === 'purchase-order-drafts' && method === 'GET') ||
+        (action === 'purchase-order-reviews' && method === 'POST')
+      )
+    if (path.length === 4 && kind === 'purchase-order-reviews') return action === 'export.csv' && method === 'GET'
+    return false
+  }
   if (path[0] === 'source-import') {
     if (path.length === 2 && ['preflight', 'executions'].includes(path[1])) return method === 'POST'
     if (path.length === 4 && path[1] === 'executions' && path[3] === 'replan') return method === 'POST'

@@ -3,7 +3,7 @@ import 'server-only'
 import { createHash, createHmac, createPublicKey, randomBytes, timingSafeEqual, verify } from 'node:crypto'
 import type { JsonWebKey as NodeJsonWebKey } from 'node:crypto'
 import type { NextRequest, NextResponse } from 'next/server'
-import { rrCoreApiKey } from '@/lib/rr-core-credential'
+import { rrOrgApiKey } from '@/lib/rr-org-credential'
 import { PLATFORM_ORIGINS } from '@/routing-config'
 
 type Role = 'studio' | 'rr_operator' | 'observatory_admin'
@@ -93,12 +93,9 @@ export function oidcConfigured() {
 }
 
 export function operatorConfigured() {
-  const standalone = process.env.RR_STANDALONE_ENABLED === '1'
-  const backendConfigured = standalone
-    ? process.env.RR_STANDALONE_API_BASE_URL?.trim() &&
-      process.env.RR_ORG_API_KEY?.trim() &&
-      process.env.RR_ORGANIZATION_ID?.trim()
-    : (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL) && rrCoreApiKey()
+  // RR runs only on the standalone qdip-rr API; there is no Core RR backend.
+  const backendConfigured =
+    process.env.RR_STANDALONE_API_BASE_URL?.trim() && rrOrgApiKey() && process.env.RR_ORGANIZATION_ID?.trim()
 
   return Boolean(oidcConfigured() && backendConfigured && (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32)
 }
@@ -178,7 +175,7 @@ function unseal<T>(signed: string | undefined, purpose: string): T | null {
 
 /** Isolated Railway RR QA must complete OIDC on its own host. Production uses the canonical site. */
 export function authOrigin() {
-  if (process.env.RR_STANDALONE_ENABLED !== '1' || process.env.RAILWAY_ENVIRONMENT_NAME !== 'qa') {
+  if (!process.env.RR_STANDALONE_API_BASE_URL?.trim() || process.env.RAILWAY_ENVIRONMENT_NAME !== 'qa') {
     return PLATFORM_ORIGINS.site
   }
   const configured = process.env.NEXT_PUBLIC_OBSERVATORY_URL ?? ''

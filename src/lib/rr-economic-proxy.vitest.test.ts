@@ -12,7 +12,7 @@ vi.mock('@/lib/rr-actor-assertion', () => ({
   signedRrActorFromRequest: vi.fn(() => 'signed-actor'),
 }))
 
-import { POST } from '@/app/api/rr-operator/kernel/[...path]/route'
+import { GET, POST } from '@/app/api/rr-operator/kernel/[...path]/route'
 import { signedRrActorFromRequest } from '@/lib/rr-actor-assertion'
 import { operatorAuthorized, sameOrigin } from '@/lib/rr-operator-auth'
 
@@ -32,11 +32,11 @@ function fakeRequest(): NextRequest {
 }
 
 beforeEach(() => {
+  // Core has no RR routes: a configured Core URL/key must never be used.
   vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
-  vi.stubEnv('DIP_API_KEY', 'test-organization-scoped-key')
-  vi.stubEnv('RR_ORG_API_KEY', '')
-  vi.stubEnv('RR_STANDALONE_ENABLED', '')
-  vi.stubEnv('RR_STANDALONE_API_BASE_URL', '')
+  vi.stubEnv('DIP_API_KEY', 'platform-key-never-used-for-rr')
+  vi.stubEnv('RR_ORG_API_KEY', 'test-organization-scoped-key')
+  vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
   vi.stubEnv('RR_ORGANIZATION_ID', '')
   vi.mocked(operatorAuthorized).mockReturnValue(true)
   vi.mocked(sameOrigin).mockReturnValue(true)
@@ -46,7 +46,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
+describe('RR operator Web-to-standalone-RR proxy boundary', () => {
   it('forwards exactly the compiler-only path with server API key and no actor execution', async () => {
     const calls: { url: string; init: RequestInit }[] = []
     vi.stubGlobal(
@@ -66,7 +66,7 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     const response = await POST(fakeRequest(), params(['economic-v2', 'preflight']))
     expect(response.status).toBe(200)
     expect(calls).toHaveLength(1)
-    expect(calls[0].url).toBe('https://core.example.test/api/v1/readiness-recovery/economic-v2/preflight')
+    expect(calls[0].url).toBe('https://rr.example.test/api/v1/readiness-recovery/economic-v2/preflight')
     expect(calls[0].init.method).toBe('POST')
     expect(calls[0].init.body).toBe(input)
     const headers = calls[0].init.headers as Record<string, string>
@@ -76,7 +76,7 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect(response.headers.get('cache-control')).toBe('no-store')
   })
 
-  it('uses RR_ORG_API_KEY instead of the shared platform key for Core requests', async () => {
+  it('uses RR_ORG_API_KEY instead of the shared platform key', async () => {
     vi.stubEnv('RR_ORG_API_KEY', 'dedicated-rr-organization-key')
     vi.stubEnv('DIP_API_KEY', 'platform-admin-key-must-not-be-used-for-rr')
     const fetcher = vi.fn(async (url: string, init: RequestInit) => {
@@ -123,8 +123,8 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect(fetcher).not.toHaveBeenCalled()
   })
 
-  it('routes to standalone RR only when enabled and refuses the platform credential', async () => {
-    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
+  it('routes only to standalone RR and refuses the platform credential', async () => {
+    vi.stubEnv('RR_ORG_API_KEY', '')
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
     vi.stubEnv('DIP_API_KEY', 'platform-secret-not-valid-for-standalone')
@@ -151,7 +151,6 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     expect((init.headers as Record<string, string>)['x-api-key']).not.toBe('platform-secret-not-valid-for-standalone')
   })
   it('adds stable idempotency for standalone scheduling', async () => {
-    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('RR_ORG_API_KEY', 'rr-only-key')
     vi.stubEnv('RR_ORGANIZATION_ID', 'core-rr-organization')
@@ -184,13 +183,13 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
       idempotencyKey: headers[0]['idempotency-key'],
     })
 
-    vi.stubEnv('RR_STANDALONE_ENABLED', '')
-    expect((await POST(fakeRequest(), params(scheduling))).status).toBe(201)
-    expect((calls[4].headers as Record<string, string>)['idempotency-key']).toBeUndefined()
+    // No Core fallback: without the standalone base URL nothing is forwarded.
+    vi.stubEnv('RR_STANDALONE_API_BASE_URL', '')
+    expect((await POST(fakeRequest(), params(scheduling))).status).toBe(503)
+    expect(calls).toHaveLength(4)
   })
 
   it('fails closed before execution when the standalone organization binding is absent', async () => {
-    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('RR_ORG_API_KEY', 'rr-only-key')
     const fetcher = vi.fn()
@@ -201,7 +200,6 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
   })
 
   it('forwards scenario advice with the same tenant-scoped actor proof and blocks unknown paths', async () => {
-    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr.example.test')
     vi.stubEnv('RR_ORG_API_KEY', 'rr-scoped-only')
     vi.stubEnv('RR_ORGANIZATION_ID', 'rr-test-org')
@@ -239,5 +237,59 @@ describe('RR-ECON-v2 Web-to-Core proxy integration boundary', () => {
     vi.mocked(operatorAuthorized).mockReturnValue(true)
     vi.mocked(sameOrigin).mockReturnValue(false)
     expect((await POST(fakeRequest(), params(path))).status).toBe(403)
+  })
+})
+
+describe('RR Future Engine (mode B) proxy surface', () => {
+  it('signs FE writes, forwards sealed reads, CSV and Gateway execution id', async () => {
+    vi.stubEnv('RR_ORGANIZATION_ID', 'rr-organization')
+    const calls: { url: string; init: RequestInit }[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init: RequestInit) => {
+        calls.push({ url, init })
+        if (url.endsWith('/export.csv'))
+          return new Response('\uFEFFNOTICE,MANUAL\n', {
+            status: 200,
+            headers: {
+              'Content-Type': 'text/csv; charset=utf-8',
+              'Content-Disposition': 'attachment; filename="rr-po-po-review-abc.csv"',
+            },
+          })
+        return new Response('{}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json', 'X-QDIP-Gateway-Execution-Id': 'abc123' },
+        })
+      })
+    )
+    const created = await POST(fakeRequest(), params(['forecasts', 'parts']))
+    expect(created.status).toBe(200)
+    expect(created.headers.get('x-qdip-gateway-execution-id')).toBe('abc123')
+    expect(calls[0].url).toBe('https://rr.example.test/api/v1/readiness-recovery/forecasts/parts')
+    const headers = calls[0].init.headers as Record<string, string>
+    expect(headers['x-qdip-actor-assertion']).toBe('signed-actor')
+    expect(headers['idempotency-key']).toMatch(/^[0-9a-f]{64}$/)
+    expect(signedRrActorFromRequest).toHaveBeenCalledWith(expect.anything(), 'execute', expect.objectContaining({
+      path: '/api/v1/readiness-recovery/forecasts/parts',
+    }))
+    const csvRequest = { ...fakeRequest(), method: 'GET', text: async () => '' } as unknown as NextRequest
+    const csv = await GET(csvRequest, params(['forecasts', 'purchase-order-reviews', 'po-review-abc', 'export.csv']))
+    expect(csv.status).toBe(200)
+    expect(csv.headers.get('content-type')).toBe('text/csv; charset=utf-8')
+    expect(csv.headers.get('content-disposition')).toBe('attachment; filename="rr-po-po-review-abc.csv"')
+  })
+
+  it('denies FE routes outside the strict allowlist without upstream calls', async () => {
+    const fetcher = vi.fn()
+    vi.stubGlobal('fetch', fetcher)
+    for (const path of [
+      ['forecasts', 'economic'],
+      ['forecasts', 'parts', 'x', 'delete'],
+      ['forecasts', 'portfolio', 'p', 'purchase-order-drafts'],
+      ['forecasts', 'artifacts', 'readiness-recovery.part-demand', 'x'],
+    ]) {
+      expect((await POST(fakeRequest(), params(path))).status).toBe(404)
+    }
+    expect(fetcher).not.toHaveBeenCalled()
   })
 })

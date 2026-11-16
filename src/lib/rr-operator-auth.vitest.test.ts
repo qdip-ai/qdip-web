@@ -13,9 +13,12 @@ beforeEach(() => {
   vi.stubEnv('QDIP_AUTH_COOKIE_SECRET', 'a-strong-and-independent-oidc-cookie-signing-secret')
   vi.stubEnv('ZITADEL_QDIP_PROJECT_ID', '123456789')
   vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', '987654321')
+  // Standalone qdip-rr API is the only RR backend; no Core URL or key is used.
   vi.stubEnv('DIP_API_BASE_URL', 'http://127.0.0.1:8000')
-  vi.stubEnv('DIP_API_KEY', 'test-org-scoped-key')
-  vi.stubEnv('RR_ORG_API_KEY', '')
+  vi.stubEnv('DIP_API_KEY', 'shared-platform-key-never-used-for-rr')
+  vi.stubEnv('RR_STANDALONE_API_BASE_URL', 'https://rr-qa.example.test')
+  vi.stubEnv('RR_ORG_API_KEY', 'dedicated-single-org-rr-key')
+  vi.stubEnv('RR_ORGANIZATION_ID', '987654321')
   vi.stubEnv('RR_ACTOR_ASSERTION_SECRET', 'this-is-an-independent-core-rr-actor-signing-secret')
 })
 
@@ -30,18 +33,17 @@ describe('Zitadel-backed RR session boundary', () => {
     expect(operatorConfigured()).toBe(false)
   })
 
-  it('accepts dedicated RR credential without requiring the platform Core key', () => {
+  it('accepts dedicated RR credential and never falls back to the platform key', () => {
     vi.stubEnv('DIP_API_KEY', '')
-    vi.stubEnv('RR_ORG_API_KEY', 'dedicated-single-org-rr-key')
     expect(operatorConfigured()).toBe(true)
     vi.stubEnv('RR_ORG_API_KEY', '')
+    vi.stubEnv('DIP_API_KEY', 'shared-platform-key')
     expect(operatorConfigured()).toBe(false)
   })
 
   it('pins isolated Railway QA Zitadel callback to its own HTTPS host and rejects other origins', () => {
     const qaOrigin = 'https://rr-standalone-web-qa-qa.up.railway.app'
     vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'qa')
-    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('NEXT_PUBLIC_OBSERVATORY_URL', qaOrigin)
     expect(authOrigin()).toBe(qaOrigin)
     const qaRequest = {
@@ -72,7 +74,6 @@ describe('Zitadel-backed RR session boundary', () => {
   })
 
   it('uses standalone RR binding without requiring any legacy Core URL or key', () => {
-    vi.stubEnv('RR_STANDALONE_ENABLED', '1')
     vi.stubEnv('DIP_API_BASE_URL', '')
     vi.stubEnv('DIP_URL', '')
     vi.stubEnv('DIP_API_KEY', '')
@@ -95,6 +96,7 @@ describe('Zitadel-backed RR session boundary', () => {
 
   it('requires the dedicated RR credential in Vercel production before enabling the operator', () => {
     vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('RR_ORG_API_KEY', '')
     expect(operatorConfigured()).toBe(false)
     vi.stubEnv('RR_ORG_API_KEY', 'dedicated-single-org-rr-key')
     expect(operatorConfigured()).toBe(true)

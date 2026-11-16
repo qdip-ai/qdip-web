@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { normalizeDipBaseUrl } from '@/lib/dip-url'
 import { allowedKernelPath } from '@/lib/rr-kernel-route-allowlist'
 import { signedRrActorFromRequest } from '@/lib/rr-actor-assertion'
-import { rrCoreApiKey } from '@/lib/rr-core-credential'
+import { rrOrgApiKey } from '@/lib/rr-org-credential'
 import { operatorAuthorized, operatorConfigured, safeTransport, sameOrigin } from '@/lib/rr-operator-auth'
 
 export const runtime = 'nodejs'
@@ -24,22 +24,20 @@ async function handle(request: NextRequest, context: Context) {
   const { path } = await context.params
   if (!allowedKernelPath(path, request.method)) return json('Unsupported RR operation', 404)
 
-  const standalone = process.env.RR_STANDALONE_ENABLED === '1'
-  const base = normalizeDipBaseUrl(
-    standalone ? process.env.RR_STANDALONE_API_BASE_URL : (process.env.DIP_API_BASE_URL ?? process.env.DIP_URL)
-  )
-  const key = standalone ? (process.env.RR_ORG_API_KEY?.trim() ?? '') : rrCoreApiKey()
-  if (!base || !key) return json('DIP connection is not configured', 503)
+  // Standalone qdip-rr API only. Core no longer serves any RR route: no fallback.
+  const base = normalizeDipBaseUrl(process.env.RR_STANDALONE_API_BASE_URL)
+  const key = rrOrgApiKey()
+  if (!base || !key) return json('RR connection is not configured', 503)
   const upstreamBase = new URL(base)
   if (
     upstreamBase.protocol !== 'https:' &&
     !(
       upstreamBase.protocol === 'http:' &&
       (['localhost', '127.0.0.1'].includes(upstreamBase.hostname) ||
-        (standalone && upstreamBase.hostname.endsWith('.railway.internal')))
+        upstreamBase.hostname.endsWith('.railway.internal'))
     )
   )
-    return json('DIP backend requires TLS', 503)
+    return json('RR backend requires TLS', 503)
 
   let body: string | undefined
   if (request.method === 'POST') {
@@ -63,9 +61,11 @@ async function handle(request: NextRequest, context: Context) {
               : 'replan'
             : path[0] === 'economic-v2' && ['snapshots', 'advice', 'scenario-advice'].includes(path[1])
               ? 'execute'
-              : null
+              : path[0] === 'forecasts'
+                ? 'execute'
+                : null
     const headers: Record<string, string> = { 'Content-Type': 'application/json', 'x-api-key': key }
-    if (standalone && actorOperation) {
+    if (actorOperation) {
       // Stable across network retries; scoped by backend tenant and unique route+body.
       headers['idempotency-key'] = createHash('sha256')
         .update(path.join('/'))
@@ -74,20 +74,16 @@ async function handle(request: NextRequest, context: Context) {
         .digest('hex')
     }
     if (actorOperation) {
-      if (standalone) {
-        const organizationId = process.env.RR_ORGANIZATION_ID?.trim() ?? ''
-        if (!/^[A-Za-z0-9_.-]{1,128}$/.test(organizationId))
-          return json('RR organization binding is not configured', 503)
-        headers['x-qdip-actor-assertion'] = signedRrActorFromRequest(request, actorOperation, {
-          organizationId,
-          method: request.method,
-          path: `/api/v1/readiness-recovery/${path.join('/')}${request.nextUrl.search}`,
-          body: body ?? '',
-          idempotencyKey: headers['idempotency-key'],
-        })
-      } else {
-        headers['x-qdip-actor-assertion'] = signedRrActorFromRequest(request, actorOperation)
-      }
+      const organizationId = process.env.RR_ORGANIZATION_ID?.trim() ?? ''
+      if (!/^[A-Za-z0-9_.-]{1,128}$/.test(organizationId))
+        return json('RR organization binding is not configured', 503)
+      headers['x-qdip-actor-assertion'] = signedRrActorFromRequest(request, actorOperation, {
+        organizationId,
+        method: request.method,
+        path: `/api/v1/readiness-recovery/${path.join('/')}${request.nextUrl.search}`,
+        body: body ?? '',
+        idempotencyKey: headers['idempotency-key'],
+      })
     }
     const upstream = await fetch(`${base}/api/v1/readiness-recovery/${path.join('/')}${request.nextUrl.search}`, {
       method: request.method,
@@ -115,10 +111,22 @@ async function handle(request: NextRequest, context: Context) {
         chunks.push(value)
       }
     }
-    const payload = Buffer.concat(chunks).toString('utf8')
-    return new NextResponse(payload, {
+    const payload = Buffer.concat(chunks)
+    const csv = path[0] === 'forecasts' && path[path.length - 1] === 'export.csv' && upstream.ok
+    const responseHeaders: Record<string, string> = {
+      'Content-Type': csv ? 'text/csv; charset=utf-8' : 'application/json',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    }
+    const disposition = upstream.headers.get('content-disposition')
+    if (csv && disposition && /^attachment; filename="rr-po-[A-Za-z0-9_.:-]{1,96}\.csv"$/.test(disposition))
+      responseHeaders['Content-Disposition'] = disposition
+    const gatewayExecution = upstream.headers.get('x-qdip-gateway-execution-id')
+    if (gatewayExecution && /^[A-Za-z0-9_.-]{1,128}$/.test(gatewayExecution))
+      responseHeaders['X-QDIP-Gateway-Execution-Id'] = gatewayExecution
+    return new NextResponse(csv ? payload : payload.toString('utf8'), {
       status: upstream.status,
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
+      headers: responseHeaders,
     })
   } catch {
     return json('RR backend unavailable', 502)
