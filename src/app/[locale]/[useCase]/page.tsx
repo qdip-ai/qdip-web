@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<UseCasePage
 
   const application = resolveUseCase(routeSegment)
   if (!application) return {}
-  if (application.id !== 'readiness-recovery' && !(await visiblePluginUseCaseIds()).includes(application.id)) {
+  if (!(await visiblePluginUseCaseIds()).includes(application.id)) {
     return { robots: { index: false, follow: false } }
   }
 
@@ -74,7 +74,7 @@ export default async function UseCasePage({ params }: { params: Promise<UseCaseP
   if (!isSupportedLocale(locale)) notFound()
   const application = resolveUseCase(routeSegment)
   if (!application) notFound()
-  if (application.id !== 'readiness-recovery' && !(await visiblePluginUseCaseIds()).includes(application.id)) {
+  if (!(await visiblePluginUseCaseIds()).includes(application.id)) {
     notFound()
   }
 
