@@ -124,16 +124,16 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
                 } as const
               )[locale]
             : activeRoute === '/developers'
-            ? (
-                {
-                  en: 'SDK documentation',
-                  uk: 'Документація SDK',
-                  pl: 'Dokumentacja SDK',
-                } as const
-              )[locale]
-            : activeItem
-              ? labelFor(activeItem)
-              : 'Observatory'
+              ? (
+                  {
+                    en: 'SDK documentation',
+                    uk: 'Документація SDK',
+                    pl: 'Dokumentacja SDK',
+                  } as const
+                )[locale]
+              : activeItem
+                ? labelFor(activeItem)
+                : 'Observatory'
 
   const nav = (
     <nav className={styles.navigation} aria-label={observatory('applications')}>
