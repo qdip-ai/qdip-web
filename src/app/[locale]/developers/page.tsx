@@ -25,7 +25,7 @@ const copy = {
     run: 'Запуск Worker',
     runBody: 'Worker відкриває вихідне WSS-з’єднання, без вхідного порту. Ключ має бути прив’язаний до того самого plugin_id та capability_id.',
     caller: '3. Викличте capability із Node.js',
-    callerBody: 'Запускайте тільки на сервері. Caller key не можна передавати браузеру. Приклад повертає результат вашого алгоритму, а не сертифікований Kernel solution.',
+    callerBody: 'Збережіть код як caller/caller.mjs і запускайте лише на сервері. Caller key не можна передавати браузеру. Приклад повертає результат вашого алгоритму, а не сертифікований Kernel solution.' ,
     publish: '4. Реєстрація та публікація',
     publishBody: 'Підключений Worker надсилає REGISTER до Gateway. Це створює runtime-реєстрацію, але не публікує і не схвалює плагін. Після перевірки платформа може опублікувати його опис в каталозі Observatory; публікація не замінює security admission чи доступу до виконання.',
     errors: 'Помилки та межі',
@@ -53,7 +53,7 @@ const copy = {
     run: 'Start the Worker',
     runBody: 'The Worker makes an outbound WSS connection. No inbound port is required. Its key must be bound to the same plugin_id and capability_id.',
     caller: '3. Call your capability from Node.js',
-    callerBody: 'Run only on the server; never expose the caller key in a browser. The response is an algorithm-owned report, not a Kernel-certified solution.',
+    callerBody: 'Save as caller/caller.mjs and run only on the server; never expose the caller key in a browser. The response is an algorithm-owned report, not a Kernel-certified solution.',
     publish: '4. Registration and publication',
     publishBody: 'The connected Worker sends REGISTER to Gateway. This creates runtime registration, not approval or publication. After review, the platform can publish the plugin’s catalog entry in Observatory. Catalog publication never bypasses security admission or execution authorization.',
     errors: 'Errors and boundaries',
@@ -81,7 +81,7 @@ const copy = {
     run: 'Uruchom Worker',
     runBody: 'Worker otwiera wychodzące połączenie WSS, bez portu przychodzącego. Klucz musi odpowiadać plugin_id i capability_id.',
     caller: '3. Wywołaj capability z Node.js',
-    callerBody: 'Wywołuj tylko na serwerze; nie ujawniaj caller key w przeglądarce. Wynik pochodzi z algorytmu użytkownika, nie z certyfikowanego Kernel.',
+    callerBody: 'Zapisz kod jako caller/caller.mjs i uruchom tylko na serwerze; nie ujawniaj caller key w przeglądarce. Wynik pochodzi z algorytmu użytkownika, nie z certyfikowanego Kernel.',
     publish: '4. Rejestracja i publikacja',
     publishBody: 'Po połączeniu Worker wysyła REGISTER do Gateway. Tworzy to rejestrację runtime, ale nie zatwierdza ani nie publikuje wtyczki. Po weryfikacji platforma może opublikować wpis w Observatory. Publikacja nie zastępuje kontroli bezpieczeństwa ani uprawnień wykonania.',
     errors: 'Błędy i ograniczenia',
@@ -101,6 +101,7 @@ const verifyInstall = [
   'mkdir caller && cd caller',
   'npm init -y && npm pkg set type=module',
   'npm install ../qdip-client-0.1.2.tgz',
+  'cd ..',
 ].join('\n')
 
 const workerExample = [
@@ -144,6 +145,14 @@ const workerRun = [
   "read -r -s -p 'Worker key: ' QDIP_WORKER_KEY; printf '\\n'",
   'export QDIP_WORKER_KEY',
   'python worker.py',
+].join('\n')
+
+const callerRun = [
+  'cd caller',
+  "export QDIP_GATEWAY_URL='https://<gateway-host>/'",
+  "read -r -s -p 'Caller key: ' QDIP_CALLER_KEY; printf '\\n'",
+  'export QDIP_CALLER_KEY',
+  'node caller.mjs',
 ].join('\n')
 
 const callerExample = [
@@ -232,6 +241,7 @@ export default async function DeveloperGuidePage({ params }: { params: Promise<{
           <h2 id="sdk-caller" className={heading}>{t.caller}</h2>
           <p className={paragraph}>{t.callerBody}</p>
           <CodeSample>{callerExample}</CodeSample>
+          <CodeSample>{callerRun}</CodeSample>
         </section>
 
         <section className={section} aria-labelledby="sdk-publication">
