@@ -101,7 +101,7 @@ const verifyInstall = [
   'mkdir caller && cd caller',
   'npm init -y && npm pkg set type=module',
   'npm install ../qdip-client-0.1.2.tgz',
-].join('\\n')
+].join('\n')
 
 const workerExample = [
   'import asyncio',
@@ -136,7 +136,7 @@ const workerExample = [
   '    return {"total": sum(payload["values"])}',
   '',
   'asyncio.run(Worker(config, evaluate).run_forever())',
-].join('\\n')
+].join('\n')
 
 const workerRun = [
   "export QDIP_WORKER_URL='wss://<gateway-host>/api/v1/remote-plugins/connect'",
@@ -144,7 +144,7 @@ const workerRun = [
   "read -r -s -p 'Worker key: ' QDIP_WORKER_KEY; printf '\\n'",
   'export QDIP_WORKER_KEY',
   'python worker.py',
-].join('\\n')
+].join('\n')
 
 const callerExample = [
   "import { QdipClient } from '@qdip/client';",
@@ -160,7 +160,7 @@ const callerExample = [
   '  timeoutSeconds: 10, deadlineMs: 45_000,',
   '});',
   'console.log(response.result); // { total: 6 }; not Kernel-verified',
-].join('\\n')
+].join('\n')
 
 function CodeSample({ children }: { children: string }) {
   return (
