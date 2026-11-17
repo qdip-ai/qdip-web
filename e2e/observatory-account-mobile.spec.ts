@@ -17,7 +17,7 @@ test.describe('Observatory identity and mobile utilities', () => {
     await expect(panel.getByText(/ID користувача|local-e2e-account/)).toHaveCount(0)
     await expect(panel.getByText('Адміністратор Observatory')).toBeVisible()
     await expect(panel.getByText('Studio', { exact: true })).toBeVisible()
-    await expect(panel.getByText('Оператор RR')).toBeVisible()
+    await expect(panel.getByText('Оператор RR')).toHaveCount(0)
     await expect(panel.getByRole('button', { name: 'Вийти' })).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(avatar).toHaveAttribute('aria-expanded', 'false')
