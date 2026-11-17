@@ -19,8 +19,8 @@ afterEach(() => vi.unstubAllEnvs())
 function signedSession(sub: string) {
   const source = new NextRequest('https://observatory.qdip.ai/api/auth/session')
   const response = NextResponse.json({})
-  const roles: Array<'studio' | 'rr_operator'> =
-    sub === 'studio-only' ? ['studio'] : sub === 'rr-only' ? ['rr_operator'] : []
+  const roles: Array<'studio' | 'observatory_admin'> =
+    sub === 'studio-only' ? ['studio'] : sub === 'admin-only' ? ['observatory_admin'] : []
   attachSession(response, source, {
     sub,
     roles,
@@ -55,19 +55,17 @@ describe('global OIDC session endpoint with reverse proxy Host', () => {
       configured: true,
       authenticated: true,
       studio: true,
-      operator: false,
+      observatoryAdmin: false,
       user: { id: 'studio-only', displayName: 'QA Tester', email: 'qa@qdip.ai' },
     })
   })
 
-  it('enforces disjoint Studio and RR authorization on the same signed session', async () => {
-    const response = GET(proxiedRequest('observatory.localhost:3000', 'rr-only'))
+  it('enforces disjoint Studio and Observatory admin authorization on the same signed session', async () => {
+    const response = GET(proxiedRequest('observatory.localhost:3000', 'admin-only'))
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toMatchObject({
-      authenticated: true,
-      studio: false,
-      operator: true,
-    })
+    const body = await response.json()
+    expect(body).toMatchObject({ authenticated: true, studio: false, observatoryAdmin: true })
+    expect(body).not.toHaveProperty('operator')
   })
 
   it('rejects an unrecognized external Host even if x-forwarded-host claims a trusted host', () => {

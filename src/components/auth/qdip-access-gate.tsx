@@ -3,7 +3,7 @@ import { marketingHref } from '@/lib/platform-urls'
 import { QdipAuthControl } from './qdip-auth-control'
 import styles from './qdip-access-gate.module.css'
 
-type Role = 'studio' | 'rr_operator' | 'observatory_admin'
+type Role = 'studio' | 'observatory_admin'
 
 const messages = {
   en: {
@@ -12,7 +12,6 @@ const messages = {
     signInBody: 'This workspace requires an authenticated QDIP account.',
     forbiddenBody: 'You are signed in, but this account does not have the role required for this workspace.',
     studio: 'Studio Access',
-    rr_operator: 'RR Operator',
     observatory_admin: 'Observatory Admin',
     adminSessionInfo:
       'Your current login session does not include this permission. Sign out, then sign in again to refresh your roles.',
@@ -25,7 +24,6 @@ const messages = {
     signInBody: 'Для цього робочого простору потрібен вхід через Zitadel.',
     forbiddenBody: 'Ви увійшли, але цьому обліковому запису не надано необхідної ролі.',
     studio: 'Studio Access',
-    rr_operator: 'RR Operator',
     observatory_admin: 'Адміністратор Observatory',
     adminSessionInfo: 'Поточна сесія не містить цієї ролі. Вийдіть із системи та увійдіть знову, щоб оновити права.',
     required: 'Необхідна роль',
@@ -37,7 +35,6 @@ const messages = {
     signInBody: 'Ten obszar roboczy wymaga zalogowania przez Zitadel.',
     forbiddenBody: 'Jesteś zalogowany, ale to konto nie ma wymaganej roli.',
     studio: 'Studio Access',
-    rr_operator: 'RR Operator',
     observatory_admin: 'Administrator Observatory',
     adminSessionInfo: 'Bieżąca sesja nie zawiera tego uprawnienia. Wyloguj się i zaloguj ponownie, aby odświeżyć role.',
     required: 'Wymagana rola',

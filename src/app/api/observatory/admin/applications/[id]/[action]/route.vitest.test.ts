@@ -51,8 +51,9 @@ describe('independent admin application lifecycle proxy', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('validates exact RR identity, operation and revision', async () => {
-    expect((await POST(request({ expected_revision: 1 }), context('publish', 'untrusted'))).status).toBe(404)
+  it('validates application identity syntax, operation and revision', async () => {
+    for (const bad of ['Untrusted', '../applications', 'a/b', '-x', 'x'.repeat(129)])
+      expect((await POST(request({ expected_revision: 1 }), context('publish', bad))).status).toBe(404)
     expect((await POST(request({ expected_revision: 1 }), context('reset'))).status).toBe(404)
     for (const payload of [
       { expected_revision: -1 },

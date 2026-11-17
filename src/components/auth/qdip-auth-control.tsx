@@ -20,7 +20,6 @@ type AuthSession = {
   configured: boolean
   authenticated: boolean
   studio: boolean
-  operator: boolean
   observatoryAdmin?: boolean
   user?: { id: string; displayName: string | null; email: string | null }
 }
@@ -38,7 +37,6 @@ const labels = {
     roles: 'Access roles',
     admin: 'Observatory admin',
     studio: 'Studio',
-    operator: 'RR operator',
   },
   uk: {
     applicationsKeys: 'Застосунки та ключі',
@@ -52,7 +50,6 @@ const labels = {
     roles: 'Ролі доступу',
     admin: 'Адміністратор Observatory',
     studio: 'Studio',
-    operator: 'Оператор RR',
   },
   pl: {
     applicationsKeys: 'Aplikacje i klucze',
@@ -66,28 +63,11 @@ const labels = {
     roles: 'Role dostępu',
     admin: 'Administrator Observatory',
     studio: 'Studio',
-    operator: 'Operator RR',
   },
 } as const
 
 function loginHref(returnTo: string) {
-  let origin: string = PLATFORM_URLS.site
-  // The RR Railway QA browser must start PKCE on the same host that owns
-  // its host-only flow cookie and callback. Other surfaces keep site login.
-  const observatory = new URL(PLATFORM_URLS.observatory)
-  try {
-    const destination = new URL(returnTo)
-    if (
-      observatory.protocol === 'https:' &&
-      /^[a-z0-9-]+[.]up[.]railway[.]app$/i.test(observatory.hostname) &&
-      destination.origin === observatory.origin &&
-      /^[/](en|uk|pl)[/]readiness-recovery[/]?$/.test(destination.pathname)
-    ) {
-      origin = observatory.origin
-    }
-  } catch {
-    // Invalid return URL cannot alter the canonical login origin.
-  }
+  const origin: string = PLATFORM_URLS.site
   const url = new URL('/api/auth/login', origin)
   url.searchParams.set('return_to', returnTo)
   return url.toString()
@@ -197,11 +177,7 @@ export function QdipAuthControl({
   if (session?.authenticated && showProfile) {
     const identity = session.user
     const display = identity?.displayName || identity?.email || copy.account
-    const roles = [
-      ...(session.observatoryAdmin ? [copy.admin] : []),
-      ...(session.studio ? [copy.studio] : []),
-      ...(session.operator ? [copy.operator] : []),
-    ]
+    const roles = [...(session.observatoryAdmin ? [copy.admin] : []), ...(session.studio ? [copy.studio] : [])]
     return (
       <div ref={profileRef} className={styles.authControl} data-qdip-auth="signed-in" data-testid="observatory-profile">
         <button

@@ -9,7 +9,7 @@ export const oidcTestConfig = {
   signingSecret: 'e2e-only-qdip-session-signing-key-not-for-production',
 }
 
-export function oidcTestCookies(roles: Array<'studio' | 'rr_operator' | 'observatory_admin'>): Cookie[] {
+export function oidcTestCookies(roles: Array<'studio' | 'observatory_admin'>): Cookie[] {
   const expiresAt = Math.floor(Date.now() / 1000) + 1800
   const payload = Buffer.from(
     JSON.stringify({

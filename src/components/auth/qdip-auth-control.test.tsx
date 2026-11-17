@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { PLATFORM_URLS } from '@/lib/platform-urls'
 import { QdipAuthControl } from './qdip-auth-control'
 
 afterEach(() => {
@@ -14,7 +13,7 @@ describe('QDIP shared authentication control', () => {
       'fetch',
       vi.fn(async () => ({
         ok: true,
-        json: async () => ({ configured: true, authenticated: false, studio: false, operator: false }),
+        json: async () => ({ configured: true, authenticated: false, studio: false }),
       }))
     )
     render(<QdipAuthControl locale="uk" returnTo="https://observatory.qdip.ai/uk/challenges" />)
@@ -29,46 +28,12 @@ describe('QDIP shared authentication control', () => {
     )
   })
 
-  it('keeps the isolated Railway RR sign-in on its origin without redirecting other surfaces', () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({ configured: true, authenticated: false, studio: false, operator: false }),
-      }))
-    )
-    const urls = PLATFORM_URLS as unknown as { observatory: string }
-    const original = urls.observatory
-    const qaOrigin = 'https://rr-standalone-web-qa-qa.up.railway.app'
-    urls.observatory = qaOrigin
-    try {
-      const { rerender } = render(<QdipAuthControl locale="en" returnTo={qaOrigin + '/en/readiness-recovery'} />)
-      let login = screen.getByRole('link', { name: 'Sign in' })
-      let target = new URL(login.getAttribute('href')!)
-      expect(target.origin).toBe(qaOrigin)
-      expect(target.pathname).toBe('/api/auth/login')
-      expect(target.searchParams.get('return_to')).toBe(qaOrigin + '/en/readiness-recovery')
-
-      rerender(<QdipAuthControl locale="en" returnTo={qaOrigin + '/en/admin/plugins'} />)
-      login = screen.getByRole('link', { name: 'Sign in' })
-      target = new URL(login.getAttribute('href')!)
-      expect(target.origin).toBe('https://qdip.ai')
-
-      rerender(<QdipAuthControl locale="en" returnTo="https://qdip.ai/en" />)
-      expect(new URL(screen.getByRole('link', { name: 'Sign in' }).getAttribute('href')!).origin).toBe(
-        'https://qdip.ai'
-      )
-    } finally {
-      urls.observatory = original
-    }
-  })
-
   it('provides an explicit sign out when the signed session is authenticated', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
         ok: true,
-        json: async () => ({ configured: true, authenticated: true, studio: true, operator: false }),
+        json: async () => ({ configured: true, authenticated: true, studio: true }),
       }))
     )
     render(<QdipAuthControl locale="en" returnTo="https://qdip.ai/en" />)
@@ -87,7 +52,6 @@ describe('QDIP shared authentication control', () => {
           configured: true,
           authenticated: true,
           studio: true,
-          operator: true,
           observatoryAdmin: true,
           user: { id: 'qa-id-001', displayName: 'QA Tester', email: 'qa@qdip.ai' },
         }),
@@ -107,7 +71,7 @@ describe('QDIP shared authentication control', () => {
     expect(screen.getByText('qa@qdip.ai').closest('a')).toBeNull()
     expect(screen.queryByText(/ID користувача:/)).not.toBeInTheDocument()
     expect(screen.getByText('Адміністратор Observatory')).toBeInTheDocument()
-    expect(screen.getByText('Оператор RR')).toBeInTheDocument()
+    expect(screen.queryByText('Оператор RR')).not.toBeInTheDocument()
     expect(screen.getByText('Studio')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Вийти' })).toBeInTheDocument()
   })
@@ -121,7 +85,6 @@ describe('QDIP shared authentication control', () => {
           configured: true,
           authenticated: true,
           studio: false,
-          operator: false,
           observatoryAdmin: true,
           user: { id: 'old-sub-123', displayName: null, email: null },
         }),
@@ -140,7 +103,7 @@ describe('QDIP shared authentication control', () => {
       'fetch',
       vi.fn(async () => ({
         ok: true,
-        json: async () => ({ configured: true, authenticated: false, studio: false, operator: false }),
+        json: async () => ({ configured: true, authenticated: false, studio: false }),
       }))
     )
     render(<QdipAuthControl locale="uk" returnTo="https://qdip.ai/uk" iconOnly />)
@@ -159,7 +122,7 @@ describe('QDIP shared authentication control', () => {
       'fetch',
       vi.fn(async () => ({
         ok: true,
-        json: async () => ({ configured: true, authenticated: true, studio: false, operator: false }),
+        json: async () => ({ configured: true, authenticated: true, studio: false }),
       }))
     )
     render(<QdipAuthControl locale="en" returnTo="https://qdip.ai/en" iconOnly />)
@@ -174,7 +137,7 @@ describe('QDIP shared authentication control', () => {
       'fetch',
       vi.fn(async (_url: string, init?: RequestInit) => {
         if (init?.method === 'POST') return { ok: false }
-        return { ok: true, json: async () => ({ configured: true, authenticated: true, studio: true, operator: true }) }
+        return { ok: true, json: async () => ({ configured: true, authenticated: true, studio: true }) }
       })
     )
     render(<QdipAuthControl locale="pl" returnTo="https://studio.qdip.ai/pl" />)
