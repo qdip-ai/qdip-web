@@ -137,7 +137,7 @@ describe('first-party catalog editorial translations', () => {
     }
   })
 
-  it('distinguishes archived market research and a demo from working planners', () => {
+  it('marks archived market research as archived', () => {
     const gas = entry({
       name: 'gas-forecast',
       ui: { label: 'Gas Forecast — Closed R&D' },
@@ -145,12 +145,5 @@ describe('first-party catalog editorial translations', () => {
         'Closed research plugin retained for gas-market data acquisition, normalization, experiment reproducibility, and provider research. It is not a validated commercial forecasting or procurement product.',
     })
     expect(pluginPresentation(gas, 'uk').description.toLowerCase()).toContain('архів')
-    const demo = entry({
-      name: 'readiness-recovery',
-      ui: { label: 'Readiness Recovery' },
-      description:
-        'Canonical Decision Studio demo. Exercises generic plugin, capability, profile, dimension-binding and execution contracts without domain-specific frontend logic.',
-    })
-    expect(pluginPresentation(demo, 'uk').description).toContain('демо')
   })
 })

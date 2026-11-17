@@ -2,12 +2,9 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { PrototypeShell } from '@/components/observatory/prototype-shell'
-import { QdipAccessGate } from '@/components/auth/qdip-access-gate'
 import { createTranslator } from '@/i18n/runtime'
 import { isSupportedLocale, SUPPORTED_LOCALES } from '@/lib/observatory-i18n'
-import { pageAccess } from '@/lib/qdip-page-access'
 import { visiblePluginUseCaseIds } from '@/lib/observatory-plugin-catalog'
-import { observatoryHref } from '@/lib/platform-urls'
 import { ApplicationFrontend } from '@/use-cases/application-runtime'
 import { DIP_USE_CASES, findUseCaseByRoute, type UseCaseId } from '@/use-cases/registry'
 
@@ -76,19 +73,6 @@ export default async function UseCasePage({ params }: { params: Promise<UseCaseP
   if (!application) notFound()
   if (!(await visiblePluginUseCaseIds()).includes(application.id)) {
     notFound()
-  }
-
-  if (application.id === 'readiness-recovery') {
-    const access = await pageAccess('rr_operator')
-    if (!access.allowed)
-      return (
-        <QdipAccessGate
-          locale={locale}
-          role="rr_operator"
-          returnTo={observatoryHref(application.route, locale)}
-          authenticated={access.authenticated}
-        />
-      )
   }
 
   return (

@@ -42,16 +42,6 @@ export const ANALYST_DATA_CAPABILITIES: Record<UseCaseId, AnalystDataCapability>
     dataDictionary: true,
     schemaVersion: 'contractor-allocation.v1',
   },
-  'readiness-recovery': {
-    applicationId: 'readiness-recovery',
-    scenarioContext: true,
-    synthetic: true,
-    smartImport: true,
-    exactImport: true,
-    exactExport: true,
-    dataDictionary: true,
-    schemaVersion: 'readiness-recovery.v1',
-  },
   'gtm-lab': {
     applicationId: 'gtm-lab',
     scenarioContext: true,

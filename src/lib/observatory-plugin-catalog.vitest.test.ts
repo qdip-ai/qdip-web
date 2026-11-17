@@ -1,15 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import type { CoreApplicationPublication } from './observatory-application-catalog'
 import { publishedPluginEntries, visibleUseCases, type CorePluginPublication } from './observatory-plugin-catalog'
 
 const meta: CorePluginPublication = {
-  name: 'readiness-recovery',
+  name: 'resource-allocation',
   version: '1.0',
   description: '',
   enabled: true,
-  capabilities: ['operations.readiness-recovery.plan'],
+  capabilities: ['humanitarian.resource-allocation.optimize'],
   capability_versions: {},
   ui: {},
   published: null,
@@ -18,56 +17,20 @@ const meta: CorePluginPublication = {
   published_version: null,
 }
 
-const publishedRR: CoreApplicationPublication = {
-  application_id: 'readiness-recovery',
-  version: '1',
-  launch_route: '/readiness-recovery',
-  required_capabilities: [
-    {
-      plugin_id: 'readiness-recovery-scheduler-sdk02',
-      capability_id: 'readiness-recovery.scheduling.plan.v1',
-      plugin_version: '0.1.0',
-      capability_version: '1',
-    },
-  ],
-  runtime_binding: { kind: 'rr-core-sdk02', organization_id: 'tenant' },
-  status: 'published',
-  revision: 1,
-  published_at: '2026-11-12T12:00:00Z',
-  published_by: 'admin',
-  admission: { ready: true, reasons: [] },
-  visible: true,
-}
-
-describe('independent Observatory application projection', () => {
-  it('does not expose RR through legacy SDK plugin publication', () => {
-    const sdkPublished = {
+describe('Observatory use-case projection', () => {
+  it('never lists Readiness Recovery: it is an independent plugin service', () => {
+    const rr = {
       ...meta,
+      name: 'qdip-rr',
+      capabilities: ['readiness-recovery.scheduling.plan.v1'],
+      capability_id: 'readiness-recovery.scheduling.plan.v1',
       published: true,
       published_version: meta.version,
-      capability_id: meta.capabilities[0],
     }
-    expect(visibleUseCases([sdkPublished])).not.toContain('readiness-recovery')
-    expect(visibleUseCases([{ ...sdkPublished, capabilities: ['readiness-recovery.evaluate'] }])).not.toContain(
-      'readiness-recovery'
-    )
+    expect(visibleUseCases([rr])).not.toContain('readiness-recovery')
+    expect(visibleUseCases([])).not.toContain('readiness-recovery')
   })
-  it('publishes RR independently of plugin state', () => {
-    expect(visibleUseCases([{ ...meta, enabled: false, published: false }], [publishedRR])).toContain(
-      'readiness-recovery'
-    )
-    expect(visibleUseCases([], [publishedRR])).toContain('readiness-recovery')
-  })
-  it('hides RR on unpublish, runtime disconnection, or stale visible projection', () => {
-    expect(visibleUseCases([], [{ ...publishedRR, status: 'unpublished', visible: false }])).not.toContain(
-      'readiness-recovery'
-    )
-    expect(
-      visibleUseCases([], [{ ...publishedRR, admission: { ready: false, reasons: ['offline'] }, visible: false }])
-    ).not.toContain('readiness-recovery')
-    expect(visibleUseCases([], [{ ...publishedRR, visible: false }])).not.toContain('readiness-recovery')
-  })
-  it('preserves existing plugin-only application visibility outside RR', () => {
+  it('keeps plugin-only application visibility', () => {
     const resource = {
       ...meta,
       name: 'resource-allocation',

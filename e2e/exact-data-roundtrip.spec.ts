@@ -12,17 +12,6 @@ async function downloadAndReimportExact(page: Page) {
   await expect(workspace.locator('[role="alert"]')).toHaveCount(0)
 }
 
-test('legacy RR Monte Carlo JSON cannot silently execute as Kernel RR', async ({ page }) => {
-  await page.goto('http://observatory.localhost:3000/uk/readiness-recovery', { waitUntil: 'domcontentloaded' })
-  await expect(page.getByTestId('rr-kernel-only-workspace')).toBeVisible()
-  await expect(page.getByTestId('analyst-data-workspace')).toHaveCount(0)
-  const response = await page.request.post('http://observatory.localhost:3000/readiness/scenarios', {
-    data: { input: { scenarioId: 'legacy-asset-capability-model' } },
-  })
-  expect(response.status()).toBe(410)
-  expect(await response.json()).toMatchObject({ code: 'RR_LEGACY_SOLVER_RETIRED' })
-})
-
 test('contractor exact template can be re-imported and executed', async ({ page }) => {
   await page.goto('http://observatory.localhost:3000/uk/contractor-allocation', { waitUntil: 'domcontentloaded' })
   await downloadAndReimportExact(page)

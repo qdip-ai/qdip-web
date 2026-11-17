@@ -4,7 +4,7 @@ import { oidcTestCookies } from './oidc-test-session'
 test.describe('Observatory identity and mobile utilities', () => {
   test('profile reveals signed-in subject and all verified roles', async ({ page }) => {
     await page.context().clearCookies()
-    await page.context().addCookies(oidcTestCookies(['studio', 'rr_operator', 'observatory_admin']))
+    await page.context().addCookies(oidcTestCookies(['studio', 'observatory_admin']))
     await page.goto('http://observatory.localhost:3000/uk/admin/plugins')
     const profile = page.getByTestId('observatory-profile')
     const avatar = profile.getByRole('button', { name: /Обліковий запис/ })

@@ -1,13 +1,11 @@
 import { notFound, redirect } from 'next/navigation'
 import { PrototypeShell } from '@/features/observatory'
 import { QdipAccessGate } from '@/components/auth/qdip-access-gate'
-import { ApplicationPublicationControls } from '@/components/observatory/application-publication-controls'
 import { isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { pageAccess } from '@/lib/qdip-page-access'
 import { loginUrl } from '@/lib/qdip-oidc'
 import { observatoryHref } from '@/lib/platform-urls'
-import { corePluginConnection, readCorePublications } from '@/lib/observatory-plugin-catalog'
-import { readCoreApplications } from '@/lib/observatory-application-catalog'
+import { readCorePublications } from '@/lib/observatory-plugin-catalog'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
 export const dynamic = 'force-dynamic'
@@ -27,14 +25,8 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       />
     )
 
-  const [publications, applications] = await Promise.all([
-    readCorePublications().catch(() => null),
-    Promise.resolve()
-      .then(() => readCoreApplications(corePluginConnection()))
-      .catch(() => null),
-  ])
+  const publications = await readCorePublications().catch(() => null)
   const byName = new Map(publications?.map((record) => [record.name, record]) ?? [])
-  const rrPublication = applications?.find((item) => item.application_id === 'readiness-recovery')
   const labels = {
     uk: {
       title: 'Керування застосунками',
@@ -47,8 +39,6 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       version: 'Версія плагіна не збігається',
       available: 'Доступний у каталозі',
       pending: 'Публікація цього застосунку ще керується через плагін',
-      ready: 'Runtime готовий',
-      blocked: 'Публікацію заблоковано',
     },
     en: {
       title: 'Manage applications',
@@ -61,8 +51,6 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       version: 'Plugin version mismatch',
       available: 'Visible in catalog',
       pending: 'This application still uses legacy plugin visibility',
-      ready: 'Runtime admitted',
-      blocked: 'Publication blocked',
     },
     pl: {
       title: 'Zarządzaj aplikacjami',
@@ -75,8 +63,6 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       version: 'Niezgodna wersja wtyczki',
       available: 'Widoczna w katalogu',
       pending: 'Ta aplikacja korzysta nadal z publikacji wtyczek',
-      ready: 'Środowisko gotowe',
-      blocked: 'Publikacja zablokowana',
     },
   }[locale]
 
@@ -87,29 +73,6 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
         <p>{labels.description}</p>
         <ul>
           {DIP_USE_CASES.map((app) => {
-            if (app.id === 'readiness-recovery') {
-              return (
-                <li key={app.id}>
-                  <strong>{app.id}</strong> — {rrPublication?.status ?? labels.unavailable}
-                  {' · '}
-                  {rrPublication?.visible
-                    ? labels.available
-                    : rrPublication?.admission.ready
-                      ? labels.ready
-                      : labels.blocked}
-                  {rrPublication && (
-                    <>
-                      <div>
-                        {rrPublication.admission.reasons.length > 0 && (
-                          <span role="status">{rrPublication.admission.reasons.join(', ')}</span>
-                        )}
-                      </div>
-                      <ApplicationPublicationControls application={rrPublication} locale={locale as Locale} />
-                    </>
-                  )}
-                </li>
-              )
-            }
             const plugin = byName.get(app.plugin.id)
             let status = labels.available
             if (!publications) status = labels.unavailable

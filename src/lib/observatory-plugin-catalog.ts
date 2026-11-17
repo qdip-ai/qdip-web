@@ -3,7 +3,6 @@ import 'server-only'
 import { QdipClient, type PluginCatalogEntry } from '@qdip/client'
 
 import { normalizeDipBaseUrl } from '@/lib/dip-url'
-import { readCoreApplications, type CoreApplicationPublication } from '@/lib/observatory-application-catalog'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
 export type CorePluginPublication = PluginCatalogEntry
@@ -14,7 +13,6 @@ const LEGACY_PUBLIC = new Set([
   'resource-allocation',
   'supply-network-optimization',
   'contractor-allocation',
-  'readiness-recovery',
   'gtm-lab',
 ])
 
@@ -45,18 +43,9 @@ export async function readCorePublications(): Promise<CorePluginPublication[]> {
   return coreCatalogClient().catalog.list()
 }
 
-export function visibleUseCases(
-  records: readonly CorePluginPublication[],
-  applications: readonly CoreApplicationPublication[] = []
-): string[] {
+export function visibleUseCases(records: readonly CorePluginPublication[]): string[] {
   const byName = new Map(records.map((item) => [item.name, item]))
   return DIP_USE_CASES.filter((item) => {
-    if (item.id === 'readiness-recovery') {
-      const publication = applications.find((app) => app.application_id === item.id)
-      return Boolean(
-        publication && publication.status === 'published' && publication.admission.ready && publication.visible
-      )
-    }
     const record = byName.get(item.plugin.id)
     if (!record) return LEGACY_PUBLIC.has(item.id)
     if (!record.enabled || !record.capabilities.includes(item.plugin.capability)) return false
@@ -70,22 +59,12 @@ export function visibleUseCases(
 }
 
 export async function visiblePluginUseCaseIds(): Promise<string[]> {
-  const [plugins, applications] = await Promise.allSettled([
-    readCorePublications(),
-    (async () => readCoreApplications(corePluginConnection()))(),
-  ])
-  // A failure of one independent catalog cannot silently authorize the other.
-  const appRecords = applications.status === 'fulfilled' ? applications.value : []
-  const rrIds = visibleUseCases([], appRecords).filter((id) => id === 'readiness-recovery')
-  if (plugins.status === 'rejected') {
+  try {
+    return visibleUseCases(await readCorePublications())
+  } catch {
     // Only the existing Playwright harness may display legacy mock cards.
-    const fallback =
-      process.env.QDIP_PLAYWRIGHT_LEGACY_CATALOG === '1'
-        ? visibleUseCases([]).filter((id) => id !== 'readiness-recovery')
-        : []
-    return [...fallback, ...rrIds]
+    return process.env.QDIP_PLAYWRIGHT_LEGACY_CATALOG === '1' ? visibleUseCases([]) : []
   }
-  return [...visibleUseCases(plugins.value).filter((id) => id !== 'readiness-recovery'), ...rrIds]
 }
 
 /** Public-facing catalog entries are server-derived and expose no infrastructure keys. */

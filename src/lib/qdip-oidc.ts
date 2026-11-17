@@ -3,10 +3,9 @@ import 'server-only'
 import { createHash, createHmac, createPublicKey, randomBytes, timingSafeEqual, verify } from 'node:crypto'
 import type { JsonWebKey as NodeJsonWebKey } from 'node:crypto'
 import type { NextRequest, NextResponse } from 'next/server'
-import { rrOrgApiKey } from '@/lib/rr-org-credential'
 import { PLATFORM_ORIGINS } from '@/routing-config'
 
-type Role = 'studio' | 'rr_operator' | 'observatory_admin'
+type Role = 'studio' | 'observatory_admin'
 type Session = {
   sub: string
   issuer: string
@@ -55,7 +54,6 @@ type QdipRoleConfig = {
   projectId: string
   organizationId: string
   studioKey: string
-  rrKey: string
   adminKey: string
 }
 
@@ -63,41 +61,26 @@ function roleConfig(): QdipRoleConfig | null {
   const projectId = (process.env.ZITADEL_QDIP_PROJECT_ID ?? '').trim()
   const organizationId = (process.env.ZITADEL_QDIP_ORGANIZATION_ID ?? '').trim()
   const studioKey = (process.env.QDIP_STUDIO_ZITADEL_ROLE_KEY ?? 'studio').trim()
-  const rrKey = (process.env.QDIP_RR_ZITADEL_ROLE_KEY ?? 'rr_operator').trim()
   const adminKey = (process.env.QDIP_OBSERVATORY_ADMIN_ZITADEL_ROLE_KEY ?? 'observatory_admin').trim()
   // Zitadel role keys may contain spaces; reject empty/control-character keys only.
   const validKey = (key: string) => key.length > 0 && key.length <= 128 && !/[\x00-\x1f\x7f]/.test(key)
-  if (
-    !/^\d+$/.test(projectId) ||
-    !/^\d+$/.test(organizationId) ||
-    !validKey(studioKey) ||
-    !validKey(rrKey) ||
-    !validKey(adminKey)
-  )
+  if (!/^\d+$/.test(projectId) || !/^\d+$/.test(organizationId) || !validKey(studioKey) || !validKey(adminKey))
     return null
-  if (new Set([studioKey, rrKey, adminKey]).size !== 3) return null
-  return { projectId, organizationId, studioKey, rrKey, adminKey }
+  if (studioKey === adminKey) return null
+  return { projectId, organizationId, studioKey, adminKey }
 }
 
 function validRoles(value: unknown): value is Role[] {
   return (
     Array.isArray(value) &&
-    value.length <= 3 &&
-    value.every((role) => role === 'studio' || role === 'rr_operator' || role === 'observatory_admin') &&
+    value.length <= 2 &&
+    value.every((role) => role === 'studio' || role === 'observatory_admin') &&
     new Set(value).size === value.length
   )
 }
 
 export function oidcConfigured() {
   return Boolean(configuredIssuer() && (process.env.ZITADEL_CLIENT_ID ?? '').trim() && sharedSecret() && roleConfig())
-}
-
-export function operatorConfigured() {
-  // RR runs only on the standalone qdip-rr API; there is no Core RR backend.
-  const backendConfigured =
-    process.env.RR_STANDALONE_API_BASE_URL?.trim() && rrOrgApiKey() && process.env.RR_ORGANIZATION_ID?.trim()
-
-  return Boolean(oidcConfigured() && backendConfigured && (process.env.RR_ACTOR_ASSERTION_SECRET ?? '').length >= 32)
 }
 
 // The server trusts only permissions derived from verified project- and org-bound
@@ -109,10 +92,6 @@ export function canAccessStudio(session: Session) {
 
 export function canAdministerObservatory(session: Session) {
   return validRoles(session.roles) && session.roles.includes('observatory_admin')
-}
-
-export function canOperateRr(session: Session) {
-  return validRoles(session.roles) && session.roles.includes('rr_operator')
 }
 
 export function isAllowedSession(session: Session) {
@@ -139,7 +118,6 @@ function rolesFromClaims(claims: Record<string, unknown>): Role[] {
   }
   const roles: Role[] = []
   if (assignedToOrganization(config.studioKey)) roles.push('studio')
-  if (assignedToOrganization(config.rrKey)) roles.push('rr_operator')
   if (assignedToOrganization(config.adminKey)) roles.push('observatory_admin')
   return roles
 }

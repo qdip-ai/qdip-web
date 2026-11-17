@@ -9,7 +9,7 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:3000',
     trace: 'on-first-retry',
     // Browser E2E uses a dedicated fake account and a test-only signing key.
-    storageState: { cookies: oidcTestCookies(['studio', 'rr_operator']), origins: [] },
+    storageState: { cookies: oidcTestCookies(['studio']), origins: [] },
   },
   projects: [
     {

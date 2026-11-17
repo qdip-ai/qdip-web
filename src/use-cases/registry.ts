@@ -39,14 +39,6 @@ const useCases = [
     plugin: { id: 'contractor-allocation', capability: 'operations.contractor-allocation.optimize' },
   },
   {
-    id: 'readiness-recovery',
-    route: '/readiness-recovery',
-    navigation: visible(27),
-    decisionPattern: 'decide',
-    presentation: { icon: 'network', theme: 'violet' },
-    plugin: { id: 'readiness-recovery', capability: 'operations.readiness-recovery.plan' },
-  },
-  {
     id: 'gtm-lab',
     route: '/gtm-lab',
     navigation: visible(30),
