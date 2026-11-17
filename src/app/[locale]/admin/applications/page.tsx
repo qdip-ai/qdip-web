@@ -5,7 +5,9 @@ import { isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { pageAccess } from '@/lib/qdip-page-access'
 import { loginUrl } from '@/lib/qdip-oidc'
 import { observatoryHref } from '@/lib/platform-urls'
-import { readCorePublications } from '@/lib/observatory-plugin-catalog'
+import { corePluginConnection, readCorePublications } from '@/lib/observatory-plugin-catalog'
+import { readCoreApplications } from '@/lib/observatory-application-catalog'
+import { ApplicationPublicationControls } from '@/components/observatory/application-publication-controls'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +27,12 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       />
     )
 
-  const publications = await readCorePublications().catch(() => null)
+  const [publications, applications] = await Promise.all([
+    readCorePublications().catch(() => null),
+    Promise.resolve()
+      .then(() => readCoreApplications(corePluginConnection()))
+      .catch(() => null),
+  ])
   const byName = new Map(publications?.map((record) => [record.name, record]) ?? [])
   const labels = {
     uk: {
@@ -39,6 +46,10 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       version: 'Версія плагіна не збігається',
       available: 'Доступний у каталозі',
       pending: 'Публікація цього застосунку ще керується через плагін',
+      independent: 'Незалежні застосунки (SDK runtime)',
+      none: 'Core не оголошує незалежних застосунків',
+      ready: 'Runtime готовий',
+      blocked: 'Публікацію заблоковано',
     },
     en: {
       title: 'Manage applications',
@@ -51,6 +62,10 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       version: 'Plugin version mismatch',
       available: 'Visible in catalog',
       pending: 'This application still uses legacy plugin visibility',
+      independent: 'Independent applications (SDK runtime)',
+      none: 'Core declares no independent applications',
+      ready: 'Runtime admitted',
+      blocked: 'Publication blocked',
     },
     pl: {
       title: 'Zarządzaj aplikacjami',
@@ -63,6 +78,10 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       version: 'Niezgodna wersja wtyczki',
       available: 'Widoczna w katalogu',
       pending: 'Ta aplikacja korzysta nadal z publikacji wtyczek',
+      independent: 'Niezależne aplikacje (runtime SDK)',
+      none: 'Core nie deklaruje niezależnych aplikacji',
+      ready: 'Środowisko gotowe',
+      blocked: 'Publikacja zablokowana',
     },
   }[locale]
 
@@ -92,6 +111,30 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
             )
           })}
         </ul>
+        <h2>{labels.independent}</h2>
+        {!applications ? (
+          <p>{labels.unavailable}</p>
+        ) : applications.length === 0 ? (
+          <p>{labels.none}</p>
+        ) : (
+          <ul data-testid="independent-applications">
+            {applications.map((application) => (
+              <li key={application.application_id}>
+                <strong>{application.application_id}</strong> — {application.status}
+                {' · '}
+                {application.visible ? labels.available : application.admission.ready ? labels.ready : labels.blocked}
+                {' · '}
+                <code>{application.launch_url}</code>
+                <div>
+                  {application.admission.reasons.length > 0 && (
+                    <span role="status">{application.admission.reasons.join(', ')}</span>
+                  )}
+                </div>
+                <ApplicationPublicationControls application={application} locale={locale as Locale} />
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </PrototypeShell>
   )
