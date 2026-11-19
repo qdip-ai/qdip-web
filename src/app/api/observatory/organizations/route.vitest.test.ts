@@ -42,6 +42,7 @@ vi.mock('@/lib/observatory-plugin-catalog', () => ({
 }))
 vi.mock('@/lib/zitadel-org-link-assertion', () => ({
   signZitadelOwnerLink: () => ({ issued_at: 1792400000, nonce: 'a'.repeat(32), assertion: 'b'.repeat(64) }),
+  signZitadelOwnerList: () => ({ issued_at: 1792400000, nonce: 'c'.repeat(32), assertion: 'd'.repeat(64) }),
 }))
 
 import { GET, POST } from './route'
