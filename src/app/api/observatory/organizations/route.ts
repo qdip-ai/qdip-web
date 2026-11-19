@@ -10,7 +10,12 @@ import {
 } from '@/lib/zitadel-owner-organizations'
 
 const RR_QA_PROJECT = '4665798b-2012-466e-be91-2555d76f36c2'
-const QDIP_ZITADEL_ORG = '368555767923594379'
+function configuredQaOrganization(): string {
+  const id = process.env.ZITADEL_QDIP_ORGANIZATION_ID?.trim() ?? ''
+  if (!/^[0-9]{1,32}$/.test(id))
+    throw new OwnerOrganizationError(503, 'RR QA organization not configured')
+  return id
+}
 
 /** Explicit RR QA-only backend; production never routes an owner action to staging. */
 function rrStagingOwnerBridge(): string | null {
@@ -104,12 +109,13 @@ export async function GET(request: NextRequest) {
         typeof result !== 'object' ||
         !('organizations' in result) ||
         !Array.isArray(result.organizations) ||
+        result.organizations.length !== 1 ||
         !result.organizations.every(
           (org: unknown) =>
             org &&
             typeof org === 'object' &&
             'id' in org &&
-            org.id === QDIP_ZITADEL_ORG &&
+            org.id === configuredQaOrganization() &&
             'state' in org &&
             org.state === 'active'
         )
@@ -177,7 +183,7 @@ export async function POST(request: NextRequest) {
   try {
     const bridge = rrStagingOwnerBridge()
     if (bridge) {
-      if (id !== QDIP_ZITADEL_ORG) return response({ error: 'Only the canonical QDIP QA organization is allowed' }, 403)
+      if (id !== configuredQaOrganization()) return response({ error: 'Only the canonical QDIP QA organization is allowed' }, 403)
       const result = await rrStagingOwnerRequest(bridge, 'link', { issuer: session.issuer, sub: session.sub }, id)
       if (
         !result ||
