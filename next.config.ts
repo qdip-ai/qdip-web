@@ -49,7 +49,10 @@ const nextConfig: NextConfig = {
         // API routes may return their own more restrictive CSP (OIDC error HTML).
         source: '/((?!api/).*)',
         headers: [
-          { key: 'Content-Security-Policy', value: buildContentSecurityPolicy(process.env.NODE_ENV === 'development') },
+          {
+            key: 'Content-Security-Policy',
+            value: buildContentSecurityPolicy(process.env.NODE_ENV === 'development'),
+          },
         ],
       },
     ]
