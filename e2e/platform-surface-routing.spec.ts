@@ -11,6 +11,29 @@ async function expectNoPageErrors(errors: Error[]) {
 }
 
 test.describe('platform surface routing contract', () => {
+  test('all three product surfaces return enforceable CSP response headers', async ({ request }) => {
+    const routes = [
+      ['qdip.localhost:3000', '/en'],
+      ['studio.localhost:3000', '/en/profiles'],
+      ['observatory.localhost:3000', '/en'],
+    ] as const
+
+    for (const [host, path] of routes) {
+      const response = await request.get(`http://127.0.0.1:3000${path}`, { headers: { host } })
+      expect(response.status(), host).toBe(200)
+
+      const headers = response.headers()
+      const policy = headers['content-security-policy'] ?? ''
+      expect(policy, host).toContain("script-src 'self' 'unsafe-inline'")
+      expect(policy, host).toContain("object-src 'none'")
+      expect(policy, host).toContain("frame-ancestors 'none'")
+      expect(policy, host).toContain('https://tile.openstreetmap.org')
+      expect(headers['x-content-type-options'], host).toBe('nosniff')
+      expect(headers['x-frame-options'], host).toBe('DENY')
+      expect(headers['x-powered-by'], host).toBeUndefined()
+    }
+  })
+
   test('Observatory survives the original mixed locale and application navigation sequence', async ({ page }) => {
     const errors = capturePageErrors(page)
 
