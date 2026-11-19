@@ -28,7 +28,7 @@ describe('browser security policy', () => {
 
     expect(connect).toContain('https://doctor.qdip.ai')
     expect(connect).toContain('https://tile.openstreetmap.org')
-    expect(connect).not.toContain('https:')
+    expect(connect.split(' ')).not.toContain('https:')
     expect(connect).not.toContain('*')
     expect(images).toContain('https://tile.openstreetmap.org')
     expect(images).toContain('data:')
