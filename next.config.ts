@@ -16,8 +16,7 @@ export function buildContentSecurityPolicy(isDevelopment: boolean): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://tile.openstreetmap.org",
     "font-src 'self' data:",
-    "connect-src 'self' https://doctor.qdip.ai https://tile.openstreetmap.org" +
-      (isDevelopment ? ' ws: wss:' : ''),
+    "connect-src 'self' https://doctor.qdip.ai https://tile.openstreetmap.org" + (isDevelopment ? ' ws: wss:' : ''),
     "worker-src 'self' blob:",
     "child-src 'self' blob:",
     "manifest-src 'self'",
