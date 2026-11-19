@@ -183,19 +183,30 @@ describe('RR QA owner bridge is scoped to the configured Zitadel organization', 
 
   it.each([
     { organizations: [] },
-    { organizations: [{ id: ORG, state: 'active' }, { id: ORG, state: 'active' }] },
+    {
+      organizations: [
+        { id: ORG, state: 'active' },
+        { id: ORG, state: 'active' },
+      ],
+    },
     { organizations: [{ id: '22222222222222222222', state: 'active' }] },
     { organizations: [{ id: ORG, state: 'inactive' }] },
   ])('rejects an incomplete, duplicate or foreign QA owner list: %j', async (payload) => {
     enableRrQaBridge()
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json(payload)))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(payload))
+    )
     expect((await GET(request('GET'))).status).toBe(503)
   })
 
   it('fails closed without the configured QA organization', async () => {
     enableRrQaBridge()
     vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', '')
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ organizations: [{ id: ORG, state: 'active' }] })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ organizations: [{ id: ORG, state: 'active' }] }))
+    )
     expect((await GET(request('GET'))).status).toBe(503)
     expect((await POST(request('POST', { organizationId: ORG }))).status).toBe(503)
   })
