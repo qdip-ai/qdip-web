@@ -12,8 +12,7 @@ import {
 const RR_QA_PROJECT = '4665798b-2012-466e-be91-2555d76f36c2'
 function configuredQaOrganization(): string {
   const id = process.env.ZITADEL_QDIP_ORGANIZATION_ID?.trim() ?? ''
-  if (!/^[0-9]{1,32}$/.test(id))
-    throw new OwnerOrganizationError(503, 'RR QA organization not configured')
+  if (!/^[0-9]{1,32}$/.test(id)) throw new OwnerOrganizationError(503, 'RR QA organization not configured')
   return id
 }
 
@@ -183,7 +182,8 @@ export async function POST(request: NextRequest) {
   try {
     const bridge = rrStagingOwnerBridge()
     if (bridge) {
-      if (id !== configuredQaOrganization()) return response({ error: 'Only the canonical QDIP QA organization is allowed' }, 403)
+      if (id !== configuredQaOrganization())
+        return response({ error: 'Only the canonical QDIP QA organization is allowed' }, 403)
       const result = await rrStagingOwnerRequest(bridge, 'link', { issuer: session.issuer, sub: session.sub }, id)
       if (
         !result ||
