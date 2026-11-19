@@ -15,46 +15,6 @@ const ROLE_SCOPES = {
   worker: ['plugins:register'],
 } as const
 
-// #425: temporary Yara canonical-organization Worker migration only, not tenant aliases.
-// A verified QDIP owner may replace their registration keys in QDIP itself.
-// Other tenants/plugins and all invoke credentials remain isolated.
-const RECREATE_WORKERS = {
-  secretary: {
-    capability: 'secretary.plan',
-    sourceTenant: '1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab',
-    sourceName: 'qdip-sdk-app:vhv',
-  },
-} as const
-
-function canRecreateWorker(
-  pluginId: string,
-  capabilities: string[],
-  role: Role,
-  manual: boolean,
-  selected: VerifiedOrganization,
-  target: CoreOrg,
-  remote: CatalogPlugin,
-  source: CoreOrg
-): boolean {
-  const legacy = RECREATE_WORKERS[pluginId as keyof typeof RECREATE_WORKERS]
-  return (
-    manual &&
-    role === 'worker' &&
-    !!legacy &&
-    selected.id === '368555767923594379' &&
-    selected.issuer === 'https://mentality-rmwj0i.eu1.zitadel.cloud' &&
-    target.id === 'ff638747-1962-4a44-95ee-3902c28d949f' &&
-    remote.source === 'remote' &&
-    remote.plugin_id === pluginId &&
-    remote.enabled === true &&
-    source.id === legacy.sourceTenant &&
-    source.name === legacy.sourceName &&
-    source.status === 'active' &&
-    exact(capabilities, [legacy.capability]) &&
-    exact(remote.capabilities, [legacy.capability])
-  )
-}
-
 type Role = keyof typeof ROLE_SCOPES
 type CoreOrg = {
   id: string
@@ -506,12 +466,8 @@ export async function issuePluginCredential(
   if (registered?.source === 'remote') {
     const registrationOrg = registeredRemoteOrg(registered, data)
     if (!registrationOrg) throw new DeveloperKeyError(409, 'Remote plugin tenant cannot be verified')
-    // The existing first-party Yara development Worker may be re-registered
-    // directly in QDIP. This NEVER grants an invoke key to another tenant.
-    if (
-      registrationOrg.id !== tenant.id &&
-      !canRecreateWorker(pluginId, capabilities, role, manual, selected, tenant, registered, registrationOrg)
-    )
+    // A registered Worker must belong to the selected verified Core tenant.
+    if (registrationOrg.id !== tenant.id)
       throw new DeveloperKeyError(409, 'Remote plugin belongs to another tenant; create a scoped Worker key only')
     credentialPluginId = registered.plugin_id!
   }
