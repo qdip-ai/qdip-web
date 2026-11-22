@@ -118,7 +118,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
       config
     )
     expect(foreignRole.roles).toEqual([])
-    expect(canAccessStudio(foreignRole)).toBe(false)
+    expect(canAccessStudio(foreignRole)).toBe(true)
 
     const both = await verifyIdToken(
       token({
@@ -138,7 +138,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
       config
     )
     expect(canAdministerObservatory(admin)).toBe(true)
-    expect(canAccessStudio(admin)).toBe(false)
+    expect(canAccessStudio(admin)).toBe(true)
     const adminOtherOrg = await verifyIdToken(
       token({ [roleClaim]: { observatory_admin: { '111111111': 'foreign.example.test' } } }),
       flow,
@@ -155,6 +155,8 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     )
     expect(otherOrg.roles).toEqual([])
     expect(isAllowedSession(otherOrg)).toBe(true)
+    expect(canAccessStudio(otherOrg)).toBe(true)
+    expect(canAdministerObservatory(otherOrg)).toBe(false)
 
     const otherProject = await verifyIdToken(
       token({
@@ -183,6 +185,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     expect(url.searchParams.get('response_type')).toBe('code')
     expect(url.searchParams.get('state')).toBe(flow.state)
     expect(url.searchParams.get('nonce')).toBe(flow.nonce)
+    expect(url.searchParams.get('scope')?.split(' ')).toContain(`urn:zitadel:iam:org:id:${organizationId}`)
     expect(url.searchParams.get('scope')).toContain(`urn:zitadel:iam:org:project:id:${projectId}:aud`)
     expect(url.searchParams.get('scope')).toContain('urn:zitadel:iam:org:projects:roles')
     expect(url.searchParams.get('scope')).toContain('urn:iam:org:project:roles')

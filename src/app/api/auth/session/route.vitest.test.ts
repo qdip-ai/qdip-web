@@ -60,11 +60,24 @@ describe('global OIDC session endpoint with reverse proxy Host', () => {
     })
   })
 
-  it('enforces disjoint Studio and Observatory admin authorization on the same signed session', async () => {
+  it('grants personal Studio to all signed-in users without granting Observatory admin rights', async () => {
     const response = GET(proxiedRequest('observatory.localhost:3000', 'admin-only'))
     expect(response.status).toBe(200)
     const body = await response.json()
-    expect(body).toMatchObject({ authenticated: true, studio: false, observatoryAdmin: true })
+    expect(body).toMatchObject({ authenticated: true, studio: true, observatoryAdmin: true })
+    const ordinary = GET(proxiedRequest('observatory.localhost:3000', 'ordinary-user'))
+    expect(ordinary.status).toBe(200)
+    await expect(ordinary.json()).resolves.toMatchObject({
+      authenticated: true,
+      studio: true,
+      observatoryAdmin: false,
+    })
+    const anonymous = GET(proxiedRequest('observatory.localhost:3000'))
+    await expect(anonymous.json()).resolves.toMatchObject({
+      authenticated: false,
+      studio: false,
+      observatoryAdmin: false,
+    })
     expect(body).not.toHaveProperty('operator')
   })
 

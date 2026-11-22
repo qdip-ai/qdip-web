@@ -86,8 +86,10 @@ export function oidcConfigured() {
 // The server trusts only permissions derived from verified project- and org-bound
 // Zitadel ID-token claims and stored in the signed, short-lived session cookie.
 // The subject alone NEVER grants access.
+// Personal Studio is available to every verified QDIP user.
+// Privileged Observatory management still requires an explicit admin role.
 export function canAccessStudio(session: Session) {
-  return validRoles(session.roles) && session.roles.includes('studio')
+  return validRoles(session.roles)
 }
 
 export function canAdministerObservatory(session: Session) {
@@ -320,9 +322,9 @@ export function authorizationUrl(config: OidcDiscovery, flow: Pending) {
   if (!roleSettings) throw new Error('QDIP Zitadel role configuration is missing')
   url.searchParams.set(
     'scope',
-    // Do not scope roles to a guessed organization: Zitadel silently drops grants for other organizations.
-    // The verified project/org membership is enforced by rolesFromClaims after token issuance.
-    `openid profile email urn:zitadel:iam:org:project:id:${roleSettings.projectId}:aud urn:iam:org:project:roles urn:zitadel:iam:org:projects:roles`
+    // Select the configured QDIP organization for external IdP registration.
+    // Access remains governed by verified project/org role grants after token issuance.
+    `openid profile email urn:zitadel:iam:org:id:${roleSettings.organizationId} urn:zitadel:iam:org:project:id:${roleSettings.projectId}:aud urn:iam:org:project:roles urn:zitadel:iam:org:projects:roles`
   )
   url.searchParams.set('redirect_uri', new URL(AUTH_CALLBACK_PATH, authOrigin()).toString())
   url.searchParams.set('state', flow.state)
