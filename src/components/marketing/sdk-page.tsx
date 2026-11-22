@@ -45,7 +45,8 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     overview:
       'SDK-02 runs in your Python environment. SDK-03 calls the hosted Gateway from a server-side Node.js application. QDIP manages authorization and routes supported DecisionSpec workloads to its Kernel.',
     workerTitle: 'Python Worker',
-    workerBody: 'Implement a domain adapter or an owned algorithm. Connect outbound over WSS without exposing a Worker port.',
+        workerBody:
+      'Implement a domain adapter or an owned algorithm. Connect outbound over WSS without exposing a Worker port.',
     clientTitle: 'TypeScript / Node.js client',
     clientBody: 'Discover capabilities, invoke executions and handle typed errors from your backend.',
     packageStatus: 'Controlled distribution · Public downloads not yet available',
@@ -81,7 +82,8 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     overview:
       'SDK-02 працює у вашому Python-середовищі. SDK-03 викликає hosted Gateway із серверного Node.js застосунку. QDIP контролює доступ і виконує підтримувані DecisionSpec через Kernel.',
     workerTitle: 'Python Worker',
-    workerBody: 'Створюйте доменний адаптер або власний алгоритм. Підключайтеся через вихідний WSS без відкритого порту Worker.',
+        workerBody:
+      'Створюйте доменний адаптер або власний алгоритм. Підключайтеся через вихідний WSS без відкритого порту Worker.',
     clientTitle: 'TypeScript / Node.js клієнт',
     clientBody: 'Отримуйте перелік capabilities, запускайте виконання й обробляйте типізовані помилки на backend.',
     packageStatus: 'Контрольована дистрибуція · Публічне завантаження ще недоступне',
@@ -117,7 +119,8 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     overview:
       'SDK-02 działa w Twoim środowisku Python. SDK-03 wywołuje hostowany Gateway z aplikacji Node.js po stronie serwera. QDIP kontroluje dostęp i wykonuje obsługiwane DecisionSpec w Kernelu.',
     workerTitle: 'Python Worker',
-    workerBody: 'Zaimplementuj adapter domenowy lub własny algorytm. Łącz się wychodząco przez WSS bez otwierania portu Workera.',
+        workerBody:
+      'Zaimplementuj adapter domenowy lub własny algorytm. Łącz się wychodząco przez WSS bez otwierania portu Workera.',
     clientTitle: 'Klient TypeScript / Node.js',
     clientBody: 'Odkrywaj capabilities, uruchamiaj wykonania i obsługuj typowane błędy w backendzie.',
     packageStatus: 'Dystrybucja kontrolowana · Publiczne pobieranie jeszcze niedostępne',
@@ -180,7 +183,9 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
               <div className={styles.packageVersion}>SDK-02 · v0.1.3 · Python 3.11+</div>
               <h3>{c.workerTitle}</h3>
               <p>{c.workerBody}</p>
-              <pre><code>pip install --no-index --find-links wheels qdip-remote-sdk==0.1.3</code></pre>
+              <pre>
+                <code>pip install --no-index --find-links wheels qdip-remote-sdk==0.1.3</code>
+              </pre>
               <div className={styles.packageName}>qdip-sdk02-bundle-0.1.3.zip</div>
             </article>
             <article className={styles.package}>
@@ -188,7 +193,9 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
               <div className={styles.packageVersion}>SDK-03 · v0.1.2 · Node.js</div>
               <h3>{c.clientTitle}</h3>
               <p>{c.clientBody}</p>
-              <pre><code>npm install ./qdip-client-0.1.2.tgz</code></pre>
+              <pre>
+                <code>npm install ./qdip-client-0.1.2.tgz</code>
+              </pre>
               <div className={styles.packageName}>qdip-client-0.1.2.tgz</div>
             </article>
           </div>
