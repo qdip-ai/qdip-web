@@ -79,6 +79,16 @@ function validRoles(value: unknown): value is Role[] {
   )
 }
 
+/** RP-initiated Zitadel SSO sign-out. No unregistered post-logout redirect URI. */
+export function oidcEndSessionUrl(): string | null {
+  const issuer = configuredIssuer()
+  const clientId = process.env.ZITADEL_CLIENT_ID?.trim()
+  if (!issuer || !clientId) return null
+  const url = new URL('/oidc/v1/end_session', issuer)
+  url.searchParams.set('client_id', clientId)
+  return url.toString()
+}
+
 export function oidcConfigured() {
   return Boolean(configuredIssuer() && (process.env.ZITADEL_CLIENT_ID ?? '').trim() && sharedSecret() && roleConfig())
 }

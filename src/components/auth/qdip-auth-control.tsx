@@ -164,9 +164,11 @@ export function QdipAuthControl({
         cache: 'no-store',
       })
       if (!response.ok) throw new Error('Logout failed')
+      const data: { logoutUrl?: string | null } = await response.json()
       setSession(null)
-      // Refresh privileged surfaces so no stale operator view remains on screen.
-      window.location.reload()
+      // Reloading a protected Observatory page silently reauthenticates through Zitadel SSO.
+      // End the browser's provider session; a public QDIP page is the fail-closed fallback.
+      window.location.replace(data.logoutUrl ?? new URL(`/${locale}`, PLATFORM_URLS.site).toString())
     } catch {
       setError(true)
     } finally {
