@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PublicPage } from '@/components/marketing/public-page'
+import { SdkPage } from '@/components/marketing/sdk-page'
 import { DepthPage } from '@/components/marketing/depth/depth-page'
 import type { DepthPageKey } from '@/components/marketing/depth/content'
 import { marketingLocales, type MarketingLocale } from '@/components/marketing/qdip-copy'
 
 const pageKeys = [
   'how-it-works',
+  'sdk',
   'use-cases',
   'decision',
   'core',
@@ -21,6 +23,11 @@ const depthKeys = new Set<DepthPageKey>(['how-it-works', 'use-cases', 'core', 'c
 
 const seo: Record<MarketingLocale, SeoCopy> = {
   en: {
+    sdk: {
+      title: 'QDIP SDK — Python Worker and TypeScript client',
+      description:
+        'Build independent decision applications using SDK-02 Python Worker and SDK-03 TypeScript client with QDIP Gateway and managed Kernel.',
+    },
     'how-it-works': {
       title: 'How QDIP Works',
       description:
@@ -60,6 +67,11 @@ const seo: Record<MarketingLocale, SeoCopy> = {
     },
   },
   uk: {
+    sdk: {
+      title: 'QDIP SDK — Python Worker і TypeScript клієнт',
+      description:
+        'Розробляйте незалежні застосунки рішень через SDK-02 Python Worker і SDK-03 TypeScript клієнт, Gateway та Managed Kernel QDIP.',
+    },
     'how-it-works': {
       title: 'Як працює QDIP',
       description:
@@ -97,6 +109,11 @@ const seo: Record<MarketingLocale, SeoCopy> = {
     },
   },
   pl: {
+    sdk: {
+      title: 'QDIP SDK — Python Worker i klient TypeScript',
+      description:
+        'Twórz niezależne aplikacje decyzyjne z SDK-02 Python Worker, SDK-03 TypeScript, Gateway i zarządzanym Kernelem QDIP.',
+    },
     'how-it-works': {
       title: 'Jak działa QDIP',
       description:
@@ -172,6 +189,7 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
   if (!isLocale(locale)) notFound()
   const key = slug.join('/')
   if (!isPageKey(key)) notFound()
+  if (key === 'sdk') return <SdkPage locale={locale} />
   if (depthKeys.has(key as DepthPageKey)) return <DepthPage locale={locale} page={key as DepthPageKey} />
   return <PublicPage locale={locale} slug={key} />
 }

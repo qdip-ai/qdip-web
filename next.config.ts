@@ -59,6 +59,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/sdk',
+        has: hasHost(PLATFORM_HOST_PATTERNS.site),
+        destination: PLATFORM_ORIGINS.site + '/en/sdk',
+        permanent: true,
+      },
+      {
         source: '/',
         has: hasHost(PLATFORM_HOST_PATTERNS.studio),
         destination: '/en/profiles',
