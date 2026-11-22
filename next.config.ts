@@ -59,6 +59,18 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // Railway's *.qdip.ai fallback must not serve the site on unknown hostnames.
+        source: '/:path*',
+        has: hasHost('^(?:[a-z0-9-]+\\.)+qdip\\.ai$'),
+        missing: [
+          ...hasHost(PLATFORM_HOST_PATTERNS.site),
+          ...hasHost(PLATFORM_HOST_PATTERNS.studio),
+          ...hasHost(PLATFORM_HOST_PATTERNS.observatory),
+        ],
+        destination: 'https://qdip.ai',
+        permanent: true,
+      },
+      {
         source: '/sdk',
         has: hasHost(PLATFORM_HOST_PATTERNS.site),
         destination: PLATFORM_ORIGINS.site + '/en/sdk',
