@@ -11,7 +11,10 @@ const nextConfig = readFileSync('next.config.ts', 'utf8')
 const manifest = JSON.parse(readFileSync('public/sdk/manifest.json', 'utf8')) as {
   schema_version: number
   source_commit: string
-  artifacts: Record<string, { version: string; filename: string; size_bytes: number; sha256: string; url: string; platform?: string }>
+  artifacts: Record<
+    string,
+    { version: string; filename: string; size_bytes: number; sha256: string; url: string; platform?: string }
+  >
 }
 
 describe('public SDK marketing surface', () => {
