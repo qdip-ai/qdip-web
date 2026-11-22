@@ -183,6 +183,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     expect(url.searchParams.get('response_type')).toBe('code')
     expect(url.searchParams.get('state')).toBe(flow.state)
     expect(url.searchParams.get('nonce')).toBe(flow.nonce)
+    expect(url.searchParams.get('scope')?.split(' ')).toContain(`urn:zitadel:iam:org:id:${organizationId}`)
     expect(url.searchParams.get('scope')).toContain(`urn:zitadel:iam:org:project:id:${projectId}:aud`)
     expect(url.searchParams.get('scope')).toContain('urn:zitadel:iam:org:projects:roles')
     expect(url.searchParams.get('scope')).toContain('urn:iam:org:project:roles')
