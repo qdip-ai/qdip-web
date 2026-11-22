@@ -26,7 +26,10 @@ export function POST(request: NextRequest) {
   const scheme = secure ? 'https:' : request.nextUrl.protocol === 'http:' && localHost ? 'http:' : null
   if (!scheme || request.headers.get('origin') !== `${scheme}//${host.toLowerCase()}`)
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const response = NextResponse.json({ authenticated: false, logoutUrl: oidcEndSessionUrl() }, { headers: { 'Cache-Control': 'no-store' } })
+  const response = NextResponse.json(
+    { authenticated: false, logoutUrl: oidcEndSessionUrl() },
+    { headers: { 'Cache-Control': 'no-store' } }
+  )
   clearSession(response, request)
   return response
 }
