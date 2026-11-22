@@ -87,6 +87,9 @@ export function QdipFooter({
             <FooterLink href={path(locale, 'core/research')} native={native}>
               {copy('research')}
             </FooterLink>
+            <FooterLink href={path(locale, 'sdk')} native={native}>
+              SDK
+            </FooterLink>
           </nav>
         ) : null}
 
