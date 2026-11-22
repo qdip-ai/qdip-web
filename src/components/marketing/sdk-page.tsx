@@ -310,12 +310,7 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
             <p className={styles.eyebrow}>SDK-02 / SDK-03</p>
             <h2 id="sdk-documentation-title">{c.documentation}</h2>
             <p>{c.documentationNote}</p>
-            <a
-              className={styles.heroLink}
-              href={quickstartUrls[locale]}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a className={styles.heroLink} href={quickstartUrls[locale]} target="_blank" rel="noopener noreferrer">
               {c.quickstart} <ArrowRight size={16} aria-hidden />
             </a>
             <p>
