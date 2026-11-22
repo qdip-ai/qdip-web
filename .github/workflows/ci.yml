@@ -34,12 +34,7 @@ jobs:
         run: pnpm lint
 
       - name: Prettier
-        run: |
-          pnpm prettier || {
-            pnpm exec prettier src/components/marketing/sdk-page.tsx --write
-            git diff -- src/components/marketing/sdk-page.tsx
-            exit 1
-          }
+        run: pnpm prettier
 
       - name: Typecheck
         run: pnpm typecheck
