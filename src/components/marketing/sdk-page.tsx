@@ -112,8 +112,7 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     authBody:
       'Завантаження пакета не відкриває доступ до Gateway. Організація, застосунок, capability і scopes ключів перевіряються окремо.',
     integrity: 'Цілісність релізу',
-    integrityBody:
-      'Кожен архів має SHA-256 і прив’язку до ревізії коду в маніфесті релізу.',
+    integrityBody: 'Кожен архів має SHA-256 і прив’язку до ревізії коду в маніфесті релізу.',
     next: 'Почніть із незалежного Worker',
     nextBody:
       'Отримайте перевірені пакети та staging credentials, після чого інтегруйтеся через Gateway. Публічний допуск сторонніх Worker перевіряється окремо.',
@@ -151,8 +150,7 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     authBody:
       'Pobranie pakietu nie daje dostępu do Gateway. Organizacja, aplikacja, capability i zakres uprawnień kluczy są sprawdzane osobno.',
     integrity: 'Integralność wydania',
-    integrityBody:
-      'Każde archiwum ma sumę SHA-256 oraz przypiętą rewizję źródła w manifeście wydania.',
+    integrityBody: 'Każde archiwum ma sumę SHA-256 oraz przypiętą rewizję źródła w manifeście wydania.',
     next: 'Zacznij od niezależnego Workera',
     nextBody:
       'Uzyskaj zweryfikowane pakiety i staging credentials, a następnie integruj się przez Gateway. Publiczne dopuszczanie zewnętrznych Workerów wymaga osobnej kwalifikacji.',
@@ -196,10 +194,17 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
                 <code>pip install --no-index --find-links sdk02/wheels qdip-remote-sdk==0.1.3</code>
               </pre>
               <div className={styles.packageName}>{sdkRelease.artifacts.sdk02.filename}</div>
-              <a className={styles.downloadButton} href={`/sdk/releases/${sdkRelease.artifacts.sdk02.filename}`} download>
+              <a
+                className={styles.downloadButton}
+                href={`/sdk/releases/${sdkRelease.artifacts.sdk02.filename}`}
+                download
+              >
                 <Download size={16} aria-hidden /> {c.download} ZIP
               </a>
-              <div className={styles.packageHash}><strong>SHA-256</strong><code>{sdkRelease.artifacts.sdk02.sha256}</code></div>
+              <div className={styles.packageHash}>
+                <strong>SHA-256</strong>
+                <code>{sdkRelease.artifacts.sdk02.sha256}</code>
+              </div>
             </article>
             <article className={styles.package}>
               <Code2 className={styles.packageIcon} size={26} aria-hidden />
@@ -210,10 +215,17 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
                 <code>npm install ./qdip-client-0.2.0.tgz</code>
               </pre>
               <div className={styles.packageName}>{sdkRelease.artifacts.sdk03.filename}</div>
-              <a className={styles.downloadButton} href={`/sdk/releases/${sdkRelease.artifacts.sdk03.filename}`} download>
+              <a
+                className={styles.downloadButton}
+                href={`/sdk/releases/${sdkRelease.artifacts.sdk03.filename}`}
+                download
+              >
                 <Download size={16} aria-hidden /> {c.download} TGZ
               </a>
-              <div className={styles.packageHash}><strong>SHA-256</strong><code>{sdkRelease.artifacts.sdk03.sha256}</code></div>
+              <div className={styles.packageHash}>
+                <strong>SHA-256</strong>
+                <code>{sdkRelease.artifacts.sdk03.sha256}</code>
+              </div>
             </article>
           </div>
           <div className={styles.releaseNotice} role="status">
@@ -221,7 +233,9 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
             <div>
               <strong>{c.packageStatus}</strong>
               <p>{c.packageNote}</p>
-              <a className={styles.manifestLink} href="/sdk/manifest.json">{c.checksums} · manifest.json</a>
+              <a className={styles.manifestLink} href="/sdk/manifest.json">
+                {c.checksums} · manifest.json
+              </a>
               <span className={styles.commitSha}>{sdkRelease.source_commit}</span>
             </div>
           </div>
