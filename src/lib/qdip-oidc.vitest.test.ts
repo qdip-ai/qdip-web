@@ -118,7 +118,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
       config
     )
     expect(foreignRole.roles).toEqual([])
-    expect(canAccessStudio(foreignRole)).toBe(false)
+    expect(canAccessStudio(foreignRole)).toBe(true)
 
     const both = await verifyIdToken(
       token({
@@ -138,7 +138,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
       config
     )
     expect(canAdministerObservatory(admin)).toBe(true)
-    expect(canAccessStudio(admin)).toBe(false)
+    expect(canAccessStudio(admin)).toBe(true)
     const adminOtherOrg = await verifyIdToken(
       token({ [roleClaim]: { observatory_admin: { '111111111': 'foreign.example.test' } } }),
       flow,
@@ -155,6 +155,8 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     )
     expect(otherOrg.roles).toEqual([])
     expect(isAllowedSession(otherOrg)).toBe(true)
+    expect(canAccessStudio(otherOrg)).toBe(true)
+    expect(canAdministerObservatory(otherOrg)).toBe(false)
 
     const otherProject = await verifyIdToken(
       token({
