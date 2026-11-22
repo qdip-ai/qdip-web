@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight, Code2, Download, ShieldCheck } from 'lucide-react'
 import { DesignSystemProvider } from '@/design-system'
 import { marketingLocaleHref } from '@/lib/platform-urls'
+import sdkRelease from '../../../public/sdk/manifest.json'
 import type { MarketingLocale } from './qdip-copy'
 import { MarketingHeader } from './marketing-header'
 import { MarketingFooter } from './marketing-footer'
@@ -20,6 +21,8 @@ type SdkCopy = {
   clientBody: string
   packageStatus: string
   packageNote: string
+  download: string
+  checksums: string
   install: string
   installIntro: string
   connect: string
@@ -49,12 +52,14 @@ const copy: Record<MarketingLocale, SdkCopy> = {
       'Implement a domain adapter or an owned algorithm. Connect outbound over WSS without exposing a Worker port.',
     clientTitle: 'TypeScript / Node.js client',
     clientBody: 'Discover capabilities, invoke executions and handle typed errors from your backend.',
-    packageStatus: 'Controlled distribution · Public downloads not yet available',
+    packageStatus: 'Versioned SDK downloads · SHA-256 verified',
+    download: 'Download',
+    checksums: 'Checksums and source revision',
     packageNote:
-      'These versions have been built and tested in CI, but release archives have not yet been published on qdip.ai. Do not use a repository checkout or an unverified package as a substitute.',
+      'Both archives are hosted directly on qdip.ai. Verify SHA-256 before installation; downloading them does not grant access to the Gateway.',
     install: 'Install from verified packages',
     installIntro:
-      'An approved operator supplies the versioned archives and their SHA-256 digests. Verify both archives before installation. These examples do not require access to the QDIP Core repository.',
+      'Download the archives, verify their checksums, then extract the Python ZIP before installing from sdk02/wheels. No Core repository access is needed.',
     connect: 'Connect and execute',
     connectBody:
       'Use a scoped Worker key for registration and a separate scoped caller key for invocation. Never embed caller credentials in a browser.',
@@ -69,7 +74,7 @@ const copy: Record<MarketingLocale, SdkCopy> = {
       'A package download never grants Gateway access. Organization, application, capability and credential scope are enforced separately.',
     integrity: 'Release integrity',
     integrityBody:
-      'Published artifacts will be paired with SHA-256 checksums and a pinned source revision. Downloads remain unavailable until the verified release files are hosted.',
+      'Every downloadable file has a published SHA-256 checksum and pinned source revision in the release manifest.',
     next: 'Start with an independently deployable Worker',
     nextBody:
       'Obtain approved SDK packages and staging credentials, then integrate through the Gateway. Public third-party Worker admission is a separate qualification gate.',
@@ -86,12 +91,14 @@ const copy: Record<MarketingLocale, SdkCopy> = {
       'Створюйте доменний адаптер або власний алгоритм. Підключайтеся через вихідний WSS без відкритого порту Worker.',
     clientTitle: 'TypeScript / Node.js клієнт',
     clientBody: 'Отримуйте перелік capabilities, запускайте виконання й обробляйте типізовані помилки на backend.',
-    packageStatus: 'Контрольована дистрибуція · Публічне завантаження ще недоступне',
+    packageStatus: 'Версіоновані SDK · SHA-256 перевірено',
+    download: 'Завантажити',
+    checksums: 'Контрольні суми та ревізія коду',
     packageNote:
-      'Ці версії збиралися та тестувалися в CI, але релізні архіви ще не опубліковані на qdip.ai. Доступ до приватного Core або неперевірені пакети не потрібні.',
+      'Обидва архіви розміщені на qdip.ai. Перевірте SHA-256 перед встановленням; завантаження не надає доступу до Gateway.',
     install: 'Встановлення з перевірених пакетів',
     installIntro:
-      'Уповноважений оператор надає версіоновані архіви та їхні SHA-256. Перевірте обидва архіви перед встановленням. Доступ до репозиторію QDIP Core не потрібен.',
+      'Завантажте архіви, перевірте їхні SHA-256 і розпакуйте Python ZIP перед встановленням з каталогу sdk02/wheels. Доступ до Core не потрібен.',
     connect: 'Підключення та виконання',
     connectBody:
       'Для реєстрації використовуйте scoped Worker key, для викликів — окремий scoped caller key. Не передавайте caller credentials у браузер.',
@@ -106,7 +113,7 @@ const copy: Record<MarketingLocale, SdkCopy> = {
       'Завантаження пакета не відкриває доступ до Gateway. Організація, застосунок, capability і scopes ключів перевіряються окремо.',
     integrity: 'Цілісність релізу',
     integrityBody:
-      'Опубліковані архіви повинні мати SHA-256 та прив’язку до source revision. Посилань на завантаження не буде до перевіреного розміщення файлів.',
+      'Кожен архів має SHA-256 і прив’язку до ревізії коду в маніфесті релізу.',
     next: 'Почніть із незалежного Worker',
     nextBody:
       'Отримайте перевірені пакети та staging credentials, після чого інтегруйтеся через Gateway. Публічний допуск сторонніх Worker перевіряється окремо.',
@@ -123,12 +130,14 @@ const copy: Record<MarketingLocale, SdkCopy> = {
       'Zaimplementuj adapter domenowy lub własny algorytm. Łącz się wychodząco przez WSS bez otwierania portu Workera.',
     clientTitle: 'Klient TypeScript / Node.js',
     clientBody: 'Odkrywaj capabilities, uruchamiaj wykonania i obsługuj typowane błędy w backendzie.',
-    packageStatus: 'Dystrybucja kontrolowana · Publiczne pobieranie jeszcze niedostępne',
+    packageStatus: 'Wersjonowane SDK · Zweryfikowane SHA-256',
+    download: 'Pobierz',
+    checksums: 'Sumy kontrolne i rewizja źródła',
     packageNote:
-      'Te wersje zostały zbudowane i przetestowane w CI, ale archiwa wydań nie zostały jeszcze opublikowane na qdip.ai. Dostęp do prywatnego repozytorium Core nie jest wymagany.',
+      'Oba archiwa są dostępne bezpośrednio na qdip.ai. Sprawdź SHA-256 przed instalacją; pobranie nie daje dostępu do Gateway.',
     install: 'Instalacja ze zweryfikowanych pakietów',
     installIntro:
-      'Uprawniony operator przekazuje wersjonowane archiwa i sumy SHA-256. Sprawdź oba archiwa przed instalacją. Nie potrzebujesz dostępu do repozytorium QDIP Core.',
+      'Pobierz archiwa, sprawdź SHA-256 i rozpakuj Python ZIP przed instalacją z katalogu sdk02/wheels. Repozytorium Core nie jest wymagane.',
     connect: 'Połączenie i wykonanie',
     connectBody:
       'Użyj scoped Worker key do rejestracji i osobnego scoped caller key do wywołań. Nie umieszczaj credentials w przeglądarce.',
@@ -143,7 +152,7 @@ const copy: Record<MarketingLocale, SdkCopy> = {
       'Pobranie pakietu nie daje dostępu do Gateway. Organizacja, aplikacja, capability i zakres uprawnień kluczy są sprawdzane osobno.',
     integrity: 'Integralność wydania',
     integrityBody:
-      'Opublikowane artefakty muszą zawierać sumy SHA-256 oraz powiązanie z rewizją źródła. Linki do pobrania pojawią się po weryfikacji plików.',
+      'Każde archiwum ma sumę SHA-256 oraz przypiętą rewizję źródła w manifeście wydania.',
     next: 'Zacznij od niezależnego Workera',
     nextBody:
       'Uzyskaj zweryfikowane pakiety i staging credentials, a następnie integruj się przez Gateway. Publiczne dopuszczanie zewnętrznych Workerów wymaga osobnej kwalifikacji.',
@@ -184,19 +193,27 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
               <h3>{c.workerTitle}</h3>
               <p>{c.workerBody}</p>
               <pre>
-                <code>pip install --no-index --find-links wheels qdip-remote-sdk==0.1.3</code>
+                <code>pip install --no-index --find-links sdk02/wheels qdip-remote-sdk==0.1.3</code>
               </pre>
-              <div className={styles.packageName}>qdip-sdk02-bundle-0.1.3.zip</div>
+              <div className={styles.packageName}>{sdkRelease.artifacts.sdk02.filename}</div>
+              <a className={styles.downloadButton} href={`/sdk/releases/${sdkRelease.artifacts.sdk02.filename}`} download>
+                <Download size={16} aria-hidden /> {c.download} ZIP
+              </a>
+              <div className={styles.packageHash}><strong>SHA-256</strong><code>{sdkRelease.artifacts.sdk02.sha256}</code></div>
             </article>
             <article className={styles.package}>
               <Code2 className={styles.packageIcon} size={26} aria-hidden />
-              <div className={styles.packageVersion}>SDK-03 · v0.1.2 · Node.js</div>
+              <div className={styles.packageVersion}>SDK-03 · v{sdkRelease.artifacts.sdk03.version} · Node.js</div>
               <h3>{c.clientTitle}</h3>
               <p>{c.clientBody}</p>
               <pre>
-                <code>npm install ./qdip-client-0.1.2.tgz</code>
+                <code>npm install ./qdip-client-0.2.0.tgz</code>
               </pre>
-              <div className={styles.packageName}>qdip-client-0.1.2.tgz</div>
+              <div className={styles.packageName}>{sdkRelease.artifacts.sdk03.filename}</div>
+              <a className={styles.downloadButton} href={`/sdk/releases/${sdkRelease.artifacts.sdk03.filename}`} download>
+                <Download size={16} aria-hidden /> {c.download} TGZ
+              </a>
+              <div className={styles.packageHash}><strong>SHA-256</strong><code>{sdkRelease.artifacts.sdk03.sha256}</code></div>
             </article>
           </div>
           <div className={styles.releaseNotice} role="status">
@@ -204,6 +221,8 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
             <div>
               <strong>{c.packageStatus}</strong>
               <p>{c.packageNote}</p>
+              <a className={styles.manifestLink} href="/sdk/manifest.json">{c.checksums} · manifest.json</a>
+              <span className={styles.commitSha}>{sdkRelease.source_commit}</span>
             </div>
           </div>
         </section>
