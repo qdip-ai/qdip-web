@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qdip-remote-sdk"
+version = "0.1.3"
+description = "Outbound, independently running QDIP remote decision adapter SDK"
+requires-python = ">=3.11"
+dependencies = ["websockets>=14,<17"]
+
+[project.scripts]
+qdip-worker = "qdip_remote_sdk.worker:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
