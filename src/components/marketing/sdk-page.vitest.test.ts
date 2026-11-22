@@ -48,8 +48,9 @@ describe('public SDK marketing surface', () => {
     expect(manifest.source_commit).toMatch(/^[a-f0-9]{40}$/)
     expect(Object.keys(manifest.artifacts).sort()).toEqual(['sdk02', 'sdk03'])
     for (const [key, item] of Object.entries(manifest.artifacts)) {
-      expect(item.filename).toMatch(/^qdip-[a-z0-9-]+\.(?:zip|tgz)$/)
+      expect(item.filename).toMatch(/^qdip-[a-z0-9.-]+\.(?:zip|tgz)$/)
       expect(item.url).toBe('https://qdip.ai/sdk/releases/' + item.filename)
+      expect(item.filename).not.toContain('..')
       expect(item.sha256).toMatch(/^[a-f0-9]{64}$/)
       const data = readFileSync('public/sdk/releases/' + item.filename)
       expect(data.length).toBe(item.size_bytes)
@@ -57,6 +58,7 @@ describe('public SDK marketing surface', () => {
       expect(key === 'sdk02' ? data.subarray(0, 2).toString() : data[0]).toBe(key === 'sdk02' ? 'PK' : 31)
     }
     expect(manifest.artifacts.sdk02.version).toBe('0.1.3')
+    expect(manifest.artifacts.sdk02.platform).toBe('CPython 3.11 / Linux x86_64')
     expect(manifest.artifacts.sdk03.version).toBe('0.2.0')
   })
 })
