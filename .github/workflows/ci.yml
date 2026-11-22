@@ -34,7 +34,12 @@ jobs:
         run: pnpm lint
 
       - name: Prettier
-        run: pnpm prettier
+        run: |
+          pnpm prettier || {
+            pnpm exec prettier src/components/marketing/sdk-page.tsx 'src/app/platform/[locale]/[...slug]/page.tsx' --write
+            git diff -- src/components/marketing/sdk-page.tsx 'src/app/platform/[locale]/[...slug]/page.tsx'
+            exit 1
+          }
 
       - name: Typecheck
         run: pnpm typecheck
