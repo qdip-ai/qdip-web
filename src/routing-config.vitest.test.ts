@@ -78,9 +78,7 @@ describe('declarative platform routing', () => {
 
     expect(fallback?.permanent).toBe(true) // Next.js serves permanent redirects as HTTP 308.
     const matches = (host: string) =>
-      (fallback?.has ?? []).every(
-        ({ type, value }) => type === 'host' && new RegExp(value ?? 'a^').test(host)
-      ) &&
+      (fallback?.has ?? []).every(({ type, value }) => type === 'host' && new RegExp(value ?? 'a^').test(host)) &&
       (fallback?.missing ?? []).every(
         ({ type, value }) => type !== 'host' || !new RegExp(value ?? 'a^').test(host)
       )
@@ -104,5 +102,4 @@ describe('declarative platform routing', () => {
       expect(matches(host), host).toBe(false)
     }
   })
-
 })
