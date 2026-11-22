@@ -189,7 +189,7 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
           <div className={styles.packageGrid}>
             <article className={styles.package}>
               <Code2 className={styles.packageIcon} size={26} aria-hidden />
-              <div className={styles.packageVersion}>SDK-02 · v0.1.3 · Python 3.11+</div>
+              <div className={styles.packageVersion}>SDK-02 · v0.1.3 · CPython 3.11 / Linux x86_64</div>
               <h3>{c.workerTitle}</h3>
               <p>{c.workerBody}</p>
               <pre>
