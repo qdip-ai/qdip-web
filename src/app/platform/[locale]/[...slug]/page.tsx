@@ -25,7 +25,7 @@ const seo: Record<MarketingLocale, SeoCopy> = {
   en: {
     sdk: {
       title: 'QDIP SDK — Python Worker and TypeScript client',
-            description:
+      description:
         'Build independent decision applications using SDK-02 Python Worker and SDK-03 TypeScript client with QDIP Gateway and managed Kernel.',
     },
     'how-it-works': {
@@ -69,7 +69,7 @@ const seo: Record<MarketingLocale, SeoCopy> = {
   uk: {
     sdk: {
       title: 'QDIP SDK — Python Worker і TypeScript клієнт',
-            description:
+      description:
         'Розробляйте незалежні застосунки рішень через SDK-02 Python Worker і SDK-03 TypeScript клієнт, Gateway та Managed Kernel QDIP.',
     },
     'how-it-works': {
@@ -111,7 +111,7 @@ const seo: Record<MarketingLocale, SeoCopy> = {
   pl: {
     sdk: {
       title: 'QDIP SDK — Python Worker i klient TypeScript',
-            description:
+      description:
         'Twórz niezależne aplikacje decyzyjne z SDK-02 Python Worker, SDK-03 TypeScript, Gateway i zarządzanym Kernelem QDIP.',
     },
     'how-it-works': {
