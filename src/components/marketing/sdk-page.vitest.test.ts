@@ -46,6 +46,16 @@ describe('public SDK marketing surface', () => {
     expect(source).toContain('scoped Worker key')
   })
 
+  it('links to existing public SDK documentation in the selected language', () => {
+    for (const locale of ['en', 'uk', 'pl']) {
+      expect(source).toContain('https://github.com/qdip-ai/qdip-docs/blob/main/docs/sdk/quickstart.' + locale + '.md')
+    }
+    expect(source).toContain('https://github.com/qdip-ai/qdip-docs/blob/main/docs/sdk/README.md')
+    expect(source).toContain('href={quickstartUrls[locale]}')
+    expect(source).toContain('href={sdkDocsIndex}')
+    expect(source).toContain('rel="noopener noreferrer"')
+  })
+
   it('only publishes present archives matching the immutable SHA-256 manifest', () => {
     expect(manifest.schema_version).toBe(1)
     expect(manifest.source_commit).toMatch(/^[a-f0-9]{40}$/)

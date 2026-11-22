@@ -38,7 +38,19 @@ type SdkCopy = {
   next: string
   nextBody: string
   readArchitecture: string
+  documentation: string
+  documentationNote: string
+  quickstart: string
+  docsIndex: string
 }
+
+const quickstartUrls: Record<MarketingLocale, string> = {
+  en: 'https://github.com/qdip-ai/qdip-docs/blob/main/docs/sdk/quickstart.en.md',
+  uk: 'https://github.com/qdip-ai/qdip-docs/blob/main/docs/sdk/quickstart.uk.md',
+  pl: 'https://github.com/qdip-ai/qdip-docs/blob/main/docs/sdk/quickstart.pl.md',
+}
+
+const sdkDocsIndex = 'https://github.com/qdip-ai/qdip-docs/blob/main/docs/sdk/README.md'
 
 const copy: Record<MarketingLocale, SdkCopy> = {
   en: {
@@ -79,6 +91,11 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     nextBody:
       'Obtain approved SDK packages and staging credentials, then integrate through the Gateway. Public third-party Worker admission is a separate qualification gate.',
     readArchitecture: 'Explore QDIP Core',
+    documentation: 'SDK documentation',
+    documentationNote:
+      'Quickstart for Python Worker and the Node.js caller, with integration examples. Gateway access requires separate approval and scoped credentials.',
+    quickstart: 'Read the integration quickstart',
+    docsIndex: 'SDK documentation index',
   },
   uk: {
     eyebrow: 'Платформа розробника / SDK',
@@ -117,6 +134,11 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     nextBody:
       'Отримайте перевірені пакети та staging credentials, після чого інтегруйтеся через Gateway. Публічний допуск сторонніх Worker перевіряється окремо.',
     readArchitecture: 'Архітектура QDIP Core',
+    documentation: 'Документація SDK',
+    documentationNote:
+      'Швидкий старт для Python Worker і Node.js клієнта з прикладами інтеграції. Доступ до Gateway потребує окремого допуску та scoped credentials.',
+    quickstart: 'Читати інструкцію з інтеграції',
+    docsIndex: 'Індекс документації SDK',
   },
   pl: {
     eyebrow: 'Platforma deweloperska / SDK',
@@ -155,6 +177,11 @@ const copy: Record<MarketingLocale, SdkCopy> = {
     nextBody:
       'Uzyskaj zweryfikowane pakiety i staging credentials, a następnie integruj się przez Gateway. Publiczne dopuszczanie zewnętrznych Workerów wymaga osobnej kwalifikacji.',
     readArchitecture: 'Architektura QDIP Core',
+    documentation: 'Dokumentacja SDK',
+    documentationNote:
+      'Szybki start dla Python Worker i klienta Node.js z przykładami integracji. Dostęp do Gateway wymaga osobnej zgody i scoped credentials.',
+    quickstart: 'Czytaj przewodnik integracji',
+    docsIndex: 'Indeks dokumentacji SDK',
   },
 }
 
@@ -275,6 +302,22 @@ export function SdkPage({ locale }: { locale: MarketingLocale }) {
               <h3>{c.integrity}</h3>
               <p>{c.integrityBody}</p>
             </article>
+          </div>
+        </section>
+
+        <section className={styles.section} id="documentation" aria-labelledby="sdk-documentation-title">
+          <div className={styles.sectionHeading}>
+            <p className={styles.eyebrow}>SDK-02 / SDK-03</p>
+            <h2 id="sdk-documentation-title">{c.documentation}</h2>
+            <p>{c.documentationNote}</p>
+            <a className={styles.heroLink} href={quickstartUrls[locale]} target="_blank" rel="noopener noreferrer">
+              {c.quickstart} <ArrowRight size={16} aria-hidden />
+            </a>
+            <p>
+              <a className={styles.manifestLink} href={sdkDocsIndex} target="_blank" rel="noopener noreferrer">
+                {c.docsIndex}
+              </a>
+            </p>
           </div>
         </section>
 
