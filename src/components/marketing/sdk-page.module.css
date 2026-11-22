@@ -235,3 +235,54 @@
     transform: rotate(90deg);
   }
 }
+
+.downloadButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  min-height: 44px;
+  margin-top: var(--ds-space-4);
+  padding: var(--ds-space-2) var(--ds-space-4);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-action);
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  font-size: var(--ds-text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.downloadButton:hover {
+  border-color: var(--ds-accent);
+}
+
+.packageHash {
+  display: grid;
+  min-width: 0;
+  gap: var(--ds-space-2);
+  margin-top: var(--ds-space-5);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-text-xs);
+}
+
+.packageHash code,
+.commitSha {
+  font-family: monospace;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.manifestLink {
+  display: inline-block;
+  margin-top: var(--ds-space-3);
+  color: var(--ds-accent);
+  font-size: var(--ds-text-sm);
+  font-weight: 700;
+}
+
+.commitSha {
+  display: block;
+  margin-top: var(--ds-space-2);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-text-xs);
+}
