@@ -86,8 +86,10 @@ export function oidcConfigured() {
 // The server trusts only permissions derived from verified project- and org-bound
 // Zitadel ID-token claims and stored in the signed, short-lived session cookie.
 // The subject alone NEVER grants access.
+// Personal Studio is available to every verified QDIP user.
+// Privileged Observatory management still requires an explicit admin role.
 export function canAccessStudio(session: Session) {
-  return validRoles(session.roles) && session.roles.includes('studio')
+  return validRoles(session.roles)
 }
 
 export function canAdministerObservatory(session: Session) {
