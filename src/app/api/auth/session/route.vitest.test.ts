@@ -67,9 +67,17 @@ describe('global OIDC session endpoint with reverse proxy Host', () => {
     expect(body).toMatchObject({ authenticated: true, studio: true, observatoryAdmin: true })
     const ordinary = GET(proxiedRequest('observatory.localhost:3000', 'ordinary-user'))
     expect(ordinary.status).toBe(200)
-    await expect(ordinary.json()).resolves.toMatchObject({ authenticated: true, studio: true, observatoryAdmin: false })
+    await expect(ordinary.json()).resolves.toMatchObject({
+      authenticated: true,
+      studio: true,
+      observatoryAdmin: false,
+    })
     const anonymous = GET(proxiedRequest('observatory.localhost:3000'))
-    await expect(anonymous.json()).resolves.toMatchObject({ authenticated: false, studio: false, observatoryAdmin: false })
+    await expect(anonymous.json()).resolves.toMatchObject({
+      authenticated: false,
+      studio: false,
+      observatoryAdmin: false,
+    })
     expect(body).not.toHaveProperty('operator')
   })
 
