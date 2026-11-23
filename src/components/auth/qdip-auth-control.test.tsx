@@ -76,6 +76,20 @@ describe('QDIP shared authentication control', () => {
     expect(screen.getByRole('button', { name: 'Вийти' })).toBeInTheDocument()
   })
 
+  it('renders the verified OIDC picture in the account button', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        configured: true, authenticated: true, studio: true,
+        user: { id: 'qa-id', displayName: 'QA Tester', email: 'qa@qdip.ai', picture: 'https://identity.example.test/avatar.png' },
+      }),
+    })))
+    render(<QdipAuthControl locale="en" returnTo="https://observatory.qdip.ai/en" showProfile />)
+    const avatar = await screen.findByRole('button', { name: 'Account: QA Tester' })
+    expect(avatar.querySelector('img')).toHaveAttribute('src', 'https://identity.example.test/avatar.png')
+    expect(avatar.querySelector('svg')).toBeNull()
+  })
+
   it('does not show a technical ID even when the OIDC session has no display identity', async () => {
     vi.stubGlobal(
       'fetch',
