@@ -372,7 +372,9 @@ function identityFromClaims(claims: Record<string, unknown>) {
     try {
       const url = new URL(picture)
       return url.protocol === 'https:' && !url.username && !url.password
-    } catch { return false }
+    } catch {
+      return false
+    }
   })()
   return {
     ...(displayName ? { displayName } : {}),
@@ -501,7 +503,8 @@ export function getQdipSession(value: string | undefined): Session | null {
     typeof session.sub !== 'string' ||
     (session.displayName !== undefined && safeIdentityLabel(session.displayName, 160) !== session.displayName) ||
     (session.email !== undefined && safeIdentityLabel(session.email, 254) !== session.email) ||
-    (session.picture !== undefined && identityFromClaims({ picture: session.picture }).picture !== session.picture) ||
+    (session.picture !== undefined &&
+      identityFromClaims({ picture: session.picture }).picture !== session.picture) ||
     !validRoles(session.roles) ||
     session.sub.length === 0 ||
     session.issuer !== configuredIssuer() ||
