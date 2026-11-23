@@ -115,7 +115,7 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
             <div className={styles.ecosystemActions}>
               <MarketingTrackedLink event="marketing_demo_click" locale={locale} placement="serviceops_home_case"
                 href={path(locale, 'serviceops')}>
-                {service.guideLink} <ArrowRight size={15} aria-hidden="true" />
+                {service.caseLink} <ArrowRight size={15} aria-hidden="true" />
               </MarketingTrackedLink>
               <MarketingTrackedLink event="marketing_demo_click" locale={locale} placement="serviceops_home_demo"
                 href={SERVICEOPS_URLS.ownerDemo}>

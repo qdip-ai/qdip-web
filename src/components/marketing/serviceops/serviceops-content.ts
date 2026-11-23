@@ -17,6 +17,7 @@ type Copy = {
   audience: string
   primary: string
   guideLink: string
+  caseLink: string
   pilotLink: string
   appLink: string
   featuresTitle: string
@@ -54,6 +55,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     audience: 'Built for service teams with repeatable jobs, including repair shops, cleaning, installation and on-site services.',
     primary: 'Explore the working demo',
     guideLink: 'User guide',
+    caseLink: 'Explore ServiceOps',
     pilotLink: 'Discuss a ServiceOps pilot',
     appLink: 'Existing account sign in',
     featuresTitle: 'A connected workflow for three roles',
@@ -158,6 +160,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     audience: 'Для сервісного бізнесу з повторюваними замовленнями: СТО, клінінг, монтаж, ремонт і виїзне обслуговування.',
     primary: 'Відкрити інтерактивне демо',
     guideLink: 'Інструкція користувача',
+    caseLink: 'Переглянути кейс',
     pilotLink: 'Обговорити пілот ServiceOps',
     appLink: 'Вхід для чинних користувачів',
     featuresTitle: 'Один процес — три інтерфейси',
@@ -262,6 +265,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     audience: 'Dla firm usługowych z powtarzalnymi zleceniami: warsztatów, firm sprzątających, instalacyjnych, naprawczych i mobilnych.',
     primary: 'Otwórz interaktywne demo',
     guideLink: 'Instrukcja użytkownika',
+    caseLink: 'Poznaj ServiceOps',
     pilotLink: 'Porozmawiajmy o pilotażu ServiceOps',
     appLink: 'Logowanie dla obecnych użytkowników',
     featuresTitle: 'Jeden proces — trzy interfejsy',
