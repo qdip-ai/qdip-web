@@ -46,6 +46,7 @@ describe('ServiceOps public application case and funnel', () => {
     expect(form).toContain("fetch('/api/decision-inquiry'")
     expect(page).toContain('variant="serviceops"')
     expect(page).toContain('SERVICEOPS_URLS.ownerDemo')
+    expect(page).toContain('ServiceOpsFunnelView')
     expect(page).not.toContain('guaranteed')
   })
 

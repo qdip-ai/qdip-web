@@ -6,6 +6,7 @@ import { MarketingHeader } from '../marketing-header'
 import { MarketingFooter } from '../marketing-footer'
 import { MarketingTrackedLink } from '../marketing-analytics'
 import { DecisionInquiryForm } from '../decision-inquiry-form'
+import { ServiceOpsFunnelView } from './serviceops-funnel-view'
 import type { MarketingLocale } from '../qdip-copy'
 import { SERVICEOPS_URLS, serviceOpsCopy } from './serviceops-content'
 import styles from './serviceops-page.module.css'
@@ -28,6 +29,7 @@ export function ServiceOpsPage({ locale, guide = false }: { locale: MarketingLoc
     <DesignSystemProvider theme="burgundy" mode="dark" className={styles.root + ' ' + atmosphere.atmosphere + ' ' + burgundy.theme}>
       <main id="main-content" lang={locale}>
         <MarketingHeader locale={locale} currentPath={guide ? 'serviceops/guide' : 'serviceops'} />
+        <ServiceOpsFunnelView locale={locale} page={guide ? 'guide' : 'case'} />
         {guide ? (
           <>
             <section className={styles.hero}>

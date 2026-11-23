@@ -42,7 +42,7 @@ Audience: owners/operators of small service businesses, especially Ukrainian-spe
 
 ## Funnel map
 
-1. Discover: qdip.ai/{locale} ecosystem card or /{locale}/use-cases; placements serviceops_home_case and serviceops_usecases_case.
+1. Discover: qdip.ai/{locale} ecosystem card or /{locale}/use-cases; placements serviceops_home_case and serviceops_usecases_case. The destination emits marketing_serviceops_page_view with placement case, and the guide emits the same event with placement guide.
 2. Understand: /{locale}/serviceops; role comparison, 12 templates, status boundary.
 3. Explore: ops.qdip.ai/demo/owner, /demo/worker, /demo/customer; browser-local isolated simulation without sign-in. Demo clicks captured via existing marketing_demo_click placements serviceops_demo_owner/worker/customer.
 4. Learn: /{locale}/serviceops/guide; 8 detailed sections about real access, setup, worker offline and customer tokens.
