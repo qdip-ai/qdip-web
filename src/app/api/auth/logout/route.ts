@@ -27,7 +27,10 @@ export function POST(request: NextRequest) {
   if (!scheme || request.headers.get('origin') !== `${scheme}//${host.toLowerCase()}`)
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const response = NextResponse.json(
-    { authenticated: false, logoutUrl: oidcEndSessionUrl() },
+    {
+      authenticated: false,
+      logoutUrl: oidcEndSessionUrl(scheme === 'https:' && host.toLowerCase() === 'observatory.qdip.ai'),
+    },
     { headers: { 'Cache-Control': 'no-store' } }
   )
   clearSession(response, request)
