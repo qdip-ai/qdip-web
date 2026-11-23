@@ -21,7 +21,7 @@ type AuthSession = {
   authenticated: boolean
   studio: boolean
   observatoryAdmin?: boolean
-  user?: { id: string; displayName: string | null; email: string | null }
+  user?: { id: string; displayName: string | null; email: string | null; picture?: string | null }
 }
 
 const labels = {
@@ -190,7 +190,13 @@ export function QdipAuthControl({
           aria-expanded={profileOpen}
           onClick={() => setProfileOpen((open) => !open)}
         >
-          <UserRound size={22} aria-hidden />
+          {identity?.picture ? (
+            // OIDC picture URL is validated server-side before entering the signed session.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={identity.picture} alt="" className={styles.profileAvatar} referrerPolicy="no-referrer" />
+          ) : (
+            <UserRound size={22} aria-hidden />
+          )}
         </button>
         {profileOpen &&
           profilePlacement &&
