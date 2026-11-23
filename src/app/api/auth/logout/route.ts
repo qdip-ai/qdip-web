@@ -26,10 +26,20 @@ export function POST(request: NextRequest) {
   const scheme = secure ? 'https:' : request.nextUrl.protocol === 'http:' && localHost ? 'http:' : null
   if (!scheme || request.headers.get('origin') !== `${scheme}//${host.toLowerCase()}`)
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const returnSurface =
+    scheme !== 'https:'
+      ? undefined
+      : host.toLowerCase() === 'qdip.ai'
+        ? 'site'
+        : host.toLowerCase() === 'studio.qdip.ai'
+          ? 'studio'
+          : host.toLowerCase() === 'observatory.qdip.ai'
+            ? 'observatory'
+            : undefined
   const response = NextResponse.json(
     {
       authenticated: false,
-      logoutUrl: oidcEndSessionUrl(scheme === 'https:' && host.toLowerCase() === 'observatory.qdip.ai'),
+      logoutUrl: oidcEndSessionUrl(returnSurface),
     },
     { headers: { 'Cache-Control': 'no-store' } }
   )
