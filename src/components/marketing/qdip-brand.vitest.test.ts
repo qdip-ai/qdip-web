@@ -28,17 +28,27 @@ describe('QDIP ecosystem showcase', () => {
     expect(homepage).toContain('{c.ecosystem.heading}')
     expect(homepage).toContain('{c.ecosystem.description}')
     expect(homepage).toContain('{c.ecosystem.cta}')
-    expect(homepage).toContain('src="/brands/dzvin-wordmark.png"')
+    expect(homepage).toContain('src="/brands/dzvin-wordmark.svg"')
     expect(homepage).toContain('alt="Dzvin.co"')
   })
 
-  it('ships the branded wordmark as an actual local PNG asset', () => {
-    const file = readFileSync('public/brands/dzvin-wordmark.png')
-    expect(Array.from(file.subarray(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10])
-    expect(file.byteLength).toBeGreaterThan(1000)
-    // Cropped to painted pixels; the original PNG had transparent margins.
-    expect(file.readUInt32BE(16)).toBe(287)
-    expect(file.readUInt32BE(20)).toBe(68)
+  it('ships self-contained vector wordmarks with matching glyph outlines', () => {
+    const light = readFileSync('public/brands/dzvin-wordmark.svg', 'utf8')
+    const dark = readFileSync('public/brands/dzvin-wordmark-dark.svg', 'utf8')
+    const lightPaths = [...light.matchAll(/<path[^>]* d="([^"]+)"/g)].map((match) => match[1])
+    const darkPaths = [...dark.matchAll(/<path[^>]* d="([^"]+)"/g)].map((match) => match[1])
+
+    expect(light).toContain('<svg xmlns="http://www.w3.org/2000/svg"')
+    expect(dark).toContain('<svg xmlns="http://www.w3.org/2000/svg"')
+    expect(lightPaths).toHaveLength(2) // peach brand shadow + purple wordmark
+    expect(darkPaths).toHaveLength(1)
+    expect(lightPaths[0]).toBe(lightPaths[1])
+    expect(lightPaths[1]).toBe(darkPaths[0])
+    expect(darkPaths[0]).toMatch(/^M[0-9]/)
+    expect(darkPaths[0].length).toBeGreaterThan(4000)
+    for (const svg of [light, dark]) {
+      expect(svg).not.toMatch(/<image\b|data:image\/|<text\b|@font-face/i)
+    }
   })
 
   it('keeps the wordmark above its category without a white label panel', () => {
@@ -49,7 +59,7 @@ describe('QDIP ecosystem showcase', () => {
     expect(homepage).toContain('<span className={styles.ecosystemCategory}>')
     expect(homepage).toContain('width={144} height={34}')
     expect(marketingStyles).toMatch(
-      /\.ecosystemBrand img\s*\{[^}]*content:\s*url\('\/brands\/dzvin-wordmark-dark\.png'\)/
+      /\.ecosystemBrand img\s*\{[^}]*content:\s*url\('\/brands\/dzvin-wordmark-dark\.svg'\)/
     )
     expect(marketingStyles).toMatch(/data-marketing-appearance='light'[^}]*content:\s*normal/)
   })
