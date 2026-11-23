@@ -57,7 +57,12 @@ describe('global OIDC session endpoint with reverse proxy Host', () => {
       authenticated: true,
       studio: true,
       observatoryAdmin: false,
-      user: { id: 'studio-only', displayName: 'QA Tester', email: 'qa@qdip.ai', picture: 'https://identity.example.test/avatar.png' },
+      user: {
+        id: 'studio-only',
+        displayName: 'QA Tester',
+        email: 'qa@qdip.ai',
+        picture: 'https://identity.example.test/avatar.png',
+      },
     })
   })
 
