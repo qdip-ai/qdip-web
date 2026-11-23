@@ -5,6 +5,8 @@ const pages = [
   'how-it-works',
   'sdk',
   'use-cases',
+  'serviceops',
+  'serviceops/guide',
   'decision',
   'core',
   'core/architecture',

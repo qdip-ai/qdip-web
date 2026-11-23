@@ -1428,3 +1428,21 @@
     display: none;
   }
 }
+
+
+/* Ecosystem applications stay separate from the canonical QDIP Decision Engine demos. */
+.ecosystemActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-space-4);
+}
+.ecosystemActions > a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--ds-space-2);
+  color: var(--accent);
+  font-weight: 650;
+}
+#serviceops { scroll-margin-top: 96px; }
