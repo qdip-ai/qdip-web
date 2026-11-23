@@ -79,13 +79,16 @@ function validRoles(value: unknown): value is Role[] {
   )
 }
 
-/** RP-initiated Zitadel SSO sign-out. No unregistered post-logout redirect URI. */
-export function oidcEndSessionUrl(): string | null {
+/** RP-initiated Zitadel SSO sign-out; return URI must be pre-registered for QDIP Web in Zitadel. */
+export function oidcEndSessionUrl(returnToObservatory = false): string | null {
   const issuer = configuredIssuer()
   const clientId = process.env.ZITADEL_CLIENT_ID?.trim()
   if (!issuer || !clientId) return null
   const url = new URL('/oidc/v1/end_session', issuer)
   url.searchParams.set('client_id', clientId)
+  if (returnToObservatory) {
+    url.searchParams.set('post_logout_redirect_uri', 'https://observatory.qdip.ai/')
+  }
   return url.toString()
 }
 
