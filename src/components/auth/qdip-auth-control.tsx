@@ -194,7 +194,9 @@ export function QdipAuthControl({
             // OIDC picture URL is validated server-side before entering the signed session.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={identity.picture} alt="" className={styles.profileAvatar} referrerPolicy="no-referrer" />
-          ) : <UserRound size={22} aria-hidden />}
+          ) : (
+            <UserRound size={22} aria-hidden />
+          )}
         </button>
         {profileOpen &&
           profilePlacement &&
