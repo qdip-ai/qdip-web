@@ -64,7 +64,11 @@ QDIP reuses the existing Zitadel instance with a separate Web Application. Use
 and client ID `ZITADEL_CLIENT_ID`. There is no client secret.
 
 Configure the application's **exact** login redirect URI:
-`https://qdip.ai/api/auth/callback/zitadel`. A single callback on the main
+`https://qdip.ai/api/auth/callback/zitadel`. Register the **exact** additional
+Post Logout Redirect URI `https://observatory.qdip.ai/` on the same QDIP Web OIDC
+application: after global sign-out, Observatory returns to its public homepage.
+This URI must be registered in Zitadel before deploying the logout redirect.
+A single login callback on the main
 domain is sufficient: login sets a secure, HttpOnly session cookie scoped to
 `qdip.ai` and available to `studio.qdip.ai` and `observatory.qdip.ai`.
 Identity is verified from Zitadel's signed ID token (JWKS, issuer, audience,
