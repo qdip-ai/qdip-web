@@ -799,7 +799,7 @@
   display: block;
   max-width: 100%;
   height: auto;
-  content: url('/brands/dzvin-wordmark-dark.png');
+  content: url('/brands/dzvin-wordmark-dark.svg');
 }
 .site:global([data-marketing-appearance='light']) .ecosystemBrand img {
   content: normal;
