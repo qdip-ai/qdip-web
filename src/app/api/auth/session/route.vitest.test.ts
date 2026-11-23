@@ -31,6 +31,7 @@ function signedSession(sub: string) {
     expiresAt: Math.floor(Date.now() / 1000) + 300,
     displayName: 'QA Tester',
     email: 'qa@qdip.ai',
+    picture: 'https://identity.example.test/avatar.png',
   })
   const token = response.cookies.get('qdip_oidc_session')?.value
   if (!token) throw new Error('Missing signed OIDC session')
@@ -56,15 +57,33 @@ describe('global OIDC session endpoint with reverse proxy Host', () => {
       authenticated: true,
       studio: true,
       observatoryAdmin: false,
-      user: { id: 'studio-only', displayName: 'QA Tester', email: 'qa@qdip.ai' },
+      user: {
+        id: 'studio-only',
+        displayName: 'QA Tester',
+        email: 'qa@qdip.ai',
+        picture: 'https://identity.example.test/avatar.png',
+      },
     })
   })
 
-  it('enforces disjoint Studio and Observatory admin authorization on the same signed session', async () => {
+  it('grants personal Studio to all signed-in users without granting Observatory admin rights', async () => {
     const response = GET(proxiedRequest('observatory.localhost:3000', 'admin-only'))
     expect(response.status).toBe(200)
     const body = await response.json()
-    expect(body).toMatchObject({ authenticated: true, studio: false, observatoryAdmin: true })
+    expect(body).toMatchObject({ authenticated: true, studio: true, observatoryAdmin: true })
+    const ordinary = GET(proxiedRequest('observatory.localhost:3000', 'ordinary-user'))
+    expect(ordinary.status).toBe(200)
+    await expect(ordinary.json()).resolves.toMatchObject({
+      authenticated: true,
+      studio: true,
+      observatoryAdmin: false,
+    })
+    const anonymous = GET(proxiedRequest('observatory.localhost:3000'))
+    await expect(anonymous.json()).resolves.toMatchObject({
+      authenticated: false,
+      studio: false,
+      observatoryAdmin: false,
+    })
     expect(body).not.toHaveProperty('operator')
   })
 

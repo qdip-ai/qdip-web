@@ -21,7 +21,7 @@ type AuthSession = {
   authenticated: boolean
   studio: boolean
   observatoryAdmin?: boolean
-  user?: { id: string; displayName: string | null; email: string | null }
+  user?: { id: string; displayName: string | null; email: string | null; picture?: string | null }
 }
 
 const labels = {
@@ -164,9 +164,11 @@ export function QdipAuthControl({
         cache: 'no-store',
       })
       if (!response.ok) throw new Error('Logout failed')
+      const data: { logoutUrl?: string | null } = await response.json()
       setSession(null)
-      // Refresh privileged surfaces so no stale operator view remains on screen.
-      window.location.reload()
+      // Reloading a protected Observatory page silently reauthenticates through Zitadel SSO.
+      // End the browser's provider session; a public QDIP page is the fail-closed fallback.
+      window.location.replace(data.logoutUrl ?? new URL(`/${locale}`, PLATFORM_URLS.site).toString())
     } catch {
       setError(true)
     } finally {
@@ -188,7 +190,13 @@ export function QdipAuthControl({
           aria-expanded={profileOpen}
           onClick={() => setProfileOpen((open) => !open)}
         >
-          <UserRound size={22} aria-hidden />
+          {identity?.picture ? (
+            // OIDC picture URL is validated server-side before entering the signed session.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={identity.picture} alt="" className={styles.profileAvatar} referrerPolicy="no-referrer" />
+          ) : (
+            <UserRound size={22} aria-hidden />
+          )}
         </button>
         {profileOpen &&
           profilePlacement &&

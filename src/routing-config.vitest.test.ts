@@ -71,4 +71,33 @@ describe('declarative platform routing', () => {
       ])
     )
   })
+
+  it('redirects unknown wildcard hosts, not registered platform surfaces or unrelated domains', async () => {
+    const redirects = await nextConfig.redirects!()
+    const fallback = redirects.find((rule) => rule.source === '/:path*' && rule.destination === 'https://qdip.ai')
+
+    expect(fallback?.permanent).toBe(true) // Next.js serves permanent redirects as HTTP 308.
+    const matches = (host: string) =>
+      (fallback?.has ?? []).every(({ type, value }) => type === 'host' && new RegExp(value ?? 'a^').test(host)) &&
+      (fallback?.missing ?? []).every(({ type, value }) => type !== 'host' || !new RegExp(value ?? 'a^').test(host))
+
+    for (const host of ['ghhjuhv.qdip.ai', 'unknown.qdip.ai', 'deep.unknown.qdip.ai']) {
+      expect(matches(host), host).toBe(true)
+    }
+
+    for (const host of [
+      'qdip.ai',
+      'www.qdip.ai',
+      'studio.qdip.ai',
+      'observatory.qdip.ai',
+      'qdip.localhost:3000',
+      'studio.localhost:3000',
+      'observatory.localhost:3000',
+      'preview.vercel.app',
+      'qdip.ai.attacker.example',
+      'notqdip.ai',
+    ]) {
+      expect(matches(host), host).toBe(false)
+    }
+  })
 })

@@ -16,6 +16,7 @@ type Session = {
   roles: Role[]
   displayName?: string
   email?: string
+  picture?: string
 }
 type Pending = { state: string; nonce: string; verifier: string; returnTo: string; issuedAt: number }
 type OidcDiscovery = {
@@ -79,6 +80,25 @@ function validRoles(value: unknown): value is Role[] {
   )
 }
 
+/** Only exact registered QDIP Web post-logout URIs may be sent to Zitadel. */
+const POST_LOGOUT_REDIRECTS = {
+  site: 'https://qdip.ai/',
+  studio: 'https://studio.qdip.ai/',
+  observatory: 'https://observatory.qdip.ai/',
+} as const
+
+export function oidcEndSessionUrl(returnSurface?: keyof typeof POST_LOGOUT_REDIRECTS): string | null {
+  const issuer = configuredIssuer()
+  const clientId = process.env.ZITADEL_CLIENT_ID?.trim()
+  if (!issuer || !clientId) return null
+  const url = new URL('/oidc/v1/end_session', issuer)
+  url.searchParams.set('client_id', clientId)
+  if (returnSurface && POST_LOGOUT_REDIRECTS[returnSurface]) {
+    url.searchParams.set('post_logout_redirect_uri', POST_LOGOUT_REDIRECTS[returnSurface])
+  }
+  return url.toString()
+}
+
 export function oidcConfigured() {
   return Boolean(configuredIssuer() && (process.env.ZITADEL_CLIENT_ID ?? '').trim() && sharedSecret() && roleConfig())
 }
@@ -86,8 +106,10 @@ export function oidcConfigured() {
 // The server trusts only permissions derived from verified project- and org-bound
 // Zitadel ID-token claims and stored in the signed, short-lived session cookie.
 // The subject alone NEVER grants access.
+// Personal Studio is available to every verified QDIP user.
+// Privileged Observatory management still requires an explicit admin role.
 export function canAccessStudio(session: Session) {
-  return validRoles(session.roles) && session.roles.includes('studio')
+  return validRoles(session.roles)
 }
 
 export function canAdministerObservatory(session: Session) {
@@ -320,9 +342,9 @@ export function authorizationUrl(config: OidcDiscovery, flow: Pending) {
   if (!roleSettings) throw new Error('QDIP Zitadel role configuration is missing')
   url.searchParams.set(
     'scope',
-    // Do not scope roles to a guessed organization: Zitadel silently drops grants for other organizations.
-    // The verified project/org membership is enforced by rolesFromClaims after token issuance.
-    `openid profile email urn:zitadel:iam:org:project:id:${roleSettings.projectId}:aud urn:iam:org:project:roles urn:zitadel:iam:org:projects:roles`
+    // Select the configured QDIP organization for external IdP registration.
+    // Access remains governed by verified project/org role grants after token issuance.
+    `openid profile email urn:zitadel:iam:org:id:${roleSettings.organizationId} urn:zitadel:iam:org:project:id:${roleSettings.projectId}:aud urn:iam:org:project:roles urn:zitadel:iam:org:projects:roles`
   )
   url.searchParams.set('redirect_uri', new URL(AUTH_CALLBACK_PATH, authOrigin()).toString())
   url.searchParams.set('state', flow.state)
@@ -344,8 +366,19 @@ function safeIdentityLabel(value: unknown, maxLength: number): string | undefine
 function identityFromClaims(claims: Record<string, unknown>) {
   const displayName = safeIdentityLabel(claims.name, 160) ?? safeIdentityLabel(claims.preferred_username, 160)
   const email = safeIdentityLabel(claims.email, 254)
+  const picture = safeIdentityLabel(claims.picture, 2048)
+  const validPicture = (() => {
+    if (!picture) return false
+    try {
+      const url = new URL(picture)
+      return url.protocol === 'https:' && !url.username && !url.password
+    } catch {
+      return false
+    }
+  })()
   return {
     ...(displayName ? { displayName } : {}),
+    ...(validPicture ? { picture } : {}),
     ...(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { email } : {}),
   }
 }
@@ -426,7 +459,7 @@ export async function exchangeCode(code: string, flow: Pending, config: OidcDisc
   })
   if (typeof payload.id_token !== 'string') throw new Error('OIDC ID token missing')
   const session = await verifyIdToken(payload.id_token, flow, config)
-  if (!config.userinfo_endpoint || (session.email && session.displayName)) return session
+  if (!config.userinfo_endpoint || (session.email && session.displayName && session.picture)) return session
 
   // Zitadel may assert roles in Userinfo even when they are absent from the ID token.
   // Read only from the discovered, issuer-pinned endpoint using this code exchange's access token.
@@ -447,6 +480,7 @@ export async function exchangeCode(code: string, flow: Pending, config: OidcDisc
     ...session,
     displayName: session.displayName ?? identity.displayName,
     email: session.email ?? identity.email,
+    picture: session.picture ?? identity.picture,
     roles: session.roles.length > 0 ? session.roles : rolesFromClaims(userinfo),
   }
 }
@@ -469,6 +503,7 @@ export function getQdipSession(value: string | undefined): Session | null {
     typeof session.sub !== 'string' ||
     (session.displayName !== undefined && safeIdentityLabel(session.displayName, 160) !== session.displayName) ||
     (session.email !== undefined && safeIdentityLabel(session.email, 254) !== session.email) ||
+    (session.picture !== undefined && identityFromClaims({ picture: session.picture }).picture !== session.picture) ||
     !validRoles(session.roles) ||
     session.sub.length === 0 ||
     session.issuer !== configuredIssuer() ||
