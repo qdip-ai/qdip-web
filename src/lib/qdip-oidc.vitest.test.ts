@@ -228,13 +228,29 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     await expect(exchangeCode('zitadel-test-auth-code', flow, config)).rejects.toThrow('subject mismatch')
   })
 
-  it('uses verified identity from the ID token without a Userinfo roundtrip', async () => {
-    const fetchMock = stubExchange(token({ name: 'QA Tester', email: 'qa@qdip.ai' }))
+  it('uses verified identity and picture from the ID token without a Userinfo roundtrip', async () => {
+    const fetchMock = stubExchange(
+      token({ name: 'QA Tester', email: 'qa@qdip.ai', picture: 'https://identity.example.test/avatar.png' })
+    )
     const session = await exchangeCode('zitadel-test-auth-code', flow, config)
     expect(session.roles).toEqual(['studio'])
     expect(session.displayName).toBe('QA Tester')
     expect(session.email).toBe('qa@qdip.ai')
+    expect(session.picture).toBe('https://identity.example.test/avatar.png')
     expect(fetchMock.mock.calls.some(([url]) => url === config.userinfo_endpoint)).toBe(false)
+  })
+
+  it('loads a missing picture from subject-matched Userinfo without replacing ID-token identity', async () => {
+    const fetchMock = stubExchange(token({ name: 'QA Tester', email: 'qa@qdip.ai' }), {
+      sub: 'user-1',
+      picture: 'https://identity.example.test/avatar.png',
+    })
+    const session = await exchangeCode('zitadel-test-auth-code', flow, config)
+    expect(session.roles).toEqual(['studio'])
+    expect(session.displayName).toBe('QA Tester')
+    expect(session.email).toBe('qa@qdip.ai')
+    expect(session.picture).toBe('https://identity.example.test/avatar.png')
+    expect(fetchMock.mock.calls.some(([url]) => url === config.userinfo_endpoint)).toBe(true)
   })
 
   it('fills a missing display identity from verified Userinfo without replacing ID token roles', async () => {
