@@ -121,10 +121,10 @@ const serviceOpsForm = {
 type FieldName =
   'name' | 'organization' | 'email' | 'decision' | 'information' | 'alternatives' | 'constraints' | 'context'
 type AnalyticsEvent = 'decision_form_started' | 'decision_form_submit' | 'decision_form_success' | 'decision_form_error'
-function track(event: AnalyticsEvent, locale: MarketingLocale) {
+function track(event: AnalyticsEvent, locale: MarketingLocale, placement: 'decision' | 'serviceops') {
   if (typeof window === 'undefined') return
   const w = window as Window & { dataLayer?: Array<Record<string, string>> }
-  w.dataLayer?.push({ event, locale })
+  w.dataLayer?.push({ event, locale, placement })
 }
 
 export function DecisionInquiryForm({ locale, variant = 'decision' }: {
@@ -143,7 +143,7 @@ export function DecisionInquiryForm({ locale, variant = 'decision' }: {
   function onFocus() {
     if (!started.current) {
       started.current = true
-      track('decision_form_started', locale)
+      track('decision_form_started', locale, variant)
     }
   }
   function submitAnother() {
@@ -159,7 +159,7 @@ export function DecisionInquiryForm({ locale, variant = 'decision' }: {
     setErrors({})
     setMessage('')
     setState('submitting')
-    track('decision_form_submit', locale)
+    track('decision_form_submit', locale, variant)
     const fd = new FormData(form)
     const payload = {
       name: fd.get('name'),
@@ -191,16 +191,16 @@ export function DecisionInquiryForm({ locale, variant = 'decision' }: {
           setMessage(c.invalid)
         } else setMessage(body.error === 'rate_limited' ? c.rate : c.error)
         setState('error')
-        track('decision_form_error', locale)
+        track('decision_form_error', locale, variant)
         return
       }
       setState('success')
-      track('decision_form_success', locale)
+      track('decision_form_success', locale, variant)
       form.reset()
     } catch {
       setMessage(c.error)
       setState('error')
-      track('decision_form_error', locale)
+      track('decision_form_error', locale, variant)
     }
   }
   if (state === 'success')

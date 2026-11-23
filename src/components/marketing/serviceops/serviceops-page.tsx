@@ -80,7 +80,10 @@ export function ServiceOpsPage({ locale, guide = false }: { locale: MarketingLoc
             <section className={styles.finalAction}>
               <h2>{c.formTitle}</h2>
               <p>{c.formDescription}</p>
-              <Link className={styles.primary} href={caseHref + '#pilot'}>{c.pilotLink} <ArrowRight size={16} /></Link>
+              <MarketingTrackedLink className={styles.primary} href={caseHref + '#pilot'}
+                event="marketing_decision_intake_click" locale={locale} placement="serviceops_guide_pilot">
+                {c.pilotLink} <ArrowRight size={16} />
+              </MarketingTrackedLink>
             </section>
           </>
         ) : (

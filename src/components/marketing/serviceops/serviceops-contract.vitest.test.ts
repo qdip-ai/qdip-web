@@ -42,6 +42,7 @@ describe('ServiceOps public application case and funnel', () => {
     const page = file('src/components/marketing/serviceops/serviceops-page.tsx')
     expect(form).toContain("variant = 'decision'")
     expect(form).toContain('ServiceOps pilot inquiry')
+    expect(form).toContain('w.dataLayer?.push({ event, locale, placement })')
     expect(form).toContain("fetch('/api/decision-inquiry'")
     expect(page).toContain('variant="serviceops"')
     expect(page).toContain('SERVICEOPS_URLS.ownerDemo')
