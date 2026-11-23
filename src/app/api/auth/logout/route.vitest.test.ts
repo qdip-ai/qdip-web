@@ -49,13 +49,34 @@ describe('OIDC logout reverse proxy host/origin security', () => {
     }
   })
 
-  it('does not add an Observatory return URI on unrelated or local surfaces', async () => {
+  it.each([
+    ['qdip.ai', 'https://qdip.ai/'],
+    ['studio.qdip.ai', 'https://studio.qdip.ai/'],
+  ])('returns to the originating canonical QDIP surface %s', async (host, destination) => {
     vi.stubEnv('ZITADEL_ISSUER', 'https://auth.qdip.ai')
     vi.stubEnv('ZITADEL_CLIENT_ID', 'oidc-client-01')
     try {
-      const site = POST(make('qdip.ai', 'https://qdip.ai', 'https'))
+      const response = POST(make(host, `https://${host}`, 'https'))
+      expect(response.status).toBe(200)
+      expect(response.cookies.get('qdip_oidc_session')?.value).toBe('')
+      const body = await response.json()
+      const logoutUrl = new URL(body.logoutUrl)
+      expect(logoutUrl.origin).toBe('https://auth.qdip.ai')
+      expect(logoutUrl.pathname).toBe('/oidc/v1/end_session')
+      expect(logoutUrl.searchParams.get('client_id')).toBe('oidc-client-01')
+      expect(logoutUrl.searchParams.get('post_logout_redirect_uri')).toBe(destination)
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('does not add a post-logout redirect for noncanonical or local hosts', async () => {
+    vi.stubEnv('ZITADEL_ISSUER', 'https://auth.qdip.ai')
+    vi.stubEnv('ZITADEL_CLIENT_ID', 'oidc-client-01')
+    try {
+      const www = POST(make('www.qdip.ai', 'https://www.qdip.ai', 'https'))
       const local = POST(make('observatory.localhost:3000', 'http://observatory.localhost:3000'))
-      expect((await site.json()).logoutUrl).toBe('https://auth.qdip.ai/oidc/v1/end_session?client_id=oidc-client-01')
+      expect((await www.json()).logoutUrl).toBe('https://auth.qdip.ai/oidc/v1/end_session?client_id=oidc-client-01')
       expect((await local.json()).logoutUrl).toBe('https://auth.qdip.ai/oidc/v1/end_session?client_id=oidc-client-01')
     } finally {
       vi.unstubAllEnvs()
