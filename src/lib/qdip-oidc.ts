@@ -79,15 +79,21 @@ function validRoles(value: unknown): value is Role[] {
   )
 }
 
-/** RP-initiated Zitadel SSO sign-out; return URI must be pre-registered for QDIP Web in Zitadel. */
-export function oidcEndSessionUrl(returnToObservatory = false): string | null {
+/** Only exact registered QDIP Web post-logout URIs may be sent to Zitadel. */
+const POST_LOGOUT_REDIRECTS = {
+  site: 'https://qdip.ai/',
+  studio: 'https://studio.qdip.ai/',
+  observatory: 'https://observatory.qdip.ai/',
+} as const
+
+export function oidcEndSessionUrl(returnSurface?: keyof typeof POST_LOGOUT_REDIRECTS): string | null {
   const issuer = configuredIssuer()
   const clientId = process.env.ZITADEL_CLIENT_ID?.trim()
   if (!issuer || !clientId) return null
   const url = new URL('/oidc/v1/end_session', issuer)
   url.searchParams.set('client_id', clientId)
-  if (returnToObservatory) {
-    url.searchParams.set('post_logout_redirect_uri', 'https://observatory.qdip.ai/')
+  if (returnSurface && POST_LOGOUT_REDIRECTS[returnSurface]) {
+    url.searchParams.set('post_logout_redirect_uri', POST_LOGOUT_REDIRECTS[returnSurface])
   }
   return url.toString()
 }
