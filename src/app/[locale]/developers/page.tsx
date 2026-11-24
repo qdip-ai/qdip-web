@@ -128,8 +128,8 @@ const copy = {
 } as const
 
 const verifyInstall = [
-  'printf \'%s  %s\\n\' "$SDK02_SHA256" qdip-sdk02-bundle-0.1.3.zip | sha256sum -c - || exit 1',
-  'printf \'%s  %s\\n\' "$SDK03_SHA256" qdip-client-0.2.0.tgz | sha256sum -c - || exit 1',
+  "printf '%s  %s\\n' \"$SDK02_SHA256\" qdip-sdk02-bundle-0.1.3.zip | sha256sum -c - || exit 1",
+  "printf '%s  %s\\n' \"$SDK03_SHA256\" qdip-client-0.2.0.tgz | sha256sum -c - || exit 1",
   'unzip -q qdip-sdk02-bundle-0.1.3.zip -d sdk02',
   'python3 -m venv .venv-qdip',
   'source .venv-qdip/bin/activate',
