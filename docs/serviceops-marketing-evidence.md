@@ -4,16 +4,14 @@ Status: WEB-SERVICEOPS-01; 2026-11-24. Conversion hypothesis, not a measured ben
 
 ## Product boundary and source register
 
-| Claim                                                                              | Evidence                                                                                                     | Marketing status                                                                 |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| Manual-first orders, customer records, workflow builder, assignments and board     | qdip-ai/qdip-serviceops README.md, docs/APPLICATION.md, docs/DASHBOARD_DOMAIN_CONTRACT.md (main, 2026-11-24) | Source-supported, not proof of an externally validated deployment                |
-| Worker PWA: cached shell, offline actions and explicit conflict resolution         | ServiceOps README.md / docs/APPLICATION.md / web/src/worker                                                  | Source-supported; iOS background sync must not be promised                       |
-| Customer portal: one-order, expiring/revocable token and server-confirmed progress | ServiceOps docs/APPLICATION.md                                                                               | Source-supported                                                                 |
-| Twelve editable service templates, demo seed of 6 clients, 3 staff and 6 orders    | ServiceOps README.md / docs/OWNER_REQUIREMENTS_2026-11-24.md                                                 | Sample data only                                                                 |
-| Demo links /demo/owner, /demo/worker, /demo/customer                               | ServiceOps PR #39 main source, Railway ops commit 4fc165f deployment SUCCESS                                 | Live deployment metadata; browser E2E of full journey not independently verified |
-| Kernel / Gateway automatic assignment for ServiceOps                               | ServiceOps README.md / docs/KERNEL_ASSIGNMENT_RESEARCH.md                                                    | NOT IMPLEMENTED / NOT VERIFIED; prohibit optimization claim                      |
-| Public self-service signup, price, reliable persistence and customer ROI           | No verified supporting evidence                                                                              | UNKNOWN; do not promise                                                          |
-| Interactive product demos improve QDIP conversion                                  | No QDIP conversion measurements                                                                              | Hypothesis only                                                                  |
+- **Manual-first orders, customer records, workflow builder, assignments and board** — Evidence: qdip-ai/qdip-serviceops README.md, docs/APPLICATION.md, docs/DASHBOARD_DOMAIN_CONTRACT.md (main, 2026-11-24). Status: Source-supported, not proof of an externally validated deployment.
+- **Worker PWA: cached shell, offline actions and explicit conflict resolution** — Evidence: ServiceOps README.md / docs/APPLICATION.md / web/src/worker. Status: Source-supported; iOS background sync must not be promised.
+- **Customer portal: one-order, expiring/revocable token and server-confirmed progress** — Evidence: ServiceOps docs/APPLICATION.md. Status: Source-supported.
+- **Twelve editable service templates, demo seed of 6 clients, 3 staff and 6 orders** — Evidence: ServiceOps README.md / docs/OWNER_REQUIREMENTS_2026-11-24.md. Status: Sample data only.
+- **Demo links /demo/owner, /demo/worker, /demo/customer** — Evidence: ServiceOps PR #39 main source, Railway ops commit 4fc165f deployment SUCCESS. Status: Live deployment metadata; browser E2E of full journey not independently verified.
+- **Kernel / Gateway automatic assignment for ServiceOps** — Evidence: ServiceOps README.md / docs/KERNEL_ASSIGNMENT_RESEARCH.md. Status: NOT IMPLEMENTED / NOT VERIFIED; prohibit optimization claim.
+- **Public self-service signup, price, reliable persistence and customer ROI** — Evidence: No verified supporting evidence. Status: UNKNOWN; do not promise.
+- **Interactive product demos improve QDIP conversion** — Evidence: No QDIP conversion measurements. Status: Hypothesis only.
 
 ## Scientific Review — question, alternatives and falsification
 
