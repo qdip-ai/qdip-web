@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
+  BookOpenText,
   ChevronRight,
   FileUp,
   FlaskConical,
@@ -33,6 +34,7 @@ export type ObservatoryRoute =
   | '/model-doctor'
   | '/decisions'
   | '/plugins'
+  | '/developers'
   | '/admin/plugins'
   | '/admin/applications'
   | '/admin/apps'
@@ -121,9 +123,17 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
                   pl: 'Katalog wtyczek',
                 } as const
               )[locale]
-            : activeItem
-              ? labelFor(activeItem)
-              : 'Observatory'
+            : activeRoute === '/developers'
+              ? (
+                  {
+                    en: 'SDK documentation',
+                    uk: 'Документація SDK',
+                    pl: 'Dokumentacja SDK',
+                  } as const
+                )[locale]
+              : activeItem
+                ? labelFor(activeItem)
+                : 'Observatory'
 
   const nav = (
     <nav className={styles.navigation} aria-label={observatory('applications')}>
@@ -150,6 +160,14 @@ export function PrototypeShell({ locale, children, activeRoute, theme = 'cyan' }
       >
         <Blocks className={styles.navIcon} aria-hidden />
         <span>{({ en: 'Plugins', uk: 'Плагіни', pl: 'Wtyczki' } as const)[locale]}</span>
+      </a>
+      <a
+        className={styles.navLink}
+        href={buildLocalePath('/developers', locale)}
+        aria-current={activeRoute === '/developers' ? 'page' : undefined}
+      >
+        <BookOpenText className={styles.navIcon} aria-hidden />
+        <span>{({ en: 'Developers', uk: 'Розробникам', pl: 'Dla programistów' } as const)[locale]}</span>
       </a>
     </nav>
   )
