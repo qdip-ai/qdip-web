@@ -50,7 +50,9 @@ test.describe('current marketing routing', () => {
       await page.setViewportSize(viewport)
       await page.goto('http://qdip.localhost:3000/en')
 
-      const card = page.locator('article[class*="ecosystemCard"]')
+      const card = page.locator('article[class*="ecosystemCard"]').filter({
+        has: page.getByRole('img', { name: 'Dzvin.co' }),
+      })
       const wordmark = card.getByRole('img', { name: 'Dzvin.co' })
       const category = card.locator('span[class*="ecosystemCategory"]')
       await wordmark.scrollIntoViewIfNeeded()

@@ -8,6 +8,7 @@ export type FunnelEvent =
   | 'marketing_hero_observatory_click'
   | 'marketing_hero_explainer_click'
   | 'marketing_demo_click'
+  | 'marketing_serviceops_page_view'
   | 'marketing_decision_intake_click'
 
 export type MarketingFunnelPayload = {

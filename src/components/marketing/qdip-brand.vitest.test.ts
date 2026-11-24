@@ -16,14 +16,17 @@ describe('QDIP ecosystem showcase', () => {
     expect(JSON.stringify(copy)).not.toMatch(/Powered by QDIP/i)
   })
 
-  it('shows exactly one Dzvin product card between demos and the existing final CTA', () => {
+  it('shows ServiceOps and exactly one Dzvin card between demos and the final CTA', () => {
     const demo = homepage.indexOf('<DecisionPatterns locale={locale} cases={c.cases} />')
-    const card = homepage.indexOf('<article className={styles.ecosystemCard}>')
+    const serviceCard = homepage.indexOf('<h3>ServiceOps</h3>')
+    const dzvinCard = homepage.indexOf('<h3 className={styles.ecosystemBrand}>')
     const cta = homepage.indexOf('<section className={styles.finalCta}>')
     expect(demo).toBeGreaterThan(-1)
-    expect(card).toBeGreaterThan(demo)
-    expect(card).toBeLessThan(cta)
-    expect(homepage.match(/<article className={styles.ecosystemCard}>/g)).toHaveLength(1)
+    expect(serviceCard).toBeGreaterThan(demo)
+    expect(dzvinCard).toBeGreaterThan(serviceCard)
+    expect(dzvinCard).toBeLessThan(cta)
+    expect(homepage.match(/<article className={styles.ecosystemCard}>/g)).toHaveLength(2)
+    expect(homepage.match(/<h3 className={styles.ecosystemBrand}>/g)).toHaveLength(1)
     expect(homepage).toContain('href="https://dzvin.co"')
     expect(homepage).toContain('{c.ecosystem.heading}')
     expect(homepage).toContain('{c.ecosystem.description}')
