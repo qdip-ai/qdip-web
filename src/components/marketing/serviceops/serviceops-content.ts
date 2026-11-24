@@ -50,9 +50,12 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
   en: {
     eyebrow: 'QDIP ecosystem · Working application',
     title: 'ServiceOps — one workflow from order to customer acceptance',
-    summary: 'Coordinate service jobs in one configurable workspace: the owner sets up a process, workers handle assigned tasks, and the customer sees confirmed progress. Explore the three roles with an interactive demo before discussing a pilot.',
-    boundary: 'Available today: manual order management and an isolated demo. QDIP Kernel auto-assignment, measured savings and production-scale readiness have not been verified. Demo actions do not change real orders.',
-    audience: 'Built for service teams with repeatable jobs, including repair shops, cleaning, installation and on-site services.',
+    summary:
+      'Coordinate service jobs in one configurable workspace: the owner sets up a process, workers handle assigned tasks, and the customer sees confirmed progress. Explore the three roles with an interactive demo before discussing a pilot.',
+    boundary:
+      'Available today: manual order management and an isolated demo. QDIP Kernel auto-assignment, measured savings and production-scale readiness have not been verified. Demo actions do not change real orders.',
+    audience:
+      'Built for service teams with repeatable jobs, including repair shops, cleaning, installation and on-site services.',
     primary: 'Explore the working demo',
     guideLink: 'User guide',
     caseLink: 'Explore ServiceOps',
@@ -62,19 +65,23 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     features: [
       {
         title: 'Owner & operator',
-        body: 'Create an order and customer, configure board columns and workflows, assign tasks, review evidence and accept work.',
+        body:
+          'Create an order and customer, configure board columns and workflows, assign tasks, review evidence and accept work.',
       },
       {
         title: 'Worker',
-        body: 'See only assigned tasks, checklists and permitted details. Record work offline, then sync queued actions when online.',
+        body:
+          'See only assigned tasks, checklists and permitted details. Record work offline, then sync queued actions when online.',
       },
       {
         title: 'Customer',
-        body: 'Open a time-limited, order-specific link for server-confirmed progress and acceptance when enabled by the workflow.',
+        body:
+          'Open a time-limited, order-specific link for server-confirmed progress and acceptance when enabled by the workflow.',
       },
     ],
     presetsTitle: 'Twelve editable service templates',
-    presetsDescription: 'Start with an example process, then adapt the stages, task requirements and board. Templates are not separate products.',
+    presetsDescription:
+      'Start with an example process, then adapt the stages, task requirements and board. Templates are not separate products.',
     presets: [
       'Auto repair',
       'Auto detailing',
@@ -90,7 +97,8 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       'Laundry and dry cleaning',
     ],
     demosTitle: 'Walk through the actual interfaces',
-    demosDescription: 'The public demo is an isolated browser simulation. It shows a sample order across the three roles and does not require an account or modify the server.',
+    demosDescription:
+      'The public demo is an isolated browser simulation. It shows a sample order across the three roles and does not require an account or modify the server.',
     roles: {
       owner: {
         title: '1. Owner / operator',
@@ -115,13 +123,16 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
       {
         title: 'Scope a pilot',
-        body: 'Send one representative workflow and the constraints that matter. A pilot is discussed, not automatically activated.',
+        body:
+          'Send one representative workflow and the constraints that matter. A pilot is discussed, not automatically activated.',
       },
     ],
     formTitle: 'Request a scoped pilot',
-    formDescription: 'Describe your service process, team size, job stages and the hardest coordination problem. We use the existing QDIP inquiry channel; submitting is not account registration.',
+    formDescription:
+      'Describe your service process, team size, job stages and the hardest coordination problem. We use the existing QDIP inquiry channel; submitting is not account registration.',
     guideTitle: 'ServiceOps user guide',
-    guideSummary: 'Step-by-step reference for owners, operators, workers and customers. Live access requires a provisioned organization and the correct role. Public demos are separate from production data.',
+    guideSummary:
+      'Step-by-step reference for owners, operators, workers and customers. Live access requires a provisioned organization and the correct role. Public demos are separate from production data.',
     guideSections: [
       {
         title: '1. Choose the right entry',
@@ -208,16 +219,19 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
         ],
       },
     ],
-    guideCaution: 'Availability note: browser screens and documented API behavior exist; full external production E2E, public self-service onboarding, Kernel assignment and measured business ROI are not verified.',
+    guideCaution:
+      'Availability note: browser screens and documented API behavior exist; full external production E2E, public self-service onboarding, Kernel assignment and measured business ROI are not verified.',
     faqTitle: 'Before you start',
     faq: [
       {
         title: 'Is ServiceOps an automated optimizer?',
-        body: 'Not in the validated base experience. A person assigns and accepts work; optional QDIP optimization requires a separate verified integration.',
+        body:
+          'Not in the validated base experience. A person assigns and accepts work; optional QDIP optimization requires a separate verified integration.',
       },
       {
         title: 'Can I sign up and use live data from the demo?',
-        body: 'No. Public demos use fictitious browser-local records. Live work requires an onboarded organization and authorized users.',
+        body:
+          'No. Public demos use fictitious browser-local records. Live work requires an onboarded organization and authorized users.',
       },
       {
         title: 'Does the customer see offline edits immediately?',
@@ -226,16 +240,21 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     ],
     backToCase: 'Back to ServiceOps case',
     seoTitle: 'ServiceOps — service business workflow demo and pilot',
-    seoDescription: 'Explore ServiceOps: configurable service orders, team tasks, offline Worker PWA and customer progress. Open the three-role demo, read the guide and discuss a pilot.',
+    seoDescription:
+      'Explore ServiceOps: configurable service orders, team tasks, offline Worker PWA and customer progress. Open the three-role demo, read the guide and discuss a pilot.',
     guideSeoTitle: 'ServiceOps user guide — owners, workers and customers',
-    guideSeoDescription: 'Learn ServiceOps setup, orders, team assignments, worker offline sync, customer links and demo walkthrough. Includes access rules and current limits.',
+    guideSeoDescription:
+      'Learn ServiceOps setup, orders, team assignments, worker offline sync, customer links and demo walkthrough. Includes access rules and current limits.',
   },
   uk: {
     eyebrow: 'Екосистема QDIP · Працюючий застосунок',
     title: 'ServiceOps — від замовлення до приймання клієнтом',
-    summary: 'Керуйте сервісними замовленнями в одному налаштовуваному просторі: власник визначає процес, виконавець працює зі своїми задачами, а клієнт бачить підтверджений прогрес. Спробуйте три ролі в інтерактивному демо.',
-    boundary: 'Наразі доступні ручне керування замовленнями та ізольоване демо. Автоматичний розподіл через QDIP Kernel, економію коштів і готовність до промислового навантаження не підтверджено. Дії в демо не змінюють реальні замовлення.',
-    audience: 'Для сервісного бізнесу з повторюваними замовленнями: СТО, клінінг, монтаж, ремонт і виїзне обслуговування.',
+    summary:
+      'Керуйте сервісними замовленнями в одному налаштовуваному просторі: власник визначає процес, виконавець працює зі своїми задачами, а клієнт бачить підтверджений прогрес. Спробуйте три ролі в інтерактивному демо.',
+    boundary:
+      'Наразі доступні ручне керування замовленнями та ізольоване демо. Автоматичний розподіл через QDIP Kernel, економію коштів і готовність до промислового навантаження не підтверджено. Дії в демо не змінюють реальні замовлення.',
+    audience:
+      'Для сервісного бізнесу з повторюваними замовленнями: СТО, клінінг, монтаж, ремонт і виїзне обслуговування.',
     primary: 'Відкрити інтерактивне демо',
     guideLink: 'Інструкція користувача',
     caseLink: 'Переглянути кейс',
@@ -245,7 +264,8 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     features: [
       {
         title: 'Власник і оператор',
-        body: 'Створення клієнтів і замовлень, налаштування дошки та процесів, призначення задач, перевірка доказів і приймання роботи.',
+        body:
+          'Створення клієнтів і замовлень, налаштування дошки та процесів, призначення задач, перевірка доказів і приймання роботи.',
       },
       {
         title: 'Виконавець',
@@ -253,11 +273,13 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
       {
         title: 'Замовник',
-        body: 'Посилання на одне замовлення з обмеженим строком дії, підтверджений сервером прогрес і погодження за правилами процесу.',
+        body:
+          'Посилання на одне замовлення з обмеженим строком дії, підтверджений сервером прогрес і погодження за правилами процесу.',
       },
     ],
     presetsTitle: '12 редагованих шаблонів бізнесу',
-    presetsDescription: 'Оберіть початковий процес, а потім адаптуйте етапи, вимоги до задач і дошку. Це не окремі застосунки.',
+    presetsDescription:
+      'Оберіть початковий процес, а потім адаптуйте етапи, вимоги до задач і дошку. Це не окремі застосунки.',
     presets: [
       'СТО',
       'Автодетейлінг',
@@ -273,7 +295,8 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       'Пральні та хімчистки',
     ],
     demosTitle: 'Перегляньте всі три інтерфейси',
-    demosDescription: 'Публічне демо — ізольована симуляція в браузері. Вона показує один приклад замовлення з трьох ролей, не потребує входу та не змінює серверні дані.',
+    demosDescription:
+      'Публічне демо — ізольована симуляція в браузері. Вона показує один приклад замовлення з трьох ролей, не потребує входу та не змінює серверні дані.',
     roles: {
       owner: {
         title: '1. Власник / оператор',
@@ -302,9 +325,11 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
     ],
     formTitle: 'Запропонуйте пілот',
-    formDescription: 'Опишіть ваш сервісний процес, команду, етапи замовлення і головну проблему координації. Форма використовує наявний канал звернень QDIP та не створює обліковий запис.',
+    formDescription:
+      'Опишіть ваш сервісний процес, команду, етапи замовлення і головну проблему координації. Форма використовує наявний канал звернень QDIP та не створює обліковий запис.',
     guideTitle: 'Посібник користувача ServiceOps',
-    guideSummary: 'Покрокова інструкція для власника, оператора, виконавця і замовника. Для реальних задач потрібні налаштована організація й відповідна роль. Публічне демо ізольовано від робочих даних.',
+    guideSummary:
+      'Покрокова інструкція для власника, оператора, виконавця і замовника. Для реальних задач потрібні налаштована організація й відповідна роль. Публічне демо ізольовано від робочих даних.',
     guideSections: [
       {
         title: '1. Як зайти до системи',
@@ -391,16 +416,19 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
         ],
       },
     ],
-    guideCaution: 'Межа доказів: інтерфейси й API присутні в коді. Повний зовнішній E2E, публічний self-service onboarding, розподіл через Kernel та виміряний ROI не підтверджено.',
+    guideCaution:
+      'Межа доказів: інтерфейси й API присутні в коді. Повний зовнішній E2E, публічний self-service onboarding, розподіл через Kernel та виміряний ROI не підтверджено.',
     faqTitle: 'Перед початком',
     faq: [
       {
         title: 'ServiceOps автоматично оптимізує роботу?',
-        body: 'Не в підтвердженій базовій версії. Людина призначає та приймає задачі; опційна оптимізація QDIP потребує окремо перевіреної інтеграції.',
+        body:
+          'Не в підтвердженій базовій версії. Людина призначає та приймає задачі; опційна оптимізація QDIP потребує окремо перевіреної інтеграції.',
       },
       {
         title: 'Чи можна увійти в реальний бізнес із демо?',
-        body: 'Ні. Публічне демо використовує вигадані локальні дані. Для реальної роботи потрібні організація та авторизовані користувачі.',
+        body:
+          'Ні. Публічне демо використовує вигадані локальні дані. Для реальної роботи потрібні організація та авторизовані користувачі.',
       },
       {
         title: 'Клієнт бачить офлайн-зміни одразу?',
@@ -409,16 +437,21 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     ],
     backToCase: 'Повернутися до кейсу ServiceOps',
     seoTitle: 'ServiceOps — демо керування сервісним бізнесом і пілот',
-    seoDescription: 'Дослідіть ServiceOps: замовлення, задачі команди, офлайн-PWA виконавця та прогрес клієнта. Три демонстраційні ролі, інструкція і запит на пілот.',
+    seoDescription:
+      'Дослідіть ServiceOps: замовлення, задачі команди, офлайн-PWA виконавця та прогрес клієнта. Три демонстраційні ролі, інструкція і запит на пілот.',
     guideSeoTitle: 'ServiceOps — інструкція для власника, виконавця і клієнта',
-    guideSeoDescription: 'Налаштування ServiceOps, замовлення, призначення, робота офлайн, клієнтські посилання і демо-сценарій. Права доступу й відомі обмеження.',
+    guideSeoDescription:
+      'Налаштування ServiceOps, замовлення, призначення, робота офлайн, клієнтські посилання і демо-сценарій. Права доступу й відомі обмеження.',
   },
   pl: {
     eyebrow: 'Ekosystem QDIP · Działająca aplikacja',
     title: 'ServiceOps — od zlecenia do akceptacji klienta',
-    summary: 'Zarządzaj zleceniami serwisowymi w jednym konfigurowalnym miejscu: właściciel ustala proces, wykonawca realizuje zadania, a klient widzi potwierdzony postęp. Sprawdź trzy role w interaktywnym demo.',
-    boundary: 'Obecnie dostępne są ręczne zarządzanie zleceniami i izolowane demo. Automatyczny przydział przez QDIP Kernel, oszczędności i gotowość do dużego obciążenia nie zostały potwierdzone. Akcje demo nie modyfikują prawdziwych zleceń.',
-    audience: 'Dla firm usługowych z powtarzalnymi zleceniami: warsztatów, firm sprzątających, instalacyjnych, naprawczych i mobilnych.',
+    summary:
+      'Zarządzaj zleceniami serwisowymi w jednym konfigurowalnym miejscu: właściciel ustala proces, wykonawca realizuje zadania, a klient widzi potwierdzony postęp. Sprawdź trzy role w interaktywnym demo.',
+    boundary:
+      'Obecnie dostępne są ręczne zarządzanie zleceniami i izolowane demo. Automatyczny przydział przez QDIP Kernel, oszczędności i gotowość do dużego obciążenia nie zostały potwierdzone. Akcje demo nie modyfikują prawdziwych zleceń.',
+    audience:
+      'Dla firm usługowych z powtarzalnymi zleceniami: warsztatów, firm sprzątających, instalacyjnych, naprawczych i mobilnych.',
     primary: 'Otwórz interaktywne demo',
     guideLink: 'Instrukcja użytkownika',
     caseLink: 'Poznaj ServiceOps',
@@ -436,11 +469,13 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
       {
         title: 'Klient',
-        body: 'Link do jednego zlecenia o ograniczonym terminie ważności, postęp potwierdzony przez serwer i akceptacja według reguł procesu.',
+        body:
+          'Link do jednego zlecenia o ograniczonym terminie ważności, postęp potwierdzony przez serwer i akceptacja według reguł procesu.',
       },
     ],
     presetsTitle: '12 edytowalnych szablonów usług',
-    presetsDescription: 'Wybierz proces startowy, a następnie dostosuj etapy, wymagania zadań i tablicę. To nie są oddzielne produkty.',
+    presetsDescription:
+      'Wybierz proces startowy, a następnie dostosuj etapy, wymagania zadań i tablicę. To nie są oddzielne produkty.',
     presets: [
       'Warsztat samochodowy',
       'Auto detailing',
@@ -456,7 +491,8 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       'Pralnie i czyszczenie chemiczne',
     ],
     demosTitle: 'Poznaj wszystkie trzy interfejsy',
-    demosDescription: 'Publiczne demo to izolowana symulacja w przeglądarce. Pokazuje przykładowe zlecenie z perspektywy trzech ról, nie wymaga logowania i nie zmienia danych serwera.',
+    demosDescription:
+      'Publiczne demo to izolowana symulacja w przeglądarce. Pokazuje przykładowe zlecenie z perspektywy trzech ról, nie wymaga logowania i nie zmienia danych serwera.',
     roles: {
       owner: {
         title: '1. Właściciel / operator',
@@ -482,9 +518,11 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
     ],
     formTitle: 'Zapytaj o pilotaż',
-    formDescription: 'Opisz proces usługowy, zespół, etapy zlecenia i największy problem koordynacji. Formularz korzysta z obecnego kanału kontaktu QDIP i nie zakłada konta.',
+    formDescription:
+      'Opisz proces usługowy, zespół, etapy zlecenia i największy problem koordynacji. Formularz korzysta z obecnego kanału kontaktu QDIP i nie zakłada konta.',
     guideTitle: 'Instrukcja użytkownika ServiceOps',
-    guideSummary: 'Instrukcje krok po kroku dla właściciela, operatora, pracownika i klienta. Prawdziwa praca wymaga skonfigurowanej organizacji i odpowiedniej roli. Publiczne demo jest odseparowane od danych produkcyjnych.',
+    guideSummary:
+      'Instrukcje krok po kroku dla właściciela, operatora, pracownika i klienta. Prawdziwa praca wymaga skonfigurowanej organizacji i odpowiedniej roli. Publiczne demo jest odseparowane od danych produkcyjnych.',
     guideSections: [
       {
         title: '1. Wybór odpowiedniego wejścia',
@@ -571,16 +609,19 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
         ],
       },
     ],
-    guideCaution: 'Granice dowodów: interfejsy i API są obecne w kodzie. Pełne zewnętrzne E2E, publiczny onboarding samoobsługowy, przydział przez Kernel i zmierzony zwrot z inwestycji nie zostały potwierdzone.',
+    guideCaution:
+      'Granice dowodów: interfejsy i API są obecne w kodzie. Pełne zewnętrzne E2E, publiczny onboarding samoobsługowy, przydział przez Kernel i zmierzony zwrot z inwestycji nie zostały potwierdzone.',
     faqTitle: 'Przed rozpoczęciem',
     faq: [
       {
         title: 'Czy ServiceOps sam optymalizuje pracę?',
-        body: 'Nie w potwierdzonej wersji podstawowej. Pracę przydziela i akceptuje człowiek; dodatkowa optymalizacja QDIP wymaga oddzielnie zweryfikowanej integracji.',
+        body:
+          'Nie w potwierdzonej wersji podstawowej. Pracę przydziela i akceptuje człowiek; dodatkowa optymalizacja QDIP wymaga oddzielnie zweryfikowanej integracji.',
       },
       {
         title: 'Czy demo tworzy konto do pracy z danymi?',
-        body: 'Nie. Publiczne demo korzysta z fikcyjnych danych lokalnych. Praca na realnych danych wymaga organizacji i uprawnionych użytkowników.',
+        body:
+          'Nie. Publiczne demo korzysta z fikcyjnych danych lokalnych. Praca na realnych danych wymaga organizacji i uprawnionych użytkowników.',
       },
       {
         title: 'Czy klient od razu widzi zmiany offline?',
@@ -589,8 +630,10 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     ],
     backToCase: 'Wróć do ServiceOps',
     seoTitle: 'ServiceOps — demo zarządzania zleceniami usługowymi i pilotaż',
-    seoDescription: 'Poznaj ServiceOps: zlecenia, zadania zespołu, PWA offline i postęp klienta. Trzy role demo, instrukcja i zapytanie o pilotaż.',
+    seoDescription:
+      'Poznaj ServiceOps: zlecenia, zadania zespołu, PWA offline i postęp klienta. Trzy role demo, instrukcja i zapytanie o pilotaż.',
     guideSeoTitle: 'Instrukcja ServiceOps — właściciel, wykonawca, klient',
-    guideSeoDescription: 'Konfiguracja ServiceOps, zlecenia, przydziały, PWA offline, linki klientów i demo. Zasady dostępu i ograniczenia.',
+    guideSeoDescription:
+      'Konfiguracja ServiceOps, zlecenia, przydziały, PWA offline, linki klientów i demo. Zasady dostępu i ograniczenia.',
   },
 }
