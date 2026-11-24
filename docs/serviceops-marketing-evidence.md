@@ -28,6 +28,7 @@ Falsifier: in comparable traffic (ideally controlled test with preregistered qua
 Scientific conclusion: novelty UNASSESSED (self-serve demo is a known approach); support DIRECTIONAL EXTERNAL OBSERVATIONAL EVIDENCE; reproducibility for QDIP NOT TESTED; verdict UNRESOLVED.
 
 External evidence is directional only, mostly vendor sample based; no causal or ROI transfer to QDIP is justified:
+
 - https://www.navattic.com/report/state-of-the-interactive-product-demo-2025
 - https://www.navattic.com/report/state-of-the-interactive-product-demo-2026
 - https://developers.google.com/search/docs/fundamentals/creating-helpful-content
