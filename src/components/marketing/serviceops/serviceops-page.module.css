@@ -81,10 +81,19 @@
   text-align: center;
   transition: transform 160ms ease;
 }
-.primary { background: var(--qdip-button); color: var(--qdip-button-text); }
-.secondary { background: var(--ds-surface-raised); color: var(--ds-text); border: 1px solid var(--ds-border); }
+.primary {
+  background: var(--qdip-button);
+  color: var(--qdip-button-text);
+}
+.secondary {
+  background: var(--ds-surface-raised);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border);
+}
 .primary:hover,
-.secondary:hover { transform: translateY(-2px); }
+.secondary:hover {
+  transform: translateY(-2px);
+}
 
 .boundary {
   max-width: 920px;
@@ -102,7 +111,10 @@
   border-bottom: 1px solid var(--ds-border);
 }
 
-.sectionHead { max-width: 900px; margin-bottom: 32px; }
+.sectionHead {
+  max-width: 900px;
+  margin-bottom: 32px;
+}
 .sectionHead h2 {
   font-size: clamp(1.7rem, 3vw, 2.6rem);
   line-height: 1.2;
@@ -110,7 +122,11 @@
   letter-spacing: -0.03em;
   margin: 12px 0 14px;
 }
-.sectionHead p { font-size: var(--ds-text-body); line-height: 1.65; color: var(--ds-text-muted); }
+.sectionHead p {
+  font-size: var(--ds-text-body);
+  line-height: 1.65;
+  color: var(--ds-text-muted);
+}
 
 .featureGrid,
 .demoGrid {
@@ -128,7 +144,9 @@
   border-radius: var(--ds-radius-lg);
   background: var(--ds-surface-raised);
 }
-.featureCard > svg { color: var(--ds-accent); }
+.featureCard > svg {
+  color: var(--ds-accent);
+}
 .featureCard h3,
 .demoCard h3,
 .stepCard h3 {
@@ -144,9 +162,17 @@
   line-height: 1.65;
   font-size: var(--ds-text-body);
 }
-.demoCard { display: flex; flex-direction: column; gap: 0; }
-.demoCard p { flex: 1; }
-.demoIcon { color: var(--ds-accent); }
+.demoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.demoCard p {
+  flex: 1;
+}
+.demoIcon {
+  color: var(--ds-accent);
+}
 .demoCard a,
 .textLink {
   display: inline-flex;
@@ -183,15 +209,28 @@
   color: var(--ds-accent);
   font-size: var(--ds-text-xs);
 }
-.stepCard > span { color: var(--ds-accent); font-weight: 750; }
+.stepCard > span {
+  color: var(--ds-accent);
+  font-weight: 750;
+}
 
 .pilot {
   padding-block: clamp(50px, 7vw, 94px);
   scroll-margin-top: 110px;
 }
-.pilot form { margin-top: 20px; }
-.existingLink { margin-top: 28px; }
-.existingLink a { display: inline-flex; gap: 8px; align-items: center; color: var(--ds-text-muted); font-size: var(--ds-text-sm); }
+.pilot form {
+  margin-top: 20px;
+}
+.existingLink {
+  margin-top: 28px;
+}
+.existingLink a {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--ds-text-muted);
+  font-size: var(--ds-text-sm);
+}
 
 .guideLayout {
   display: grid;
@@ -215,8 +254,13 @@
   font-size: var(--ds-text-sm);
   line-height: 1.4;
 }
-.contents a:hover { color: var(--ds-text); border-left: 2px solid var(--ds-accent); }
-.guideContent { min-width: 0; }
+.contents a:hover {
+  color: var(--ds-text);
+  border-left: 2px solid var(--ds-accent);
+}
+.guideContent {
+  min-width: 0;
+}
 .guideBlock {
   padding: 12px 0 40px;
   margin-bottom: 22px;
@@ -228,46 +272,86 @@
   font-size: clamp(1.35rem, 2vw, 1.8rem);
   font-weight: 600;
 }
-.guideBlock p { line-height: 1.6; color: var(--ds-text-muted); }
-.guideBlock ol { margin: 24px 0 0; padding-left: 22px; }
+.guideBlock p {
+  line-height: 1.6;
+  color: var(--ds-text-muted);
+}
+.guideBlock ol {
+  margin: 24px 0 0;
+  padding-left: 22px;
+}
 .guideBlock li {
   padding-left: 8px;
   margin-bottom: 16px;
   line-height: 1.7;
   color: var(--ds-text);
 }
-.guideBlock li::marker { color: var(--ds-accent); }
+.guideBlock li::marker {
+  color: var(--ds-accent);
+}
 .finalAction {
   padding-block: 70px 90px;
   text-align: center;
 }
-.finalAction h2 { font-size: clamp(1.75rem, 3vw, 2.6rem); margin: 0 0 12px; }
-.finalAction p { max-width: 760px; margin: 0 auto 28px; line-height: 1.65; color: var(--ds-text-muted); }
+.finalAction h2 {
+  font-size: clamp(1.75rem, 3vw, 2.6rem);
+  margin: 0 0 12px;
+}
+.finalAction p {
+  max-width: 760px;
+  margin: 0 auto 28px;
+  line-height: 1.65;
+  color: var(--ds-text-muted);
+}
 
 @media (max-width: 900px) {
   .featureGrid,
-  .demoGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .presetList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .demoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .presetList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 670px) {
   .hero,
   .section,
   .pilot,
-  .finalAction { width: min(100% - 32px, 1160px); }
-  .hero { padding-block: 48px 48px; }
+  .finalAction {
+    width: min(100% - 32px, 1160px);
+  }
+  .hero {
+    padding-block: 48px 48px;
+  }
   .featureGrid,
   .demoGrid,
   .presetList,
-  .guideLayout { grid-template-columns: minmax(0, 1fr); }
-  .guideLayout { gap: 24px; }
-  .contents { position: static; }
-  .actions { align-items: stretch; }
-  .actions > a { width: 100%; }
-  .section { padding-block: 46px; }
+  .guideLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .guideLayout {
+    gap: 24px;
+  }
+  .contents {
+    position: static;
+  }
+  .actions {
+    align-items: stretch;
+  }
+  .actions > a {
+    width: 100%;
+  }
+  .section {
+    padding-block: 46px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .primary,
-  .secondary { transition: none; }
+  .secondary {
+    transition: none;
+  }
   .primary:hover,
-  .secondary:hover { transform: none; }
+  .secondary:hover {
+    transform: none;
+  }
 }
