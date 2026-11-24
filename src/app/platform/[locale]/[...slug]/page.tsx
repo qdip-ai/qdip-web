@@ -4,6 +4,8 @@ import { PublicPage } from '@/components/marketing/public-page'
 import { SdkPage } from '@/components/marketing/sdk-page'
 import { DepthPage } from '@/components/marketing/depth/depth-page'
 import type { DepthPageKey } from '@/components/marketing/depth/content'
+import { ServiceOpsPage } from '@/components/marketing/serviceops/serviceops-page'
+import { serviceOpsCopy } from '@/components/marketing/serviceops/serviceops-content'
 import { marketingLocales, type MarketingLocale } from '@/components/marketing/qdip-copy'
 
 const pageKeys = [
@@ -16,6 +18,8 @@ const pageKeys = [
   'core/decision-model',
   'core/explainability',
   'core/research',
+  'serviceops',
+  'serviceops/guide',
 ] as const
 type PageKey = (typeof pageKeys)[number]
 type SeoCopy = Record<PageKey, { title: string; description: string }>
@@ -23,6 +27,8 @@ const depthKeys = new Set<DepthPageKey>(['how-it-works', 'use-cases', 'core', 'c
 
 const seo: Record<MarketingLocale, SeoCopy> = {
   en: {
+    serviceops: { title: serviceOpsCopy.en.seoTitle, description: serviceOpsCopy.en.seoDescription },
+    'serviceops/guide': { title: serviceOpsCopy.en.guideSeoTitle, description: serviceOpsCopy.en.guideSeoDescription },
     sdk: {
       title: 'QDIP SDK — Python Worker and TypeScript client',
       description:
@@ -67,6 +73,8 @@ const seo: Record<MarketingLocale, SeoCopy> = {
     },
   },
   uk: {
+    serviceops: { title: serviceOpsCopy.uk.seoTitle, description: serviceOpsCopy.uk.seoDescription },
+    'serviceops/guide': { title: serviceOpsCopy.uk.guideSeoTitle, description: serviceOpsCopy.uk.guideSeoDescription },
     sdk: {
       title: 'QDIP SDK — Python Worker і TypeScript клієнт',
       description:
@@ -109,6 +117,8 @@ const seo: Record<MarketingLocale, SeoCopy> = {
     },
   },
   pl: {
+    serviceops: { title: serviceOpsCopy.pl.seoTitle, description: serviceOpsCopy.pl.seoDescription },
+    'serviceops/guide': { title: serviceOpsCopy.pl.guideSeoTitle, description: serviceOpsCopy.pl.guideSeoDescription },
     sdk: {
       title: 'QDIP SDK — Python Worker i klient TypeScript',
       description:
@@ -190,6 +200,8 @@ export default async function Page({ params }: { params: Promise<{ locale: strin
   const key = slug.join('/')
   if (!isPageKey(key)) notFound()
   if (key === 'sdk') return <SdkPage locale={locale} />
+  if (key === 'serviceops') return <ServiceOpsPage locale={locale} />
+  if (key === 'serviceops/guide') return <ServiceOpsPage locale={locale} guide />
   if (depthKeys.has(key as DepthPageKey)) return <DepthPage locale={locale} page={key as DepthPageKey} />
   return <PublicPage locale={locale} slug={key} />
 }

@@ -20,6 +20,13 @@ describe('marketing funnel analytics', () => {
     ])
   })
 
+  it('records a ServiceOps page view without customer or organization information', () => {
+    trackMarketingFunnel('marketing_serviceops_page_view', 'pl', 'case')
+    expect((window as AnalyticsWindow).dataLayer).toEqual([
+      { event: 'marketing_serviceops_page_view', locale: 'pl', placement: 'case' },
+    ])
+  })
+
   it('appends events to an existing dataLayer', () => {
     const target = window as AnalyticsWindow
     target.dataLayer = [

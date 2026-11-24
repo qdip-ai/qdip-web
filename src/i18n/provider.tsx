@@ -1,12 +1,16 @@
 'use client'
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
 import { type Locale } from './config'
 import { createTranslator, type Translator } from './runtime'
 
 const LocaleContext = createContext<Locale | null>(null)
 
 export function I18nProvider({ locale, children }: { locale: Locale; children: ReactNode }) {
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
+
   return <LocaleContext.Provider value={locale}>{children}</LocaleContext.Provider>
 }
 

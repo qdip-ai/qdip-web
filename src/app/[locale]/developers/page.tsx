@@ -8,8 +8,7 @@ const copy = {
   uk: {
     eyebrow: 'QDIP / Developers',
     title: 'Розробка плагінів QDIP',
-    lead:
-      'Створіть власний Python Worker із QDIP SDK-02, який формує модель задачі, та викликайте його із серверного застосунку через SDK-03.',
+    lead: 'Створіть власний Python Worker із QDIP SDK-02, який формує модель задачі, та викликайте його із серверного застосунку через SDK-03.',
     status: 'Developer preview · тільки контрольований доступ до Gateway',
     limits:
       'Публічна документація не означає відкритий доступ до виконання. SDK надаються як перевірені артефакти через оператора; PyPI/npm-релізу та відкритого self-service наразі немає.',
@@ -48,8 +47,7 @@ const copy = {
   en: {
     eyebrow: 'QDIP / Developers',
     title: 'Build QDIP plugins',
-    lead:
-      'Build a Python SDK-02 Worker that prepares a decision model and invoke it from a server application through SDK-03.',
+    lead: 'Build a Python SDK-02 Worker that prepares a decision model and invoke it from a server application through SDK-03.',
     status: 'Developer preview · controlled Gateway access only',
     limits:
       'Public documentation does not imply public execution access. SDK packages are supplied as verified operator handoff artifacts; neither PyPI/npm distribution nor open self-service is available.',
@@ -88,8 +86,7 @@ const copy = {
   pl: {
     eyebrow: 'QDIP / Developers',
     title: 'Tworzenie wtyczek QDIP',
-    lead:
-      'Utwórz Python Worker SDK-02, który przygotowuje model decyzyjny, i wywołaj go z aplikacji serwerowej przez SDK-03.',
+    lead: 'Utwórz Python Worker SDK-02, który przygotowuje model decyzyjny, i wywołaj go z aplikacji serwerowej przez SDK-03.',
     status: 'Developer preview · dostęp do Gateway tylko po zatwierdzeniu',
     limits:
       'Publiczna dokumentacja nie oznacza publicznego dostępu do wykonywania. Pakiety SDK przekazuje operator wraz z weryfikowanymi artefaktami; nie ma publikacji PyPI/npm ani otwartego self-service.',
@@ -128,8 +125,8 @@ const copy = {
 } as const
 
 const verifyInstall = [
-  "printf '%s  %s\\n' \"$SDK02_SHA256\" qdip-sdk02-bundle-0.1.3.zip | sha256sum -c - || exit 1",
-  "printf '%s  %s\\n' \"$SDK03_SHA256\" qdip-client-0.2.0.tgz | sha256sum -c - || exit 1",
+  'printf \'%s  %s\\n\' "$SDK02_SHA256" qdip-sdk02-bundle-0.1.3.zip | sha256sum -c - || exit 1',
+  'printf \'%s  %s\\n\' "$SDK03_SHA256" qdip-client-0.2.0.tgz | sha256sum -c - || exit 1',
   'unzip -q qdip-sdk02-bundle-0.1.3.zip -d sdk02',
   'python3 -m venv .venv-qdip',
   'source .venv-qdip/bin/activate',

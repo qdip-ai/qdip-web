@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { DesignSystemProvider } from '@/design-system'
 import { marketingLocaleHref, observatoryHref } from '@/lib/platform-urls'
+import { serviceOpsCopy } from './serviceops/serviceops-content'
+import { MarketingTrackedLink } from './marketing-analytics'
 import { marketingCopy, type MarketingLocale } from './qdip-copy'
 import { PUBLIC_DEMO_NAMES } from '@/product/public-product-policy'
 import { DecisionInquiryForm } from './decision-inquiry-form'
@@ -502,6 +504,22 @@ export function PublicPage({ locale, slug }: { locale: MarketingLocale; slug: st
               <p className={styles.comingSoon}>{c.cases[14]}</p>
             </article>
           </div>
+          <article className={styles.ecosystemCard} id="serviceops">
+            <span className={styles.ecosystemCategory}>{serviceOpsCopy[locale].eyebrow}</span>
+            <h3>ServiceOps</h3>
+            <p>{serviceOpsCopy[locale].summary}</p>
+            <p>{serviceOpsCopy[locale].demosDescription}</p>
+            <div className={styles.ecosystemActions}>
+              <MarketingTrackedLink
+                event="marketing_demo_click"
+                locale={locale}
+                placement="serviceops_usecases_case"
+                href={href(locale, 'serviceops')}
+              >
+                {serviceOpsCopy[locale].caseLink} <ArrowRight size={15} />
+              </MarketingTrackedLink>
+            </div>
+          </article>
           <div className={styles.embeddedSection}>
             <InlineHeading eyebrow="QDIP" title={x.flow} body={x.flowBody} />
             <div className={styles.centerAction}>

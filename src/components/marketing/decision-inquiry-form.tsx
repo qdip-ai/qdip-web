@@ -85,17 +85,82 @@ const text = {
   },
 } as const
 
+const serviceOpsForm = {
+  en: {
+    fields: [
+      'Name',
+      'Organization',
+      'Email',
+      'Which service process would you like to pilot?',
+      'What kinds of jobs and information do you manage?',
+      'How are work and workers assigned today?',
+      'Which constraints, qualifications or deadlines matter?',
+      'Team size and any additional context',
+    ],
+    submit: 'Request a ServiceOps pilot',
+    success: 'Your ServiceOps pilot request has been sent.',
+    successDetail: 'We will review the described workflow and contact you about fit and next steps.',
+    another: 'Submit another pilot request',
+    decisionValidation: 'Describe a service process in at least 10 characters.',
+  },
+  uk: {
+    fields: [
+      'Ім’я',
+      'Організація',
+      'Email',
+      'Який сервісний процес ви хочете перевірити в пілоті?',
+      'Які замовлення й дані ви обробляєте?',
+      'Як зараз розподіляєте роботу між виконавцями?',
+      'Які терміни, кваліфікації або обмеження важливі?',
+      'Розмір команди та додатковий контекст',
+    ],
+    submit: 'Запросити пілот ServiceOps',
+    success: 'Запит на пілот ServiceOps надіслано.',
+    successDetail: 'Ми розглянемо описаний процес і зв’яжемося з вами щодо наступних кроків.',
+    another: 'Надіслати інший запит',
+    decisionValidation: 'Опишіть сервісний процес щонайменше 10 символами.',
+  },
+  pl: {
+    fields: [
+      'Imię i nazwisko',
+      'Organizacja',
+      'Email',
+      'Jaki proces usługowy chcesz sprawdzić w pilotażu?',
+      'Jakimi zleceniami i informacjami zarządzacie?',
+      'Jak dzisiaj przydzielacie pracę zespołowi?',
+      'Jakie terminy, kwalifikacje lub ograniczenia są ważne?',
+      'Wielkość zespołu i dodatkowy kontekst',
+    ],
+    submit: 'Zapytaj o pilotaż ServiceOps',
+    success: 'Wysłano zapytanie o pilotaż ServiceOps.',
+    successDetail: 'Sprawdzimy opisany proces i skontaktujemy się w sprawie następnych kroków.',
+    another: 'Wyślij kolejne zapytanie',
+    decisionValidation: 'Opisz proces usługowy, używając co najmniej 10 znaków.',
+  },
+} as const
+
 type FieldName =
   'name' | 'organization' | 'email' | 'decision' | 'information' | 'alternatives' | 'constraints' | 'context'
 type AnalyticsEvent = 'decision_form_started' | 'decision_form_submit' | 'decision_form_success' | 'decision_form_error'
-function track(event: AnalyticsEvent, locale: MarketingLocale) {
+function track(event: AnalyticsEvent, locale: MarketingLocale, placement: 'decision' | 'serviceops') {
   if (typeof window === 'undefined') return
   const w = window as Window & { dataLayer?: Array<Record<string, string>> }
-  w.dataLayer?.push({ event, locale })
+  w.dataLayer?.push({ event, locale, placement })
 }
 
-export function DecisionInquiryForm({ locale }: { locale: MarketingLocale }) {
-  const c = text[locale],
+export function DecisionInquiryForm({
+  locale,
+  variant = 'decision',
+}: {
+  locale: MarketingLocale
+  variant?: 'decision' | 'serviceops'
+}) {
+  const base = text[locale],
+    service = serviceOpsForm[locale],
+    c =
+      variant === 'serviceops'
+        ? { ...base, ...service, field: { ...base.field, decision: service.decisionValidation } }
+        : base,
     started = useRef(false),
     [state, setState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle'),
     [message, setMessage] = useState(''),
@@ -103,7 +168,7 @@ export function DecisionInquiryForm({ locale }: { locale: MarketingLocale }) {
   function onFocus() {
     if (!started.current) {
       started.current = true
-      track('decision_form_started', locale)
+      track('decision_form_started', locale, variant)
     }
   }
   function submitAnother() {
@@ -119,7 +184,7 @@ export function DecisionInquiryForm({ locale }: { locale: MarketingLocale }) {
     setErrors({})
     setMessage('')
     setState('submitting')
-    track('decision_form_submit', locale)
+    track('decision_form_submit', locale, variant)
     const fd = new FormData(form)
     const payload = {
       name: fd.get('name'),
@@ -129,7 +194,10 @@ export function DecisionInquiryForm({ locale }: { locale: MarketingLocale }) {
       information: fd.get('information'),
       alternatives: fd.get('alternatives'),
       constraints: fd.get('constraints'),
-      context: fd.get('context'),
+      context:
+        variant === 'serviceops'
+          ? ['ServiceOps pilot inquiry', String(fd.get('context') ?? '')].join('\n').slice(0, 4000)
+          : fd.get('context'),
       website: fd.get('website'),
       locale,
     }
@@ -149,16 +217,16 @@ export function DecisionInquiryForm({ locale }: { locale: MarketingLocale }) {
           setMessage(c.invalid)
         } else setMessage(body.error === 'rate_limited' ? c.rate : c.error)
         setState('error')
-        track('decision_form_error', locale)
+        track('decision_form_error', locale, variant)
         return
       }
       setState('success')
-      track('decision_form_success', locale)
+      track('decision_form_success', locale, variant)
       form.reset()
     } catch {
       setMessage(c.error)
       setState('error')
-      track('decision_form_error', locale)
+      track('decision_form_error', locale, variant)
     }
   }
   if (state === 'success')

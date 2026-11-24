@@ -11,6 +11,7 @@ import { DecisionPatterns } from './decision-patterns'
 import { DecisionPlayground } from './decision-playground'
 import { EvidenceStrip } from './evidence-strip'
 import { conversionBridgeCopy } from './conversion-copy'
+import { SERVICEOPS_URLS, serviceOpsCopy } from './serviceops/serviceops-content'
 import styles from './qdip-site.module.css'
 import motionStyles from './marketing-cta-motion.module.css'
 import shellStyles from './marketing-shell.module.css'
@@ -22,6 +23,7 @@ const path = (locale: MarketingLocale, slug: string) => `${marketingLocaleHref(l
 export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
   const c = marketingCopy[locale]
   const decisionHref = path(locale, 'decision')
+  const service = serviceOpsCopy[locale]
   return (
     <DesignSystemProvider
       theme="burgundy"
@@ -105,6 +107,30 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
           <div className={styles.sectionIntro}>
             <h2 id="ecosystem-title">{c.ecosystem.heading}</h2>
           </div>
+          <article className={styles.ecosystemCard}>
+            <h3>ServiceOps</h3>
+            <span className={styles.ecosystemCategory}>{service.eyebrow}</span>
+            <p>{service.summary}</p>
+            <p>{service.demosDescription}</p>
+            <div className={styles.ecosystemActions}>
+              <MarketingTrackedLink
+                event="marketing_demo_click"
+                locale={locale}
+                placement="serviceops_home_case"
+                href={path(locale, 'serviceops')}
+              >
+                {service.caseLink} <ArrowRight size={15} aria-hidden="true" />
+              </MarketingTrackedLink>
+              <MarketingTrackedLink
+                event="marketing_demo_click"
+                locale={locale}
+                placement="serviceops_home_demo"
+                href={SERVICEOPS_URLS.ownerDemo}
+              >
+                {service.primary} <ArrowRight size={15} aria-hidden="true" />
+              </MarketingTrackedLink>
+            </div>
+          </article>
           <article className={styles.ecosystemCard}>
             <h3 className={styles.ecosystemBrand}>
               <Image src="/brands/dzvin-wordmark.svg" alt="Dzvin.co" width={144} height={34} />
