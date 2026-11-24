@@ -28,14 +28,5 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
     notFound()
   }
 
-  return (
-    <>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `document.documentElement.lang=${JSON.stringify(locale)}`,
-        }}
-      />
-      <I18nProvider locale={locale}>{children}</I18nProvider>
-    </>
-  )
+  return <I18nProvider locale={locale}>{children}</I18nProvider>
 }
