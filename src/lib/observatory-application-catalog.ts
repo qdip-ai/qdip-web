@@ -1,16 +1,19 @@
 import 'server-only'
+import { safePluginLaunchUrl } from '@qdip/client'
+import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
 
+/** Core APP-PUBLISH-01 (#705) record: an application bound to a declared SDK runtime. */
 export type CoreApplicationPublication = {
   application_id: string
   version: string
-  launch_route: string
+  launch_url: string
   required_capabilities: {
     plugin_id: string
     capability_id: string
     plugin_version: string
     capability_version: string
   }[]
-  runtime_binding: { kind: string; organization_id: string } | Record<string, never>
+  runtime_binding: { kind: string; organization_id: string; plugin_id: string; plugin_version: string }
   status: 'draft' | 'published' | 'unpublished'
   revision: number
   published_at: string | null
@@ -18,6 +21,8 @@ export type CoreApplicationPublication = {
   admission: { ready: boolean; reasons: string[] }
   visible: boolean
 }
+
+const APPLICATION_ID = /^[a-z0-9](?:[a-z0-9.-]{0,126}[a-z0-9])?$/
 
 export async function readCoreApplications(connection: {
   base: string
@@ -40,6 +45,9 @@ export async function readCoreApplications(connection: {
       typeof item !== 'object' ||
       !('application_id' in item) ||
       typeof item.application_id !== 'string' ||
+      !APPLICATION_ID.test(item.application_id) ||
+      !('launch_url' in item) ||
+      typeof item.launch_url !== 'string' ||
       !('status' in item) ||
       !['draft', 'published', 'unpublished'].includes(item.status as string) ||
       !('visible' in item) ||
@@ -58,4 +66,18 @@ export async function readCoreApplications(connection: {
       throw new Error('Invalid application publication record')
     return item as CoreApplicationPublication
   })
+}
+
+/**
+ * Public catalog: only applications Core reports as visible (published,
+ * runtime admitted, contract current) with a safe external HTTPS launch URL.
+ * Any Core failure shows no application (fail closed).
+ */
+export async function visibleApplications(): Promise<CoreApplicationPublication[]> {
+  try {
+    const items = await readCoreApplications(corePluginConnection())
+    return items.filter((item) => item.visible && item.status === 'published' && safePluginLaunchUrl(item.launch_url))
+  } catch {
+    return []
+  }
 }

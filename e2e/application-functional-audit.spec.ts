@@ -26,20 +26,6 @@ test.describe('application-wide analyst context contract', () => {
     })
   }
 
-  test('readiness-recovery exposes the Kernel-only operator, never a second optimizer', async ({ page }) => {
-    const response = await page.goto('http://observatory.localhost:3000/uk/readiness-recovery', {
-      waitUntil: 'domcontentloaded',
-    })
-    expect(response?.status()).toBeLessThan(400)
-    await expect(page.getByTestId('rr-kernel-only-workspace')).toBeVisible()
-    await expect(page.getByTestId('rr-kernel-unavailable')).toBeVisible()
-    await expect(page.getByTestId('analyst-data-workspace')).toHaveCount(0)
-    const oldSolver = await page.request.post('http://observatory.localhost:3000/readiness/scenarios', {
-      data: { input: {} },
-    })
-    expect(oldSolver.status()).toBe(410)
-  })
-
   test('contractor capacity-loss mode does not expose company-specific naming', async ({ page }) => {
     await page.goto('http://observatory.localhost:3000/uk/contractor-allocation', { waitUntil: 'domcontentloaded' })
     await page.getByRole('button', { name: 'Кейс 2022: втрата потужності підрядника' }).click()

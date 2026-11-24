@@ -1,5 +1,6 @@
 import { PrototypeShell } from '@/features/observatory'
 import { publishedPlugins, visiblePluginUseCaseIds } from '@/lib/observatory-plugin-catalog'
+import { visibleApplications } from '@/lib/observatory-application-catalog'
 import { launchLinkForPlugin } from '@/lib/observatory-plugin-launch'
 import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
 import { buildLocalePath, isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
@@ -10,6 +11,9 @@ import { PluginLaunchLink } from '@/components/observatory/plugin-launch-link'
 import { pluginPresentation } from '@/lib/observatory-plugin-editorial'
 
 export const dynamic = 'force-dynamic'
+
+/** Display names for Core-declared independent applications (presentation only). */
+const APPLICATION_TITLES: Record<string, string> = { 'readiness-recovery': 'Readiness Recovery' }
 
 const copy = {
   uk: {
@@ -26,6 +30,7 @@ const copy = {
     noDescription: 'Опис плагіна ще не додано.',
     offline: 'Виконання тимчасово недоступне',
     published: 'У каталозі',
+    applications: 'Застосунки',
   },
   en: {
     eyebrow: 'QDIP / Plugins',
@@ -41,6 +46,7 @@ const copy = {
     noDescription: 'The plugin description is not available yet.',
     offline: 'Execution temporarily unavailable',
     published: 'In the catalog',
+    applications: 'Applications',
   },
   pl: {
     eyebrow: 'QDIP / Wtyczki',
@@ -56,6 +62,7 @@ const copy = {
     noDescription: 'Opis wtyczki nie jest jeszcze dostępny.',
     offline: 'Uruchomienie tymczasowo niedostępne',
     published: 'W katalogu',
+    applications: 'Aplikacje',
   },
 } as const
 
@@ -64,21 +71,18 @@ const demoTitles: Record<Locale, Record<string, string>> = {
     'resource-allocation': 'Розподіл ресурсів',
     'supply-network-optimization': 'Оптимізація мережі постачання',
     'contractor-allocation': 'Розподіл підрядників',
-    'readiness-recovery': 'Відновлення готовності',
     'gtm-lab': 'GTM Lab',
   },
   en: {
     'resource-allocation': 'Resource allocation',
     'supply-network-optimization': 'Supply network optimization',
     'contractor-allocation': 'Contractor allocation',
-    'readiness-recovery': 'Readiness recovery',
     'gtm-lab': 'GTM Lab',
   },
   pl: {
     'resource-allocation': 'Alokacja zasobów',
     'supply-network-optimization': 'Optymalizacja sieci dostaw',
     'contractor-allocation': 'Alokacja wykonawców',
-    'readiness-recovery': 'Przywracanie gotowości',
     'gtm-lab': 'GTM Lab',
   },
 }
@@ -87,7 +91,11 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
   const { locale } = await params
   if (!isSupportedLocale(locale)) notFound()
   const t = copy[locale]
-  const [plugins, visibleIds] = await Promise.all([publishedPlugins(), visiblePluginUseCaseIds()])
+  const [plugins, visibleIds, applications] = await Promise.all([
+    publishedPlugins(),
+    visiblePluginUseCaseIds(),
+    visibleApplications(),
+  ])
   const demos = DIP_USE_CASES.filter(
     (item) =>
       visibleIds.includes(item.id) &&
@@ -147,6 +155,33 @@ export default async function PluginDirectoryPage({ params }: { params: Promise<
               </div>
             )}
           </section>
+          {applications.length > 0 && (
+            <section className={styles.secondarySection} aria-labelledby="published-applications">
+              <h2 className={styles.sectionTitle} id="published-applications">
+                {t.applications}
+              </h2>
+              <div className={styles.grid} style={{ marginTop: '1.25rem' }} data-testid="published-applications">
+                {applications.map((application) => {
+                  const title = APPLICATION_TITLES[application.application_id] ?? application.application_id
+                  return (
+                    <article key={application.application_id} className={`${styles.card} ${styles.publicCard}`}>
+                      <div className={styles.meta}>
+                        <span className={styles.pill} data-kind="published">
+                          {t.published}
+                        </span>
+                      </div>
+                      <h3 className={styles.cardTitle} style={{ marginTop: '1rem' }}>
+                        {title}
+                      </h3>
+                      <div className={styles.actionRow}>
+                        <PluginLaunchLink href={application.launch_url} label={`${t.launch} ${title}`} />
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
+          )}
           {demos.length > 0 && (
             <section className={styles.secondarySection} aria-labelledby="plugin-demonstrations">
               <h2 className={styles.sectionTitle} id="plugin-demonstrations">

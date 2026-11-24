@@ -42,6 +42,7 @@ vi.mock('@/lib/observatory-plugin-catalog', () => ({
 }))
 vi.mock('@/lib/zitadel-org-link-assertion', () => ({
   signZitadelOwnerLink: () => ({ issued_at: 1792400000, nonce: 'a'.repeat(32), assertion: 'b'.repeat(64) }),
+  signZitadelOwnerList: () => ({ issued_at: 1792400000, nonce: 'c'.repeat(32), assertion: 'd'.repeat(64) }),
 }))
 
 import { GET, POST } from './route'
@@ -74,6 +75,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 describe('verified Zitadel ownership link', () => {
@@ -149,5 +151,90 @@ describe('verified Zitadel ownership link', () => {
     vi.mocked(sessionFromRequest).mockReturnValue(null)
     expect((await GET(request('GET'))).status).toBe(401)
     expect((await POST(request('POST', { organizationId: ORG }))).status).toBe(401)
+  })
+})
+
+function enableRrQaBridge() {
+  vi.stubEnv('RAILWAY_PROJECT_ID', '4665798b-2012-466e-be91-2555d76f36c2')
+  vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'qa')
+  vi.stubEnv('RR_STAGING_OWNER_LINK_URL', 'https://qdip-rr-qa.up.railway.app/qa/rr/owner-link')
+  vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', ORG)
+}
+
+describe('RR QA owner bridge is scoped to the configured Zitadel organization', () => {
+  it('accepts only the single active configured organization from the QA owner list', async () => {
+    enableRrQaBridge()
+    const fetchQa = vi.fn(async (url: string, options: RequestInit) => {
+      expect(url).toBe('https://qdip-rr-qa.up.railway.app/qa/rr/owner-link')
+      expect(options.method).toBe('POST')
+      const body = JSON.parse(String(options.body))
+      expect(body.action).toBe('list')
+      expect(body.issuer).toBe(ISSUER)
+      return Response.json({ organizations: [{ id: ORG, state: 'active', name: 'QDIP' }] })
+    })
+    vi.stubGlobal('fetch', fetchQa)
+    const result = await GET(request('GET'))
+    expect(result.status).toBe(200)
+    expect(await result.json()).toEqual({
+      organizations: [{ id: ORG, state: 'active', name: 'QDIP' }],
+    })
+    expect(fetchQa).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    { organizations: [] },
+    {
+      organizations: [
+        { id: ORG, state: 'active' },
+        { id: ORG, state: 'active' },
+      ],
+    },
+    { organizations: [{ id: '22222222222222222222', state: 'active' }] },
+    { organizations: [{ id: ORG, state: 'inactive' }] },
+  ])('rejects an incomplete, duplicate or foreign QA owner list: %j', async (payload) => {
+    enableRrQaBridge()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json(payload))
+    )
+    expect((await GET(request('GET'))).status).toBe(503)
+  })
+
+  it('fails closed without the configured QA organization', async () => {
+    enableRrQaBridge()
+    vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', '')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ organizations: [{ id: ORG, state: 'active' }] }))
+    )
+    expect((await GET(request('GET'))).status).toBe(503)
+    expect((await POST(request('POST', { organizationId: ORG }))).status).toBe(503)
+  })
+
+  it('rejects a foreign QA link without calling the bridge', async () => {
+    enableRrQaBridge()
+    const fetchQa = vi.fn()
+    vi.stubGlobal('fetch', fetchQa)
+    expect((await POST(request('POST', { organizationId: '22222222222222222222' }))).status).toBe(403)
+    expect(fetchQa).not.toHaveBeenCalled()
+  })
+
+  it('accepts a verified QA link only for the configured organization', async () => {
+    enableRrQaBridge()
+    const fetchQa = vi.fn(async (_url: string, options: RequestInit) => {
+      const body = JSON.parse(String(options.body))
+      expect(body.action).toBe('link')
+      expect(body.organization_id).toBe(ORG)
+      return Response.json({
+        linked: true,
+        coreTenantId: CORE,
+        organization: { id: ORG, name: 'QDIP', state: 'active' },
+      })
+    })
+    vi.stubGlobal('fetch', fetchQa)
+    const result = await POST(request('POST', { organizationId: ORG }))
+    expect(result.status).toBe(200)
+    expect((await result.json()).coreTenantId).toBe(CORE)
+    expect(fetchQa).toHaveBeenCalledTimes(1)
   })
 })

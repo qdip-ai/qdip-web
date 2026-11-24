@@ -15,7 +15,8 @@ export async function POST(request: NextRequest, context: Context) {
   if (!session || !/^[A-Za-z0-9@._:-]{1,256}$/.test(session.sub))
     return reply({ error: 'Verified administrator required' }, 403)
   const { id, action } = await context.params
-  if (id !== 'readiness-recovery' || !['publish', 'unpublish'].includes(action))
+  // Core is the authority on which applications exist; unknown ids are 404 there.
+  if (!/^[a-z0-9](?:[a-z0-9.-]{0,126}[a-z0-9])?$/.test(id) || !['publish', 'unpublish'].includes(action))
     return reply({ error: 'Unknown application operation' }, 404)
   if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json')
     return reply({ error: 'JSON required' }, 415)

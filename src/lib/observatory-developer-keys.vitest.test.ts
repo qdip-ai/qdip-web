@@ -318,6 +318,48 @@ describe('Generic developer plugin keys', () => {
     expect(String(calls[0].name)).toMatch(/^access\/route-optimizer-sdk02\//)
   })
 
+  it('rejects the retired Cloud Yara Worker cross-tenant re-creation path', async () => {
+    const cloudOwner = {
+      id: '368555767923594379',
+      issuer: 'https://mentality-rmwj0i.eu1.zitadel.cloud',
+    }
+    const target = {
+      ...org,
+      id: 'ff638747-1962-4a44-95ee-3902c28d949f',
+      zitadel_organization_id: cloudOwner.id,
+      zitadel_issuer: cloudOwner.issuer,
+    }
+    const source = {
+      id: '1aeac26a-7dcd-467d-b6f3-2cfd842ea2ab',
+      name: 'qdip-sdk-app:vhv',
+      status: 'active',
+    }
+    const remote = {
+      name: remoteId(source.id, 'secretary'),
+      plugin_id: 'secretary',
+      source: 'remote',
+      enabled: true,
+      capabilities: ['secretary.plan'],
+    }
+    const calls: string[] = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string, options: RequestInit) => {
+        const path = new URL(input).pathname
+        const method = options.method ?? 'GET'
+        calls.push(method + ' ' + path)
+        if (path.endsWith('/plugin-publications')) return Response.json([remote])
+        if (method === 'GET' && path.endsWith('/organizations')) return Response.json([target, source])
+        if (method === 'GET' && path.endsWith('/keys')) return Response.json([])
+        throw Error('Unexpected Core write or endpoint: ' + method + ' ' + path)
+      })
+    )
+    await expect(
+      issuePluginCredential('secretary', ['secretary.plan'], 'worker', cloudOwner, true)
+    ).rejects.toMatchObject({ status: 409 })
+    expect(calls.every((call) => call.startsWith('GET '))).toBe(true)
+  })
+
   it('rejects a forged remote catalog identity without a matching managed registration tenant', async () => {
     const cap = 'route-optimizer.select-routes.v1'
     vi.stubGlobal(

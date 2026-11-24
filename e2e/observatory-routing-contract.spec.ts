@@ -26,15 +26,6 @@ const routes = [
     },
   },
   {
-    id: 'readiness-recovery',
-    path: '/readiness-recovery',
-    title: {
-      en: 'Readiness Recovery Planner',
-      uk: 'Планувальник відновлення готовності',
-      pl: 'Planer odtwarzania gotowości',
-    },
-  },
-  {
     id: 'gtm-lab',
     path: '/gtm-lab',
     title: {

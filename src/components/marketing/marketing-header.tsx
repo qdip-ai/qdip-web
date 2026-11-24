@@ -23,6 +23,7 @@ export function MarketingHeader({ locale, currentPath }: { locale: MarketingLoca
     { href: marketingPath(locale, 'use-cases'), label: c.nav[1] },
     { href: `${marketingLocaleHref(locale)}#why`, label: c.nav[2] },
     { href: marketingPath(locale, 'core'), label: c.nav[3] },
+    { href: marketingPath(locale, 'sdk'), label: 'SDK' },
     { href: `${marketingPath(locale, 'use-cases')}#demos`, label: c.nav[4] },
   ]
   const mobileItems = [

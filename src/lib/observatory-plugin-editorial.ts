@@ -97,23 +97,6 @@ const COPY: Record<string, ProductCopy> = {
       'Explains how demand changes, materials, production capacity and machine availability affect operating risk, then suggests a response. Prototype analysis only; it does not control factory equipment.',
     ],
   },
-  'readiness-recovery': {
-    uk: {
-      title: 'Відновлення готовності — демонстрація',
-      description:
-        'Показує, як умовні дії відновлення змінюють готовність, ризик, невизначеність і витрати. Це демо Decision Studio, а не оперативний планувальник ремонту.',
-    },
-    pl: {
-      title: 'Odtwarzanie gotowości — demonstracja',
-      description:
-        'Pokazuje, jak działania naprawcze wpływają na gotowość, ryzyko, niepewność i koszt. To demo Decision Studio, nie operacyjny harmonogram napraw.',
-    },
-    englishLabels: ['Readiness Recovery — Studio Demonstration', 'Readiness Recovery', 'readiness-recovery'],
-    englishDescriptions: [
-      'Canonical Decision Studio demo. Exercises generic plugin, capability, profile, dimension-binding and execution contracts without domain-specific frontend logic.',
-      'Reference demonstration of how recovery actions change readiness, risk, uncertainty and cost. This Studio example is distinct from the authenticated repair scheduling and recovery application.',
-    ],
-  },
   'resource-allocation': {
     uk: {
       title: 'Гуманітарний розподіл ресурсів',
@@ -159,7 +142,6 @@ const LEGACY_IDENTITIES = new Set([
   'gas-forecast',
   'gtm-lab',
   'production-decision',
-  'readiness-recovery',
   'resource-allocation',
 ])
 const VERIFIED_REMOTE_IDENTITIES = new Map<string, string>([

@@ -34,11 +34,6 @@ describe('public product naming policy', () => {
         uk: 'Розподіл робіт між підрядниками',
         pl: 'Przydział prac wykonawcom',
       },
-      'readiness-recovery': {
-        en: PUBLIC_DEMO_NAMES.readinessRecovery,
-        uk: 'Планувальник відновлення готовності',
-        pl: 'Planer odtwarzania gotowości',
-      },
       'gtm-lab': {
         en: PUBLIC_DEMO_NAMES.gtmLab,
         uk: 'Лабораторія виходу на ринок',

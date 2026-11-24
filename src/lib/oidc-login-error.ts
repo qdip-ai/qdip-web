@@ -10,7 +10,7 @@ const messages = {
     'missing-role': {
       title: 'QDIP access is not assigned',
       detail:
-        'Zitadel authenticated your account, but QDIP could not verify the studio or rr_operator grant for its configured project and organization. If your roles are already assigned, check that the project and organization identifiers match the grant.',
+        'Zitadel authenticated your account, but QDIP could not verify the studio or observatory_admin grant for its configured project and organization. If your roles are already assigned, check that the project and organization identifiers match the grant.',
     },
     'expired-flow': {
       title: 'Sign-in session expired',
@@ -27,7 +27,7 @@ const messages = {
     'missing-role': {
       title: 'Немає призначеної ролі QDIP',
       detail:
-        'Zitadel підтвердив вхід, але QDIP не зміг перевірити роль studio або rr_operator для налаштованих проєкту й організації. Якщо ролі вже призначені, перевір відповідність ідентифікаторів проєкту й організації.',
+        'Zitadel підтвердив вхід, але QDIP не зміг перевірити роль studio або observatory_admin для налаштованих проєкту й організації. Якщо ролі вже призначені, перевір відповідність ідентифікаторів проєкту й організації.',
     },
     'expired-flow': {
       title: 'Сеанс входу завершився',
@@ -44,7 +44,7 @@ const messages = {
     'missing-role': {
       title: 'Nie przypisano roli QDIP',
       detail:
-        'Zitadel uwierzytelnił konto, ale QDIP nie mógł potwierdzić roli studio ani rr_operator dla skonfigurowanego projektu i organizacji. Jeśli role są już przypisane, sprawdź identyfikatory projektu i organizacji.',
+        'Zitadel uwierzytelnił konto, ale QDIP nie mógł potwierdzić roli studio ani observatory_admin dla skonfigurowanego projektu i organizacji. Jeśli role są już przypisane, sprawdź identyfikatory projektu i organizacji.',
     },
     'expired-flow': {
       title: 'Sesja logowania wygasła',

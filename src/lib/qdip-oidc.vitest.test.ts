@@ -9,7 +9,6 @@ import {
   discoverOidc,
   canAccessStudio,
   canAdministerObservatory,
-  canOperateRr,
   isAllowedSession,
   oidcConfigured,
   onSiteOrigin,
@@ -78,7 +77,6 @@ beforeEach(() => {
   vi.stubEnv('ZITADEL_QDIP_PROJECT_ID', projectId)
   vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', organizationId)
   vi.stubEnv('QDIP_STUDIO_ZITADEL_ROLE_KEY', 'studio')
-  vi.stubEnv('QDIP_RR_ZITADEL_ROLE_KEY', 'rr_operator')
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => ({
@@ -101,7 +99,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     vi.stubEnv('ZITADEL_QDIP_PROJECT_ID', '')
     expect(oidcConfigured()).toBe(false)
     vi.stubEnv('ZITADEL_QDIP_PROJECT_ID', projectId)
-    vi.stubEnv('QDIP_RR_ZITADEL_ROLE_KEY', 'studio')
+    vi.stubEnv('QDIP_OBSERVATORY_ADMIN_ZITADEL_ROLE_KEY', 'studio')
     expect(oidcConfigured()).toBe(false)
   })
 
@@ -111,27 +109,28 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     expect(canAccessStudio(studio)).toBe(true)
     expect(studio.projectId).toBe(projectId)
     expect(studio.organizationId).toBe(organizationId)
-    expect(canOperateRr(studio)).toBe(false)
 
-    const rr = await verifyIdToken(
+    // A role QDIP Web does not define (e.g. a product role of an independent
+    // plugin service) never grants a QDIP Web surface.
+    const foreignRole = await verifyIdToken(
       token({ sub: 'user-1', [roleClaim]: { rr_operator: { [organizationId]: 'qdip.example.test' } } }),
       flow,
       config
     )
-    expect(canAccessStudio(rr)).toBe(false)
-    expect(canOperateRr(rr)).toBe(true)
+    expect(foreignRole.roles).toEqual([])
+    expect(canAccessStudio(foreignRole)).toBe(true)
 
     const both = await verifyIdToken(
       token({
         [roleClaim]: {
           studio: { [organizationId]: 'qdip.example.test' },
-          rr_operator: { [organizationId]: 'qdip.example.test' },
+          observatory_admin: { [organizationId]: 'qdip.example.test' },
         },
       }),
       flow,
       config
     )
-    expect(both.roles).toEqual(['studio', 'rr_operator'])
+    expect(both.roles).toEqual(['studio', 'observatory_admin'])
 
     const admin = await verifyIdToken(
       token({ [roleClaim]: { observatory_admin: { [organizationId]: 'qdip.example.test' } } }),
@@ -139,8 +138,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
       config
     )
     expect(canAdministerObservatory(admin)).toBe(true)
-    expect(canAccessStudio(admin)).toBe(false)
-    expect(canOperateRr(admin)).toBe(false)
+    expect(canAccessStudio(admin)).toBe(true)
     const adminOtherOrg = await verifyIdToken(
       token({ [roleClaim]: { observatory_admin: { '111111111': 'foreign.example.test' } } }),
       flow,
@@ -157,6 +155,8 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     )
     expect(otherOrg.roles).toEqual([])
     expect(isAllowedSession(otherOrg)).toBe(true)
+    expect(canAccessStudio(otherOrg)).toBe(true)
+    expect(canAdministerObservatory(otherOrg)).toBe(false)
 
     const otherProject = await verifyIdToken(
       token({
@@ -185,6 +185,7 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     expect(url.searchParams.get('response_type')).toBe('code')
     expect(url.searchParams.get('state')).toBe(flow.state)
     expect(url.searchParams.get('nonce')).toBe(flow.nonce)
+    expect(url.searchParams.get('scope')?.split(' ')).toContain(`urn:zitadel:iam:org:id:${organizationId}`)
     expect(url.searchParams.get('scope')).toContain(`urn:zitadel:iam:org:project:id:${projectId}:aud`)
     expect(url.searchParams.get('scope')).toContain('urn:zitadel:iam:org:projects:roles')
     expect(url.searchParams.get('scope')).toContain('urn:iam:org:project:roles')
@@ -195,11 +196,11 @@ describe('QDIP Zitadel OIDC PKCE', () => {
       sub: 'user-1',
       [roleClaim]: {
         studio: { [organizationId]: 'qdip.example.test' },
-        rr_operator: { [organizationId]: 'qdip.example.test' },
+        observatory_admin: { [organizationId]: 'qdip.example.test' },
       },
     })
     const session = await exchangeCode('zitadel-test-auth-code', flow, config)
-    expect(session.roles).toEqual(['studio', 'rr_operator'])
+    expect(session.roles).toEqual(['studio', 'observatory_admin'])
     expect(fetchMock).toHaveBeenCalledWith(
       config.userinfo_endpoint,
       expect.objectContaining({ headers: { Authorization: 'Bearer zitadel-test-access-token' } })
@@ -227,13 +228,29 @@ describe('QDIP Zitadel OIDC PKCE', () => {
     await expect(exchangeCode('zitadel-test-auth-code', flow, config)).rejects.toThrow('subject mismatch')
   })
 
-  it('uses verified identity from the ID token without a Userinfo roundtrip', async () => {
-    const fetchMock = stubExchange(token({ name: 'QA Tester', email: 'qa@qdip.ai' }))
+  it('uses verified identity and picture from the ID token without a Userinfo roundtrip', async () => {
+    const fetchMock = stubExchange(
+      token({ name: 'QA Tester', email: 'qa@qdip.ai', picture: 'https://identity.example.test/avatar.png' })
+    )
     const session = await exchangeCode('zitadel-test-auth-code', flow, config)
     expect(session.roles).toEqual(['studio'])
     expect(session.displayName).toBe('QA Tester')
     expect(session.email).toBe('qa@qdip.ai')
+    expect(session.picture).toBe('https://identity.example.test/avatar.png')
     expect(fetchMock.mock.calls.some(([url]) => url === config.userinfo_endpoint)).toBe(false)
+  })
+
+  it('loads a missing picture from subject-matched Userinfo without replacing ID-token identity', async () => {
+    const fetchMock = stubExchange(token({ name: 'QA Tester', email: 'qa@qdip.ai' }), {
+      sub: 'user-1',
+      picture: 'https://identity.example.test/avatar.png',
+    })
+    const session = await exchangeCode('zitadel-test-auth-code', flow, config)
+    expect(session.roles).toEqual(['studio'])
+    expect(session.displayName).toBe('QA Tester')
+    expect(session.email).toBe('qa@qdip.ai')
+    expect(session.picture).toBe('https://identity.example.test/avatar.png')
+    expect(fetchMock.mock.calls.some(([url]) => url === config.userinfo_endpoint)).toBe(true)
   })
 
   it('fills a missing display identity from verified Userinfo without replacing ID token roles', async () => {

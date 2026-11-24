@@ -47,8 +47,8 @@ afterEach(() => {
 })
 
 describe('Studio BFF reverse proxy trust boundary', () => {
-  it('allows RR-only sessions to use personal Studio models without Studio role', async () => {
-    auth.roles = ['rr_operator']
+  it('allows non-Studio sessions to use personal Studio models without Studio role', async () => {
+    auth.roles = ['observatory_admin']
     const response = await GET(request('GET', 'studio.localhost:3000'), context)
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual([])

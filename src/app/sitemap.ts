@@ -3,6 +3,7 @@ import { QDIP_DEFAULT_LOCALE, QDIP_LOCALES, qdipLocaleUrl } from './seo-copy'
 const pages = [
   '',
   'how-it-works',
+  'sdk',
   'use-cases',
   'decision',
   'core',

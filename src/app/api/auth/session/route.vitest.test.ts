@@ -19,8 +19,8 @@ afterEach(() => vi.unstubAllEnvs())
 function signedSession(sub: string) {
   const source = new NextRequest('https://observatory.qdip.ai/api/auth/session')
   const response = NextResponse.json({})
-  const roles: Array<'studio' | 'rr_operator'> =
-    sub === 'studio-only' ? ['studio'] : sub === 'rr-only' ? ['rr_operator'] : []
+  const roles: Array<'studio' | 'observatory_admin'> =
+    sub === 'studio-only' ? ['studio'] : sub === 'admin-only' ? ['observatory_admin'] : []
   attachSession(response, source, {
     sub,
     roles,
@@ -31,6 +31,7 @@ function signedSession(sub: string) {
     expiresAt: Math.floor(Date.now() / 1000) + 300,
     displayName: 'QA Tester',
     email: 'qa@qdip.ai',
+    picture: 'https://identity.example.test/avatar.png',
   })
   const token = response.cookies.get('qdip_oidc_session')?.value
   if (!token) throw new Error('Missing signed OIDC session')
@@ -55,19 +56,35 @@ describe('global OIDC session endpoint with reverse proxy Host', () => {
       configured: true,
       authenticated: true,
       studio: true,
-      operator: false,
-      user: { id: 'studio-only', displayName: 'QA Tester', email: 'qa@qdip.ai' },
+      observatoryAdmin: false,
+      user: {
+        id: 'studio-only',
+        displayName: 'QA Tester',
+        email: 'qa@qdip.ai',
+        picture: 'https://identity.example.test/avatar.png',
+      },
     })
   })
 
-  it('enforces disjoint Studio and RR authorization on the same signed session', async () => {
-    const response = GET(proxiedRequest('observatory.localhost:3000', 'rr-only'))
+  it('grants personal Studio to all signed-in users without granting Observatory admin rights', async () => {
+    const response = GET(proxiedRequest('observatory.localhost:3000', 'admin-only'))
     expect(response.status).toBe(200)
-    await expect(response.json()).resolves.toMatchObject({
+    const body = await response.json()
+    expect(body).toMatchObject({ authenticated: true, studio: true, observatoryAdmin: true })
+    const ordinary = GET(proxiedRequest('observatory.localhost:3000', 'ordinary-user'))
+    expect(ordinary.status).toBe(200)
+    await expect(ordinary.json()).resolves.toMatchObject({
       authenticated: true,
-      studio: false,
-      operator: true,
+      studio: true,
+      observatoryAdmin: false,
     })
+    const anonymous = GET(proxiedRequest('observatory.localhost:3000'))
+    await expect(anonymous.json()).resolves.toMatchObject({
+      authenticated: false,
+      studio: false,
+      observatoryAdmin: false,
+    })
+    expect(body).not.toHaveProperty('operator')
   })
 
   it('rejects an unrecognized external Host even if x-forwarded-host claims a trusted host', () => {

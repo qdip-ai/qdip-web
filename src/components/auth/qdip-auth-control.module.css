@@ -108,6 +108,13 @@
   cursor: pointer;
 }
 
+.profileAvatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .profileToggle:hover,
 .profileToggle[aria-expanded='true'] {
   border-color: var(--ds-accent);

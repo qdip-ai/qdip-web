@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { clearSession } from '@/lib/qdip-oidc'
+import { clearSession, oidcEndSessionUrl } from '@/lib/qdip-oidc'
 import { isSurfaceHost } from '@/routing-config'
 
 export const runtime = 'nodejs'
@@ -26,7 +26,23 @@ export function POST(request: NextRequest) {
   const scheme = secure ? 'https:' : request.nextUrl.protocol === 'http:' && localHost ? 'http:' : null
   if (!scheme || request.headers.get('origin') !== `${scheme}//${host.toLowerCase()}`)
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const response = NextResponse.json({ authenticated: false }, { headers: { 'Cache-Control': 'no-store' } })
+  const returnSurface =
+    scheme !== 'https:'
+      ? undefined
+      : host.toLowerCase() === 'qdip.ai'
+        ? 'site'
+        : host.toLowerCase() === 'studio.qdip.ai'
+          ? 'studio'
+          : host.toLowerCase() === 'observatory.qdip.ai'
+            ? 'observatory'
+            : undefined
+  const response = NextResponse.json(
+    {
+      authenticated: false,
+      logoutUrl: oidcEndSessionUrl(returnSurface),
+    },
+    { headers: { 'Cache-Control': 'no-store' } }
+  )
   clearSession(response, request)
   return response
 }
