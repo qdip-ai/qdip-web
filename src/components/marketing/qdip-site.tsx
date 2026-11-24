@@ -113,12 +113,20 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
             <p>{service.summary}</p>
             <p>{service.demosDescription}</p>
             <div className={styles.ecosystemActions}>
-              <MarketingTrackedLink event="marketing_demo_click" locale={locale} placement="serviceops_home_case"
-                href={path(locale, 'serviceops')}>
+              <MarketingTrackedLink
+                event="marketing_demo_click"
+                locale={locale}
+                placement="serviceops_home_case"
+                href={path(locale, 'serviceops')}
+              >
                 {service.caseLink} <ArrowRight size={15} aria-hidden="true" />
               </MarketingTrackedLink>
-              <MarketingTrackedLink event="marketing_demo_click" locale={locale} placement="serviceops_home_demo"
-                href={SERVICEOPS_URLS.ownerDemo}>
+              <MarketingTrackedLink
+                event="marketing_demo_click"
+                locale={locale}
+                placement="serviceops_home_demo"
+                href={SERVICEOPS_URLS.ownerDemo}
+              >
                 {service.primary} <ArrowRight size={15} aria-hidden="true" />
               </MarketingTrackedLink>
             </div>

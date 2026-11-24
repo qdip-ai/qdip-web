@@ -510,8 +510,12 @@ export function PublicPage({ locale, slug }: { locale: MarketingLocale; slug: st
             <p>{serviceOpsCopy[locale].summary}</p>
             <p>{serviceOpsCopy[locale].demosDescription}</p>
             <div className={styles.ecosystemActions}>
-              <MarketingTrackedLink event="marketing_demo_click" locale={locale} placement="serviceops_usecases_case"
-                href={href(locale, 'serviceops')}>
+              <MarketingTrackedLink
+                event="marketing_demo_click"
+                locale={locale}
+                placement="serviceops_usecases_case"
+                href={href(locale, 'serviceops')}
+              >
                 {serviceOpsCopy[locale].caseLink} <ArrowRight size={15} />
               </MarketingTrackedLink>
             </div>
