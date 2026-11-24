@@ -8,32 +8,32 @@ const copy = {
   uk: {
     eyebrow: 'QDIP / Developers',
     title: 'Розробка плагінів QDIP',
-    lead: 'Створіть власний Python Worker із QDIP SDK-02 та викликайте його із серверного застосунку через SDK-03.',
+    lead: 'Створіть власний Python Worker із QDIP SDK-02, який формує модель задачі, та викликайте його із серверного застосунку через SDK-03.',
     status: 'Developer preview · тільки контрольований доступ до Gateway',
     limits:
       'Публічна документація не означає відкритий доступ до виконання. SDK надаються як перевірені артефакти через оператора; PyPI/npm-релізу та відкритого self-service наразі немає.',
-    modes: 'Оберіть режим виконання',
-    managed: 'Managed DecisionSpec',
+    modes: 'Контракти виконання',
+    managed: 'decision_spec — загальний режим',
     managedBody:
       'Ваш Worker будує DecisionSpec. QDIP Kernel розв’язує задачу, формує результат, manifest та replay. Виклик: plugins.invoke. Це не локальний запуск Kernel у Worker.',
-    external: 'Developer-owned structured_result',
-    externalBody:
-      'Worker запускає власний алгоритм і повертає JSON за оголошеною схемою. QDIP перевіряє контракт, але не оптимальність чи правильність алгоритму. Виклик: plugins.evaluate.',
+    restricted: 'managed_spec — обмежений режим',
+    restrictedBody:
+      'Тільки довірені first-party Worker: ManagedDomainSpec, перевірка ідентичності, allowlist та незмінності вхідних даних. Доменний solver виконується на сервері QDIP. Виклик: plugins.invoke. Для незалежних розробників цей режим недоступний.',
     prereq: '1. Доступ та артефакти',
     prereqBody:
-      'Потрібні Python 3.11+, Node.js 20+, дозволений Gateway HTTPS/WSS, plugin_id і два окремі ключі: Worker (plugins:register) та caller (plugins:read + plugins:execute) з точною allowlist capability. Оператор передає SDK-02 v0.1.3 ZIP, SDK-03 v0.1.2 TGZ і SHA-256 через довірений канал. Для розробника не потрібен checkout qdip-core.',
+      'Потрібні Python 3.11+, Node.js 20+, дозволений Gateway HTTPS/WSS, plugin_id і два окремі ключі: Worker (plugins:register) та caller (plugins:read + plugins:execute) з точною allowlist capability. Оператор передає SDK-02 v0.1.3 ZIP, SDK-03 v0.2.0 TGZ і SHA-256 через довірений канал. Для розробника не потрібен checkout qdip-core.',
     verify: 'Перевірте SHA-256 та встановіть пакети',
     verifyNote:
       'Змінні SDK02_SHA256 / SDK03_SHA256 беріть лише з незалежно підтверджених значень оператора. ZIP містить wheel-файли, сумісні з ОС і Python ABI розробника.',
     worker: '2. Напишіть власний Worker',
     workerBody:
-      'Приклад обчислює суму на стороні розробника та повертає structured_result. Збережіть як worker.py; замініть ідентифікатори на видані оператором. Ніяких ключів у вихідному коді.',
+      'Приклад формує DecisionSpec для вибору ремонтних робіт за бюджетом годин. Worker готує модель, а QDIP Kernel її розв’язує. Збережіть як worker.py; використайте видані оператором ідентифікатори. Не зберігайте ключі в коді.',
     run: 'Запуск Worker',
     runBody:
       'Worker відкриває вихідне WSS-з’єднання, без вхідного порту. Ключ має бути прив’язаний до того самого plugin_id та capability_id.',
     caller: '3. Викличте capability із Node.js',
     callerBody:
-      'Збережіть код як caller/caller.mjs і запускайте лише на сервері. Caller key не можна передавати браузеру. Приклад повертає результат вашого алгоритму, а не сертифікований Kernel solution.',
+      'Збережіть код як caller/caller.mjs та запускайте лише на сервері. Не передавайте caller key браузеру. Перевіряйте isActionable; очікуване оптимальне значення для прикладу — 13. Рішення застосовує ваш застосунок після власної перевірки.',
     publish: '4. Реєстрація та публікація',
     publishBody:
       'Підключений Worker надсилає REGISTER до Gateway. Це створює runtime-реєстрацію, але не публікує і не схвалює плагін. Після перевірки платформа може опублікувати його опис в каталозі Observatory; публікація не замінює security admission чи доступу до виконання.',
@@ -42,37 +42,37 @@ const copy = {
       '401/403 — перевірте належність застосунку, scopes, allowlist та статус ключа; 422 — виправте input/schema; 429 — дотримуйтесь Retry-After; 503 — Worker недоступний або перевищено ліміти; 504/втрата відповіді — результат невідомий, без автоматичного повтору side effects. Відкликання ключів забороняє подальші виклики, але не гарантує зупинку вже прийнятої роботи.',
     catalog: 'Каталог плагінів',
     footer:
-      'Версії прикладів: SDK-02 0.1.3, SDK-03 0.1.2. Hosted E2E незалежного розробника та публічний admission ще не кваліфіковані.',
+      'Версії прикладів: SDK-02 0.1.3, SDK-03 0.2.0. Hosted E2E незалежного розробника та публічний admission ще не кваліфіковані.',
   },
   en: {
     eyebrow: 'QDIP / Developers',
     title: 'Build QDIP plugins',
-    lead: 'Run your own algorithm in a Python SDK-02 Worker and call it from a server application through SDK-03.',
+    lead: 'Build a Python SDK-02 Worker that prepares a decision model and invoke it from a server application through SDK-03.',
     status: 'Developer preview · controlled Gateway access only',
     limits:
       'Public documentation does not imply public execution access. SDK packages are supplied as verified operator handoff artifacts; neither PyPI/npm distribution nor open self-service is available.',
-    modes: 'Choose an execution mode',
-    managed: 'Managed DecisionSpec',
+    modes: 'Execution contracts',
+    managed: 'decision_spec — general mode',
     managedBody:
       'Your Worker produces a DecisionSpec. QDIP Kernel solves it and produces the result, manifest and replay. Call plugins.invoke. The Kernel does not run inside your Worker.',
-    external: 'Developer-owned structured_result',
-    externalBody:
-      'Your Worker executes its own algorithm and returns JSON matching a declared schema. QDIP checks the contract, not the algorithm’s correctness or optimality. Call plugins.evaluate.',
+    restricted: 'managed_spec — restricted mode',
+    restrictedBody:
+      'Trusted first-party Workers only: ManagedDomainSpec, authenticated identity, server-side allowlist and unchanged input checks. QDIP executes the domain solver server-side. Call plugins.invoke. This mode is not available to independent developers.',
     prereq: '1. Access and artifacts',
     prereqBody:
-      'Requires Python 3.11+, Node.js 20+, an authorized HTTPS/WSS Gateway, plugin_id, and separate Worker (plugins:register) and caller (plugins:read + plugins:execute) keys with an exact capability allowlist. Your operator supplies SDK-02 v0.1.3 ZIP, SDK-03 v0.1.2 TGZ and trusted SHA-256 values. No qdip-core checkout is required on the developer machine.',
+      'Requires Python 3.11+, Node.js 20+, an authorized HTTPS/WSS Gateway, plugin_id, and separate Worker (plugins:register) and caller (plugins:read + plugins:execute) keys with an exact capability allowlist. Your operator supplies SDK-02 v0.1.3 ZIP, SDK-03 v0.2.0 TGZ and trusted SHA-256 values. No qdip-core checkout is required on the developer machine.',
     verify: 'Verify SHA-256 and install the packages',
     verifyNote:
       'Obtain SDK02_SHA256 / SDK03_SHA256 from an independently trusted operator channel. Python wheels in the ZIP must match the developer OS and Python ABI.',
     worker: '2. Write your own Worker',
     workerBody:
-      'This original example sums integers inside the developer-owned Worker and returns a structured_result. Save as worker.py and use the operator-issued IDs. Never commit credentials.',
+      'This example prepares a DecisionSpec for selecting repair jobs under an hour budget. The Worker builds the model; QDIP Kernel solves it. Save as worker.py and use operator-issued IDs. Never commit credentials.',
     run: 'Start the Worker',
     runBody:
       'The Worker makes an outbound WSS connection. No inbound port is required. Its key must be bound to the same plugin_id and capability_id.',
     caller: '3. Call your capability from Node.js',
     callerBody:
-      'Save as caller/caller.mjs and run only on the server; never expose the caller key in a browser. The response is an algorithm-owned report, not a Kernel-certified solution.',
+      'Save as caller/caller.mjs and run only on the server; never expose the caller key in a browser. Check isActionable; the expected optimal objective for this example is 13. Your application owns validation and application of the decision.',
     publish: '4. Registration and publication',
     publishBody:
       'The connected Worker sends REGISTER to Gateway. This creates runtime registration, not approval or publication. After review, the platform can publish the plugin’s catalog entry in Observatory. Catalog publication never bypasses security admission or execution authorization.',
@@ -81,37 +81,37 @@ const copy = {
       '401/403: check application ownership, scopes, allowlist and key status; 422: fix input/schema; 429: honor Retry-After; 503: Worker unavailable or at capacity; 504/lost response: outcome uncertain, do not auto-retry external side effects. Key revocation blocks future invocations, but cannot guarantee cancellation of already accepted work.',
     catalog: 'Plugin directory',
     footer:
-      'Example versions: SDK-02 0.1.3 and SDK-03 0.1.2. Independent hosted E2E and public third-party admission are not yet qualified.',
+      'Example versions: SDK-02 0.1.3 and SDK-03 0.2.0. Independent hosted E2E and public third-party admission are not yet qualified.',
   },
   pl: {
     eyebrow: 'QDIP / Developers',
     title: 'Tworzenie wtyczek QDIP',
-    lead: 'Uruchom własny algorytm w Python Worker SDK-02 i wywołaj go z aplikacji serwerowej przez SDK-03.',
+    lead: 'Utwórz Python Worker SDK-02, który przygotowuje model decyzyjny, i wywołaj go z aplikacji serwerowej przez SDK-03.',
     status: 'Developer preview · dostęp do Gateway tylko po zatwierdzeniu',
     limits:
       'Publiczna dokumentacja nie oznacza publicznego dostępu do wykonywania. Pakiety SDK przekazuje operator wraz z weryfikowanymi artefaktami; nie ma publikacji PyPI/npm ani otwartego self-service.',
-    modes: 'Wybierz tryb wykonania',
-    managed: 'Managed DecisionSpec',
+    modes: 'Kontrakty wykonania',
+    managed: 'decision_spec — tryb ogólny',
     managedBody:
       'Worker tworzy DecisionSpec. QDIP Kernel rozwiązuje problem i zwraca wynik, manifest i replay. Wywołanie: plugins.invoke. Kernel nie działa wewnątrz Workera.',
-    external: 'Developer-owned structured_result',
-    externalBody:
-      'Worker uruchamia własny algorytm i zwraca JSON zgodny ze schematem. QDIP sprawdza kontrakt, ale nie poprawność ani optymalność algorytmu. Wywołanie: plugins.evaluate.',
+    restricted: 'managed_spec — tryb ograniczony',
+    restrictedBody:
+      'Wyłącznie zaufane Workery first-party: ManagedDomainSpec, uwierzytelniona tożsamość, serwerowa allowlist oraz kontrola niezmienności danych wejściowych. Solver domenowy działa po stronie serwera QDIP. Wywołanie: plugins.invoke. Tryb niedostępny dla niezależnych programistów.',
     prereq: '1. Dostęp i artefakty',
     prereqBody:
-      'Wymagane Python 3.11+, Node.js 20+, zatwierdzony Gateway HTTPS/WSS, plugin_id i osobne klucze Worker (plugins:register) oraz caller (plugins:read + plugins:execute) z dokładną listą capability. Operator dostarcza SDK-02 v0.1.3 ZIP, SDK-03 v0.1.2 TGZ i sumy SHA-256. Nie jest potrzebny checkout qdip-core.',
+      'Wymagane Python 3.11+, Node.js 20+, zatwierdzony Gateway HTTPS/WSS, plugin_id i osobne klucze Worker (plugins:register) oraz caller (plugins:read + plugins:execute) z dokładną listą capability. Operator dostarcza SDK-02 v0.1.3 ZIP, SDK-03 v0.2.0 TGZ i sumy SHA-256. Nie jest potrzebny checkout qdip-core.',
     verify: 'Sprawdź SHA-256 i zainstaluj pakiety',
     verifyNote:
       'Wartości SDK02_SHA256 / SDK03_SHA256 należy pobrać z niezależnie zaufanego kanału operatora. Wheel w ZIP musi pasować do systemu i ABI Pythona.',
     worker: '2. Napisz własny Worker',
     workerBody:
-      'Przykład sumuje liczby we własnym Workerze i zwraca structured_result. Zapisz jako worker.py i użyj identyfikatorów od operatora. Nie zapisuj kluczy w kodzie.',
+      'Przykład tworzy DecisionSpec do wyboru zadań naprawczych w ramach budżetu godzin. Worker przygotowuje model, a QDIP Kernel go rozwiązuje. Zapisz jako worker.py i użyj identyfikatorów operatora. Nie zapisuj kluczy w kodzie.',
     run: 'Uruchom Worker',
     runBody:
       'Worker otwiera wychodzące połączenie WSS, bez portu przychodzącego. Klucz musi odpowiadać plugin_id i capability_id.',
     caller: '3. Wywołaj capability z Node.js',
     callerBody:
-      'Zapisz kod jako caller/caller.mjs i uruchom tylko na serwerze; nie ujawniaj caller key w przeglądarce. Wynik pochodzi z algorytmu użytkownika, nie z certyfikowanego Kernel.',
+      'Zapisz jako caller/caller.mjs i uruchom tylko na serwerze. Nie ujawniaj caller key w przeglądarce. Sprawdź isActionable; oczekiwana optymalna wartość celu wynosi 13. Walidacja i zastosowanie decyzji należą do aplikacji.',
     publish: '4. Rejestracja i publikacja',
     publishBody:
       'Po połączeniu Worker wysyła REGISTER do Gateway. Tworzy to rejestrację runtime, ale nie zatwierdza ani nie publikuje wtyczki. Po weryfikacji platforma może opublikować wpis w Observatory. Publikacja nie zastępuje kontroli bezpieczeństwa ani uprawnień wykonania.',
@@ -120,56 +120,90 @@ const copy = {
       '401/403: sprawdź własność aplikacji, scopes, allowlist i klucz; 422: popraw input/schema; 429: przestrzegaj Retry-After; 503: Worker niedostępny lub brak zasobów; 504/utrata odpowiedzi: wynik nieznany, nie ponawiaj automatycznie zewnętrznych działań. Odwołanie klucza blokuje nowe wywołania, ale nie gwarantuje zatrzymania rozpoczętej pracy.',
     catalog: 'Katalog wtyczek',
     footer:
-      'Wersje przykładów: SDK-02 0.1.3 i SDK-03 0.1.2. Niezależne hosted E2E i publiczne dopuszczanie wtyczek pozostają niezweryfikowane.',
+      'Wersje przykładów: SDK-02 0.1.3 i SDK-03 0.2.0. Niezależne hosted E2E i publiczne dopuszczanie wtyczek pozostają niezweryfikowane.',
   },
 } as const
 
 const verifyInstall = [
-  'printf \'%s  %s\\n\' "$SDK02_SHA256" qdip-sdk02-bundle-0.1.3.zip | sha256sum -c -',
-  'printf \'%s  %s\\n\' "$SDK03_SHA256" qdip-client-0.1.2.tgz | sha256sum -c -',
+  'printf \'%s  %s\\n\' "$SDK02_SHA256" qdip-sdk02-bundle-0.1.3.zip | sha256sum -c - || exit 1',
+  'printf \'%s  %s\\n\' "$SDK03_SHA256" qdip-client-0.2.0.tgz | sha256sum -c - || exit 1',
   'unzip -q qdip-sdk02-bundle-0.1.3.zip -d sdk02',
   'python3 -m venv .venv-qdip',
   'source .venv-qdip/bin/activate',
   'python -m pip install --no-index --find-links sdk02/wheels qdip-remote-sdk==0.1.3',
   'mkdir caller && cd caller',
   'npm init -y && npm pkg set type=module',
-  'npm install ../qdip-client-0.1.2.tgz',
+  'npm install ../qdip-client-0.2.0.tgz',
   'cd ..',
 ].join('\n')
 
 const workerExample = [
+  'from __future__ import annotations',
+  '',
   'import asyncio',
   'import os',
+  'import re',
+  'from typing import Any',
   'from qdip_remote_sdk import Worker, WorkerConfig',
+  '',
+  '',
+  'def _bounded_int(value: Any, name: str, low: int, high: int) -> int:',
+  '    if type(value) is not int or not low <= value <= high:',
+  '        raise ValueError(f"{name} must be an integer in [{low}, {high}]")',
+  '    return value',
+  '',
+  '',
+  'def make_spec(payload: dict[str, Any], decision_id: str) -> dict[str, Any]:',
+  '    if set(payload) != {"capacity_hours", "jobs"}:',
+  '        raise ValueError("Expected capacity_hours and jobs only")',
+  '    capacity = _bounded_int(payload["capacity_hours"], "capacity_hours", 0, 100)',
+  '    jobs = payload["jobs"]',
+  '    if not isinstance(jobs, list) or not 1 <= len(jobs) <= 8:',
+  '        raise ValueError("jobs must contain 1..8 items")',
+  '',
+  '    variables: list[dict[str, Any]] = []',
+  '    objective_terms: list[dict[str, str]] = []',
+  '    capacity_terms: list[dict[str, str]] = []',
+  '    names: set[str] = set()',
+  '    for job in jobs:',
+  '        if not isinstance(job, dict) or set(job) != {"id", "hours", "priority"}:',
+  '            raise ValueError("Each job requires id, hours and priority")',
+  '        name = job["id"]',
+  '        if not isinstance(name, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,15}", name):',
+  '            raise ValueError("Invalid job id")',
+  '        if name in names:',
+  '            raise ValueError("Duplicate job id")',
+  '        names.add(name)',
+  '        hours = _bounded_int(job["hours"], "hours", 1, 100)',
+  '        priority = _bounded_int(job["priority"], "priority", 0, 100)',
+  '        var = f"job_{name}"',
+  '        variables.append({"id": var, "kind": "BOOLEAN"})',
+  '        objective_terms.append({"variable_id": var, "coefficient": str(priority)})',
+  '        capacity_terms.append({"variable_id": var, "coefficient": str(hours)})',
+  '',
+  '    return {',
+  '        "semantic_version": "1.0.0",',
+  '        "decision_id": decision_id,',
+  '        "variables": variables,',
+  '        "objective": {"sense": "MAXIMIZE", "terms": objective_terms},',
+  '        "constraints": [{',
+  '            "id": "crew_hour_budget",',
+  '            "relation": "LE",',
+  '            "terms": capacity_terms,',
+  '            "rhs": str(capacity),',
+  '        }],',
+  '    }',
   '',
   'config = WorkerConfig(',
   '    server_url=os.environ["QDIP_WORKER_URL"],',
   '    api_key=os.environ["QDIP_WORKER_KEY"],',
   '    plugin_id=os.environ["QDIP_PLUGIN_ID"],',
   '    plugin_version="1",',
-  '    capability_id="example.total",',
-  '    output_type="structured_result",',
-  '    input_schema={',
-  '        "type": "object",',
-  '        "properties": {"values": {',
-  '            "type": "array", "maxItems": 64,',
-  '            "items": {"type": "integer"},',
-  '        }},',
-  '        "required": ["values"],',
-  '        "additionalProperties": False,',
-  '    },',
-  '    result_schema={',
-  '        "type": "object",',
-  '        "properties": {"total": {"type": "integer"}},',
-  '        "required": ["total"],',
-  '        "additionalProperties": False,',
-  '    },',
+  '    capability_id="repairs.plan",',
+  '    output_type="decision_spec",',
   ')',
   '',
-  'def evaluate(payload, _decision_id):',
-  '    return {"total": sum(payload["values"])}',
-  '',
-  'asyncio.run(Worker(config, evaluate).run_forever())',
+  'asyncio.run(Worker(config, make_spec).run_forever())',
 ].join('\n')
 
 const workerRun = [
@@ -189,19 +223,26 @@ const callerRun = [
 ].join('\n')
 
 const callerExample = [
-  "import { QdipClient } from '@qdip/client';",
+  'import { QdipClient, isActionable } from \'@qdip/client\';',
   '',
   'const client = new QdipClient({',
   '  baseUrl: process.env.QDIP_GATEWAY_URL,',
   '  apiKey: process.env.QDIP_CALLER_KEY,',
   '});',
-  'const response = await client.plugins.evaluate({',
-  "  capabilityId: 'example.total',",
-  "  capabilityVersion: '1',",
-  '  input: { values: [1, 2, 3] },',
+  'const response = await client.plugins.invoke({',
+  '  capabilityId: \'repairs.plan\',',
+  '  capabilityVersion: \'1\',',
+  '  input: { capacity_hours: 4, jobs: [',
+  '    { id: \'a\', hours: 3, priority: 9 },',
+  '    { id: \'b\', hours: 2, priority: 7 },',
+  '    { id: \'c\', hours: 2, priority: 6 },',
+  '  ] },',
   '  timeoutSeconds: 10, deadlineMs: 45_000,',
   '});',
-  'console.log(response.result); // { total: 6 }; not Kernel-verified',
+  'if (!isActionable(response) || String(response.execution_result.objective_value) !== \'13\') {',
+  '  throw new Error(\'Expected an actionable Kernel result with objective 13\');',
+  '}',
+  'console.log(response.execution_result.execution_id, response.replay_contract);',
 ].join('\n')
 
 function CodeSample({ children }: { children: string }) {
@@ -252,8 +293,8 @@ export default async function DeveloperGuidePage({ params }: { params: Promise<{
               <p className="mt-3 text-sm leading-7 text-slate-300">{t.managedBody}</p>
             </article>
             <article className="rounded-xl border border-white/15 bg-white/5 p-5">
-              <h3 className="text-lg font-semibold">{t.external}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">{t.externalBody}</p>
+              <h3 className="text-lg font-semibold">{t.restricted}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-300">{t.restrictedBody}</p>
             </article>
           </div>
         </section>
