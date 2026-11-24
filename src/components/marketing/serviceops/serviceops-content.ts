@@ -108,10 +108,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     demoAction: 'Open role demo',
     funnelTitle: 'Evaluate fit without a rollout',
     funnelSteps: [
-      {
-        title: 'Explore',
-        body: 'Start with the open demo and inspect the full owner → worker → customer path.',
-      },
+      { title: 'Explore', body: 'Start with the open demo and inspect the full owner → worker → customer path.' },
       {
         title: 'Map your process',
         body: 'Compare your stages, team qualifications, checklists and handover rules with the example.',
@@ -294,10 +291,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     demoAction: 'Відкрити демо ролі',
     funnelTitle: 'Оцініть придатність без впровадження',
     funnelSteps: [
-      {
-        title: 'Подивіться',
-        body: 'Пройдіть відкритий сценарій від власника через виконавця до замовника.',
-      },
+      { title: 'Подивіться', body: 'Пройдіть відкритий сценарій від власника через виконавця до замовника.' },
       {
         title: 'Зіставте процес',
         body: 'Порівняйте свої етапи, кваліфікації, чеклісти й правила приймання з прикладом.',
@@ -472,18 +466,12 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
         title: '2. PWA wykonawcy',
         body: 'Rozpocznij przydzieloną pracę, wykonaj listę kontrolną demo i zgłoś zadanie do odbioru.',
       },
-      customer: {
-        title: '3. Klient',
-        body: 'Sprawdź symulowany postęp, zaakceptuj wynik lub zgłoś poprawki.',
-      },
+      customer: { title: '3. Klient', body: 'Sprawdź symulowany postęp, zaakceptuj wynik lub zgłoś poprawki.' },
     },
     demoAction: 'Otwórz demo roli',
     funnelTitle: 'Sprawdź dopasowanie bez wdrożenia',
     funnelSteps: [
-      {
-        title: 'Sprawdź',
-        body: 'Przejdź przez otwarte demo od właściciela przez wykonawcę do klienta.',
-      },
+      { title: 'Sprawdź', body: 'Przejdź przez otwarte demo od właściciela przez wykonawcę do klienta.' },
       {
         title: 'Porównaj proces',
         body: 'Zestaw etapy, kwalifikacje, listy kontrolne i zasady odbioru z własną pracą.',
