@@ -65,18 +65,15 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     features: [
       {
         title: 'Owner & operator',
-        body:
-          'Create an order and customer, configure board columns and workflows, assign tasks, review evidence and accept work.',
+        body: 'Create an order and customer, configure board columns and workflows, assign tasks, review evidence and accept work.',
       },
       {
         title: 'Worker',
-        body:
-          'See only assigned tasks, checklists and permitted details. Record work offline, then sync queued actions when online.',
+        body: 'See only assigned tasks, checklists and permitted details. Record work offline, then sync queued actions when online.',
       },
       {
         title: 'Customer',
-        body:
-          'Open a time-limited, order-specific link for server-confirmed progress and acceptance when enabled by the workflow.',
+        body: 'Open a time-limited, order-specific link for server-confirmed progress and acceptance when enabled by the workflow.',
       },
     ],
     presetsTitle: 'Twelve editable service templates',
@@ -123,8 +120,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
       {
         title: 'Scope a pilot',
-        body:
-          'Send one representative workflow and the constraints that matter. A pilot is discussed, not automatically activated.',
+        body: 'Send one representative workflow and the constraints that matter. A pilot is discussed, not automatically activated.',
       },
     ],
     formTitle: 'Request a scoped pilot',
@@ -225,13 +221,11 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     faq: [
       {
         title: 'Is ServiceOps an automated optimizer?',
-        body:
-          'Not in the validated base experience. A person assigns and accepts work; optional QDIP optimization requires a separate verified integration.',
+        body: 'Not in the validated base experience. A person assigns and accepts work; optional QDIP optimization requires a separate verified integration.',
       },
       {
         title: 'Can I sign up and use live data from the demo?',
-        body:
-          'No. Public demos use fictitious browser-local records. Live work requires an onboarded organization and authorized users.',
+        body: 'No. Public demos use fictitious browser-local records. Live work requires an onboarded organization and authorized users.',
       },
       {
         title: 'Does the customer see offline edits immediately?',
@@ -264,8 +258,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     features: [
       {
         title: 'Власник і оператор',
-        body:
-          'Створення клієнтів і замовлень, налаштування дошки та процесів, призначення задач, перевірка доказів і приймання роботи.',
+        body: 'Створення клієнтів і замовлень, налаштування дошки та процесів, призначення задач, перевірка доказів і приймання роботи.',
       },
       {
         title: 'Виконавець',
@@ -273,8 +266,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
       {
         title: 'Замовник',
-        body:
-          'Посилання на одне замовлення з обмеженим строком дії, підтверджений сервером прогрес і погодження за правилами процесу.',
+        body: 'Посилання на одне замовлення з обмеженим строком дії, підтверджений сервером прогрес і погодження за правилами процесу.',
       },
     ],
     presetsTitle: '12 редагованих шаблонів бізнесу',
@@ -422,13 +414,11 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     faq: [
       {
         title: 'ServiceOps автоматично оптимізує роботу?',
-        body:
-          'Не в підтвердженій базовій версії. Людина призначає та приймає задачі; опційна оптимізація QDIP потребує окремо перевіреної інтеграції.',
+        body: 'Не в підтвердженій базовій версії. Людина призначає та приймає задачі; опційна оптимізація QDIP потребує окремо перевіреної інтеграції.',
       },
       {
         title: 'Чи можна увійти в реальний бізнес із демо?',
-        body:
-          'Ні. Публічне демо використовує вигадані локальні дані. Для реальної роботи потрібні організація та авторизовані користувачі.',
+        body: 'Ні. Публічне демо використовує вигадані локальні дані. Для реальної роботи потрібні організація та авторизовані користувачі.',
       },
       {
         title: 'Клієнт бачить офлайн-зміни одразу?',
@@ -469,8 +459,7 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
       },
       {
         title: 'Klient',
-        body:
-          'Link do jednego zlecenia o ograniczonym terminie ważności, postęp potwierdzony przez serwer i akceptacja według reguł procesu.',
+        body: 'Link do jednego zlecenia o ograniczonym terminie ważności, postęp potwierdzony przez serwer i akceptacja według reguł procesu.',
       },
     ],
     presetsTitle: '12 edytowalnych szablonów usług',
@@ -615,13 +604,11 @@ export const serviceOpsCopy: Record<MarketingLocale, Copy> = {
     faq: [
       {
         title: 'Czy ServiceOps sam optymalizuje pracę?',
-        body:
-          'Nie w potwierdzonej wersji podstawowej. Pracę przydziela i akceptuje człowiek; dodatkowa optymalizacja QDIP wymaga oddzielnie zweryfikowanej integracji.',
+        body: 'Nie w potwierdzonej wersji podstawowej. Pracę przydziela i akceptuje człowiek; dodatkowa optymalizacja QDIP wymaga oddzielnie zweryfikowanej integracji.',
       },
       {
         title: 'Czy demo tworzy konto do pracy z danymi?',
-        body:
-          'Nie. Publiczne demo korzysta z fikcyjnych danych lokalnych. Praca na realnych danych wymaga organizacji i uprawnionych użytkowników.',
+        body: 'Nie. Publiczne demo korzysta z fikcyjnych danych lokalnych. Praca na realnych danych wymaga organizacji i uprawnionych użytkowników.',
       },
       {
         title: 'Czy klient od razu widzi zmiany offline?',
