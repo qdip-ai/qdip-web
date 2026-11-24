@@ -87,9 +87,16 @@ const text = {
 
 const serviceOpsForm = {
   en: {
-    fields: ['Name', 'Organization', 'Email', 'Which service process would you like to pilot?',
-      'What kinds of jobs and information do you manage?', 'How are work and workers assigned today?',
-      'Which constraints, qualifications or deadlines matter?', 'Team size and any additional context'],
+    fields: [
+      'Name',
+      'Organization',
+      'Email',
+      'Which service process would you like to pilot?',
+      'What kinds of jobs and information do you manage?',
+      'How are work and workers assigned today?',
+      'Which constraints, qualifications or deadlines matter?',
+      'Team size and any additional context',
+    ],
     submit: 'Request a ServiceOps pilot',
     success: 'Your ServiceOps pilot request has been sent.',
     successDetail: 'We will review the described workflow and contact you about fit and next steps.',
@@ -97,9 +104,16 @@ const serviceOpsForm = {
     decisionValidation: 'Describe a service process in at least 10 characters.',
   },
   uk: {
-    fields: ['Ім’я', 'Організація', 'Email', 'Який сервісний процес ви хочете перевірити в пілоті?',
-      'Які замовлення й дані ви обробляєте?', 'Як зараз розподіляєте роботу між виконавцями?',
-      'Які терміни, кваліфікації або обмеження важливі?', 'Розмір команди та додатковий контекст'],
+    fields: [
+      'Ім’я',
+      'Організація',
+      'Email',
+      'Який сервісний процес ви хочете перевірити в пілоті?',
+      'Які замовлення й дані ви обробляєте?',
+      'Як зараз розподіляєте роботу між виконавцями?',
+      'Які терміни, кваліфікації або обмеження важливі?',
+      'Розмір команди та додатковий контекст',
+    ],
     submit: 'Запросити пілот ServiceOps',
     success: 'Запит на пілот ServiceOps надіслано.',
     successDetail: 'Ми розглянемо описаний процес і зв’яжемося з вами щодо наступних кроків.',
@@ -107,9 +121,16 @@ const serviceOpsForm = {
     decisionValidation: 'Опишіть сервісний процес щонайменше 10 символами.',
   },
   pl: {
-    fields: ['Imię i nazwisko', 'Organizacja', 'Email', 'Jaki proces usługowy chcesz sprawdzić w pilotażu?',
-      'Jakimi zleceniami i informacjami zarządzacie?', 'Jak dzisiaj przydzielacie pracę zespołowi?',
-      'Jakie terminy, kwalifikacje lub ograniczenia są ważne?', 'Wielkość zespołu i dodatkowy kontekst'],
+    fields: [
+      'Imię i nazwisko',
+      'Organizacja',
+      'Email',
+      'Jaki proces usługowy chcesz sprawdzić w pilotażu?',
+      'Jakimi zleceniami i informacjami zarządzacie?',
+      'Jak dzisiaj przydzielacie pracę zespołowi?',
+      'Jakie terminy, kwalifikacje lub ograniczenia są ważne?',
+      'Wielkość zespołu i dodatkowy kontekst',
+    ],
     submit: 'Zapytaj o pilotaż ServiceOps',
     success: 'Wysłano zapytanie o pilotaż ServiceOps.',
     successDetail: 'Sprawdzimy opisany proces i skontaktujemy się w sprawie następnych kroków.',
@@ -127,15 +148,19 @@ function track(event: AnalyticsEvent, locale: MarketingLocale, placement: 'decis
   w.dataLayer?.push({ event, locale, placement })
 }
 
-export function DecisionInquiryForm({ locale, variant = 'decision' }: {
+export function DecisionInquiryForm({
+  locale,
+  variant = 'decision',
+}: {
   locale: MarketingLocale
   variant?: 'decision' | 'serviceops'
 }) {
   const base = text[locale],
     service = serviceOpsForm[locale],
-    c = variant === 'serviceops'
-      ? { ...base, ...service, field: { ...base.field, decision: service.decisionValidation } }
-      : base,
+    c =
+      variant === 'serviceops'
+        ? { ...base, ...service, field: { ...base.field, decision: service.decisionValidation } }
+        : base,
     started = useRef(false),
     [state, setState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle'),
     [message, setMessage] = useState(''),
@@ -169,9 +194,10 @@ export function DecisionInquiryForm({ locale, variant = 'decision' }: {
       information: fd.get('information'),
       alternatives: fd.get('alternatives'),
       constraints: fd.get('constraints'),
-      context: variant === 'serviceops'
-        ? ['ServiceOps pilot inquiry', String(fd.get('context') ?? '')].join('\n').slice(0, 4000)
-        : fd.get('context'),
+      context:
+        variant === 'serviceops'
+          ? ['ServiceOps pilot inquiry', String(fd.get('context') ?? '')].join('\n').slice(0, 4000)
+          : fd.get('context'),
       website: fd.get('website'),
       locale,
     }
