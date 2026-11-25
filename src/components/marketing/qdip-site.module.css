@@ -802,7 +802,12 @@
   display: block;
   max-width: 100%;
   height: auto;
+}
+.dzvinWordmark {
   content: url('/brands/dzvin-wordmark-dark.svg');
+}
+.serviceOpsWordmark {
+  content: url('/brands/serviceops-wordmark-dark.svg');
 }
 .site:global([data-marketing-appearance='light']) .ecosystemBrand img {
   content: normal;
