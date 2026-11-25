@@ -787,6 +787,9 @@
   border-radius: var(--ds-radius-marketing);
   background: var(--ds-surface-raised);
 }
+.ecosystemCard + .ecosystemCard {
+  margin-block-start: var(--ds-space-5);
+}
 .ecosystemCard h3 {
   margin: 0 0 var(--ds-space-2);
   font-size: var(--ds-text-h3);
