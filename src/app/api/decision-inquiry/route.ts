@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ZodError } from 'zod'
-import { allowSubmission, decisionLeadSchema, isReplay, submissionId, ZohoMailDelivery } from '@/lib/decision-lead'
+import {
+  allowSubmission,
+  decisionLeadSchema,
+  deliverDecisionLead,
+  submissionId,
+  ZohoMailDelivery,
+} from '@/lib/decision-lead'
 
 export const runtime = 'nodejs'
 const MAX_BODY_BYTES = 18_000
@@ -39,13 +45,13 @@ export async function POST(request: NextRequest) {
       console.warn('decision_inquiry', { submissionId: id, status: 'honeypot', locale: lead.locale })
       return NextResponse.json({ ok: true }, { status: 200 })
     }
-    if (isReplay(lead)) {
-      console.warn('decision_inquiry', { submissionId: id, status: 'duplicate', locale: lead.locale })
-      return NextResponse.json({ ok: true }, { status: 200 })
-    }
-    await new ZohoMailDelivery().sendDecisionLead(lead, id)
-    console.info('decision_inquiry', { submissionId: id, status: 'sent', locale: lead.locale })
-    return NextResponse.json({ ok: true, id }, { status: 200 })
+    const receipt = await deliverDecisionLead(lead, new ZohoMailDelivery(), id)
+    console.info('decision_inquiry', {
+      submissionId: receipt.id,
+      status: receipt.duplicate ? 'duplicate' : 'sent',
+      locale: lead.locale,
+    })
+    return NextResponse.json({ ok: true, id: receipt.id }, { status: 200 })
   } catch (error) {
     if (error instanceof ZodError)
       return NextResponse.json({ error: 'validation_failed', fields: validationFields(error) }, { status: 400 })
