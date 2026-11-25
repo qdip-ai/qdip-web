@@ -194,7 +194,7 @@ export class ZohoMailDelivery implements MailDelivery {
   }
 }
 const windows = new Map<string, { count: number; reset: number }>(),
-  replays = new Map<string, number>()
+  replays = new Map<string, { receipt: Promise<string>; expires: number }>()
 export function allowSubmission(key: string, now = Date.now()) {
   const current = windows.get(key)
   if (!current || current.reset <= now) {
@@ -205,14 +205,34 @@ export function allowSubmission(key: string, now = Date.now()) {
   current.count++
   return true
 }
-export function isReplay(lead: DecisionLead, now = Date.now()) {
+/** Coalesce identical in-flight deliveries and retain only confirmed receipts for five minutes. */
+export async function deliverDecisionLead(lead: DecisionLead, delivery: MailDelivery, id: string) {
+  const now = Date.now()
+  for (const [key, entry] of replays) {
+    if (entry.expires <= now) replays.delete(key)
+  }
   const key = createHash('sha256')
-      .update(`${lead.email.toLowerCase()}\n${lead.organization}\n${lead.decision}`)
-      .digest('hex'),
-    seen = replays.get(key)
-  if (seen && seen > now) return true
-  replays.set(key, now + 5 * 60_000)
-  return false
+    .update(JSON.stringify({ ...lead, email: lead.email.toLowerCase() }))
+    .digest('hex')
+  const seen = replays.get(key)
+  if (seen) return { id: await seen.receipt, duplicate: true }
+
+  const entry = {
+    receipt: Promise.resolve().then(async () => {
+      await delivery.sendDecisionLead(lead, id)
+      return id
+    }),
+    expires: Infinity,
+  }
+  replays.set(key, entry)
+  try {
+    const receipt = await entry.receipt
+    entry.expires = Date.now() + 5 * 60_000
+    return { id: receipt, duplicate: false }
+  } catch (error) {
+    replays.delete(key)
+    throw error
+  }
 }
 export function submissionId() {
   return randomUUID()
