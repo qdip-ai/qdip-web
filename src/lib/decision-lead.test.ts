@@ -73,7 +73,10 @@ test('concurrent duplicates share a single in-flight delivery', async () => {
   const second = deliverDecisionLead(lead, delivery, 'second')
   release()
   const results = await Promise.all([first, second])
-  assert.deepEqual(results.map((r) => r.id), ['first', 'first'])
+  assert.deepEqual(
+    results.map((r) => r.id),
+    ['first', 'first']
+  )
   assert.equal(sends, 1)
 })
 test('failed concurrent delivery is not cached and can be retried', async () => {
@@ -88,7 +91,10 @@ test('failed concurrent delivery is not cached and can be retried', async () => 
     deliverDecisionLead(lead, delivery, 'failed'),
     deliverDecisionLead(lead, delivery, 'duplicate'),
   ])
-  assert.deepEqual(failed.map((r) => r.status), ['rejected', 'rejected'])
+  assert.deepEqual(
+    failed.map((r) => r.status),
+    ['rejected', 'rejected']
+  )
   assert.deepEqual(await deliverDecisionLead(lead, delivery, 'retry'), { id: 'retry', duplicate: false })
   assert.equal(sends, 2)
 })
