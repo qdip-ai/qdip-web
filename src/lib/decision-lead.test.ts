@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { allowSubmission, decisionLeadSchema, deliverDecisionLead, type SmtpTransport, ZohoMailDelivery } from './decision-lead'
+import {
+  allowSubmission,
+  decisionLeadSchema,
+  deliverDecisionLead,
+  type SmtpTransport,
+  ZohoMailDelivery,
+} from './decision-lead'
 
 const valid = {
   name: 'Ada Lovelace',
