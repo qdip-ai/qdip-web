@@ -25,7 +25,7 @@ vi.mock('@/lib/observatory-plugin-catalog', () => ({
 import { OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
 import { POST } from './route'
 
-const pluginName = 'remote-3b25f5ae494aa7bf-secretary'
+const pluginName = 'remote-6d3611cf8065ac8e-secretary'
 const context = { params: Promise.resolve({ name: pluginName }) }
 const record = { name: pluginName, version: '0.1.0', source: 'remote', revision: 1 }
 const review = {
