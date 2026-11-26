@@ -73,7 +73,12 @@ export async function readAdminCorePublications(): Promise<
 }
 
 /** Resolve the exact registered Worker tenant from Core, never from a product name or fixed catalog ID. */
-export async function readRemoteReviewOrganization(name: string, version: string, revision: number, issuer: string): Promise<string | null> {
+export async function readRemoteReviewOrganization(
+  name: string,
+  version: string,
+  revision: number,
+  issuer: string
+): Promise<string | null> {
   const { base, key } = corePluginConnection()
   const read = async (path: string): Promise<unknown> => {
     const response = await fetch(`${base}/api/v1/${path}`, {
@@ -89,16 +94,28 @@ export async function readRemoteReviewOrganization(name: string, version: string
     read('plugin-publications/remote-admission-preflight'),
     read('organizations'),
   ])
-  if (!inventory || typeof inventory !== 'object' || !('items' in inventory) ||
-      !Array.isArray(inventory.items) || !Array.isArray(organizations))
+  if (
+    !inventory ||
+    typeof inventory !== 'object' ||
+    !('items' in inventory) ||
+    !Array.isArray(inventory.items) ||
+    !Array.isArray(organizations)
+  )
     throw new Error('Invalid Core review inventory')
-  const rows = inventory.items.filter((item) =>
-    item && item.name === name && item.plugin_version === version && item.revision === revision)
+  const rows = inventory.items.filter(
+    (item) => item && item.name === name && item.plugin_version === version && item.revision === revision
+  )
   if (rows.length !== 1 || typeof rows[0].tenant_id !== 'string') return null
-  const owners = organizations.filter((org) =>
-    org && org.id === rows[0].tenant_id && org.identity_provider === 'zitadel' &&
-    org.zitadel_issuer === issuer && org.status === 'active' &&
-    typeof org.zitadel_organization_id === 'string' && /^[0-9]{1,32}$/.test(org.zitadel_organization_id))
+  const owners = organizations.filter(
+    (org) =>
+      org &&
+      org.id === rows[0].tenant_id &&
+      org.identity_provider === 'zitadel' &&
+      org.zitadel_issuer === issuer &&
+      org.status === 'active' &&
+      typeof org.zitadel_organization_id === 'string' &&
+      /^[0-9]{1,32}$/.test(org.zitadel_organization_id)
+  )
   return owners.length === 1 ? owners[0].zitadel_organization_id : null
 }
 
