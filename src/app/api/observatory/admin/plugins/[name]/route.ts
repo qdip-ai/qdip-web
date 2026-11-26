@@ -49,6 +49,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     const catalog = await readCorePublications()
     const installed = catalog.find((item) => item.name === name)
     if (!installed) return NextResponse.json({ error: 'Plugin not installed' }, { status: 404 })
+    if (installed.revision !== update.expected_revision)
+      return NextResponse.json({ error: 'Plugin revision changed. Reload and retry.' }, { status: 409 })
     // Runtime registration belongs to QDIP Core. Observatory registers only
     // a catalog entry for a plugin/capability already installed and verified.
     const capability =
@@ -117,7 +119,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
   } catch (cause) {
     if (cause instanceof QdipError) {
       if (cause.httpStatus === 409)
-        return NextResponse.json({ error: 'Registry changed. Reload and retry.' }, { status: 409 })
+        return NextResponse.json(
+          { error: 'Core rejected the current registration, revision or public URL reservation. Reload and check.' },
+          { status: 409 }
+        )
       if (cause.httpStatus === 401)
         return NextResponse.json({ error: 'QDIP Core administrative credential rejected' }, { status: 502 })
       if (cause.httpStatus === 403)
