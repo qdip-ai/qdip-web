@@ -30,7 +30,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
   try {
     const raw = await request.text()
     if (raw.length > 4096) return NextResponse.json({ error: 'Request too large' }, { status: 413 })
-    update = JSON.parse(raw) as typeof update
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      return NextResponse.json({ error: 'Invalid publication request' }, { status: 422 })
+    update = parsed as typeof update
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -54,7 +57,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
         : (installed.capability_id ?? installed.capabilities[0])
     if (!capability || !installed.capabilities.includes(capability))
       return NextResponse.json({ error: 'Capability is not installed' }, { status: 409 })
-    if (update.published && !installed.enabled)
+    if (update.published && !installed.enabled && installed.source !== 'remote')
       return NextResponse.json({ error: 'Disabled plugin cannot be published' }, { status: 409 })
     const displayName = update.display_name
     const description = update.description
