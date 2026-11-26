@@ -144,22 +144,14 @@ const LEGACY_IDENTITIES = new Set([
   'production-decision',
   'resource-allocation',
 ])
-const VERIFIED_REMOTE_IDENTITIES = new Map<string, string>([
-  ['remote-04e7c87d7b72111c-secretary', 'secretary'],
-  ['remote-3b25f5ae494aa7bf-secretary', 'secretary'],
-  ['remote-6d3611cf8065ac8e-secretary', 'secretary'],
-])
+type FirstPartyIdentity = Pick<PluginCatalogEntry, 'name' | 'plugin_id' | 'source'> & { firstParty?: boolean }
 
-export function isYaraFirstParty(plugin: Pick<PluginCatalogEntry, 'name' | 'plugin_id' | 'source'>): boolean {
-  return (
-    plugin.source === 'remote' &&
-    VERIFIED_REMOTE_IDENTITIES.get(plugin.name) === 'secretary' &&
-    plugin.plugin_id === 'secretary'
-  )
+export function isYaraFirstParty(plugin: FirstPartyIdentity): boolean {
+  return plugin.source === 'remote' && plugin.firstParty === true && plugin.plugin_id === 'secretary'
 }
 
 export function pluginPresentation(
-  plugin: Pick<PluginCatalogEntry, 'name' | 'description' | 'ui' | 'plugin_id' | 'source'>,
+  plugin: FirstPartyIdentity & Pick<PluginCatalogEntry, 'description' | 'ui'>,
   locale: Locale
 ): Presentation {
   const originalTitle = plugin.ui?.label || plugin.name
@@ -205,9 +197,7 @@ export function pluginPresentation(
       ? plugin.name
       : plugin.source === 'embedded' && plugin.name === 'GTM Lab'
         ? 'gtm-lab' // Before the stable technical name normalization is deployed.
-        : plugin.source === 'remote' && VERIFIED_REMOTE_IDENTITIES.get(plugin.name) === plugin.plugin_id
-          ? plugin.plugin_id
-          : null
+        : null
   const catalog = identity ? COPY[identity] : undefined
   if (!catalog) return { title: originalTitle, description: originalDescription }
 
