@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import { readCorePublications } from './observatory-plugin-catalog'
+import { readAdminCorePublications, readCorePublications } from './observatory-plugin-catalog'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -28,6 +28,34 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
         headers: expect.objectContaining({ 'x-api-key': 'existing-platform-key' }),
       })
     )
+  })
+
+  it('preserves Core security state only in the authenticated admin projection', async () => {
+    vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
+    vi.stubEnv('DIP_ADMIN_API_KEY', 'test-platform-admin-not-real')
+    const worker = {
+      name: 'remote-example-secretary',
+      plugin_id: 'secretary',
+      source: 'remote',
+      version: '0.1.0',
+      description: 'Yara planner',
+      enabled: true,
+      capabilities: ['secretary.plan'],
+      capability_versions: { 'secretary.plan': '1' },
+      ui: { label: 'Yara' },
+      published: false,
+      revision: 1,
+      capability_id: null,
+      published_version: null,
+      security: { state: 'pending_review', reason: 'Manifest changed', critical_block: true },
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json([worker])))
+    const [admin] = await readAdminCorePublications()
+    expect(admin.enabled).toBe(true)
+    expect(admin.published).toBe(false)
+    expect(admin.security).toEqual({ state: 'pending_review', reason: 'Manifest changed', criticalBlock: true })
+    const [publicRecord] = await readCorePublications()
+    expect(publicRecord).not.toHaveProperty('security')
   })
 
   it('rejects a missing platform key rather than running anonymous catalog access', async () => {
