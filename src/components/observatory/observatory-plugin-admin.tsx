@@ -99,7 +99,7 @@ const copy = {
     verifying: 'Збережено. Перевіряю статус публікації…',
     unverified: 'Збережено, але не вдалося підтвердити новий статус. Оновіть список.',
     hidden: 'Плагін приховано з каталогу.',
-    offlinePublish: 'Публікація недоступна, поки Remote Worker не підключений.',
+    offlinePublish: 'Remote Worker не підключений. Виконання тимчасово недоступне; публікація залежить від Security approval.',
     published: 'Опубліковано',
     unpublished: 'Не опубліковано',
     disabled: 'Вимкнено в Core',
@@ -177,7 +177,7 @@ const copy = {
     verifying: 'Saved. Checking publication status…',
     unverified: 'Saved, but the new status could not be verified. Refresh the list.',
     hidden: 'Plugin unpublished from catalog.',
-    offlinePublish: 'Publication is unavailable while the Remote Worker is offline.',
+    offlinePublish: 'The Remote Worker is offline. Execution is unavailable; publication depends on security approval.',
     published: 'Published',
     unpublished: 'Unpublished',
     disabled: 'Disabled in Core',
@@ -255,7 +255,7 @@ const copy = {
     verifying: 'Zapisano. Sprawdzanie stanu publikacji…',
     unverified: 'Zapisano, ale nie udało się potwierdzić nowego stanu. Odśwież listę.',
     hidden: 'Wtyczka ukryta w katalogu.',
-    offlinePublish: 'Publikacja jest niedostępna, gdy zdalny Worker jest rozłączony.',
+    offlinePublish: 'Zdalny Worker jest rozłączony. Wykonanie jest niedostępne; publikacja zależy od zatwierdzenia bezpieczeństwa.',
     published: 'Opublikowano',
     unpublished: 'Nieopublikowano',
     disabled: 'Wyłączona w Core',
@@ -604,6 +604,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           {sorted.map((row) => {
             const published = isPublished(row)
             const offline = !row.enabled
+            const publicationAvailable =
+              row.enabled ||
+              (row.source === 'remote' && row.security?.state === 'approved' && !row.security.criticalBlock)
             const canApprove =
               row.source === 'remote' &&
               !published &&
@@ -765,7 +768,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       style={{ marginTop: '1.2rem' }}
                       onSubmit={(event) => {
                         event.preventDefault()
-                        if (row.enabled && fields.capability_id) void update(row, true, fields)
+                        if (publicationAvailable && fields.capability_id) void update(row, true, fields)
                       }}
                     >
                       <label className={styles.field}>
@@ -934,7 +937,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           {t.capabilityHint}
                         </p>
                       </details>
-                      {!row.enabled && <p className={styles.notice}>{t.offlinePublish}</p>}
+                      {offline && row.source === 'remote' && <p className={styles.notice}>{t.offlinePublish}</p>}
                       {row.source === 'remote' &&
                         row.security &&
                         (row.security.state !== 'approved' || row.security.criticalBlock) && (
@@ -949,7 +952,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           disabled={
                             pending ||
                             refreshFailed ||
-                            !row.enabled ||
+                            !publicationAvailable ||
                             (row.source === 'remote' &&
                               !!row.security &&
                               (row.security.state !== 'approved' || row.security.criticalBlock)) ||
