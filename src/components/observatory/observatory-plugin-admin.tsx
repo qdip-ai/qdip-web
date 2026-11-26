@@ -469,9 +469,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         }),
       })
       if (!response.ok) {
-        if (response.status === 403) throw new Error(t.approvalRequired)
-        if (response.status === 409) throw new Error(t.conflict)
-        throw new Error(t.error)
+        const detail: { error?: string } = await response.json().catch(() => ({}))
+        const fallback = response.status === 403 ? t.approvalRequired : response.status === 409 ? t.conflict : t.error
+        throw new Error(detail.error ? `${fallback} ${detail.error}` : fallback)
       }
       // PUT has succeeded: close the editor immediately, independent of the
       // follow-up GET. Keep feedback in this very card while verifying status.
