@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
 import { corePluginConnection, readCorePublications } from '@/lib/observatory-plugin-catalog'
 import { OwnerOrganizationError, verifyOwnedZitadelOrganization } from '@/lib/zitadel-owner-organizations'
+import { isYaraReviewIdentity } from '@/lib/observatory-plugin-editorial'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-// This review endpoint is intentionally limited to the verified first-party Yara identity.
-const YARA_CATALOG_ID = 'remote-3b25f5ae494aa7bf-secretary'
 
 const noStore = (status: number, body: Record<string, unknown>) =>
   NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } })
@@ -21,7 +19,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
 
   const { name } = await context.params
   if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(name)) return noStore(400, { error: 'Invalid plugin identity' })
-  if (name !== YARA_CATALOG_ID) return noStore(403, { error: 'Not the reviewed first-party Worker' })
+  if (!isYaraReviewIdentity(name)) return noStore(403, { error: 'Not the reviewed first-party Worker' })
   if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json')
     return noStore(415, { error: 'JSON required' })
 
