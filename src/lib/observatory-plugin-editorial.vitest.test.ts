@@ -118,7 +118,11 @@ describe('first-party catalog editorial translations', () => {
   })
 
   it('rebrands exact Ukrainian legacy copy only for verified Yara identities', () => {
-    for (const name of ['remote-04e7c87d7b72111c-secretary', 'remote-3b25f5ae494aa7bf-secretary']) {
+    for (const name of [
+      'remote-04e7c87d7b72111c-secretary',
+      'remote-3b25f5ae494aa7bf-secretary',
+      'remote-6d3611cf8065ac8e-secretary',
+    ]) {
       const plugin = entry({
         source: 'remote',
         name,
