@@ -56,10 +56,20 @@ export async function POST(request: NextRequest, context: Context) {
     })
     if (upstream.status === 409) {
       const reason: unknown = await upstream.json().catch(() => null)
-      const detail = reason && typeof reason === 'object' && 'detail' in reason ? reason.detail : null
+      const detail = reason && typeof reason === 'object' && 'error' in reason ? reason.error : null
       const reasons =
-        detail && typeof detail === 'object' && 'reasons' in detail && Array.isArray(detail.reasons)
-          ? detail.reasons.filter((r: unknown) => typeof r === 'string').slice(0, 8)
+        detail &&
+        typeof detail === 'object' &&
+        'code' in detail &&
+        detail.code === 'runtime_admission_denied' &&
+        'reasons' in detail &&
+        Array.isArray(detail.reasons)
+          ? detail.reasons
+              .filter(
+                (r: unknown) =>
+                  typeof r === 'string' && /^(RUNTIME_UNAVAILABLE|CAPABILITY_NOT_ADMITTED:[a-zA-Z0-9_.:-]{1,128})$/.test(r)
+              )
+              .slice(0, 8)
           : []
       return reply({ error: 'Publication conflict or runtime not admitted', reasons }, 409)
     }

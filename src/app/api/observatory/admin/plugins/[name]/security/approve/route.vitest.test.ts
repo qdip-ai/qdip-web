@@ -150,12 +150,22 @@ describe('remote Worker audited security approval', () => {
   })
 
   it('fails closed for missing allowlist, concurrent revision and unexpected Core response', async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ detail: 'secret' }, { status: 403 }))
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ error: { code: 'http_error', message: 'secret' } }, { status: 403 }))
     const denied = await POST(request(review), context)
     expect(denied.status).toBe(403)
     expect(JSON.stringify(await denied.json())).not.toContain('secret')
-    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ detail: 'revision race' }, { status: 409 }))
-    expect((await POST(request(review), context)).status).toBe(409)
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json({ error: { code: 'http_error', message: 'revision race' } }, { status: 409 }))
+    const conflict = await POST(request(review), context)
+    expect(conflict.status).toBe(409)
+    expect(await conflict.json()).toEqual({ error: 'Security state changed; reload before review' })
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json(
+        { error: { code: 'http_error', message: 'Plugin revision changed; reload before reviewing' } },
+        { status: 409 }
+      )
+    )
+    const known = await POST(request(review), context)
+    expect(await known.json()).toEqual({ error: 'Plugin revision changed; reload before reviewing' })
     vi.mocked(fetch).mockResolvedValueOnce(
       Response.json({
         name: pluginName,
