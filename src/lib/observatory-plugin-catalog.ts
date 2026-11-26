@@ -5,7 +5,7 @@ import { parsePluginCatalog, QdipClient, type PluginCatalogEntry } from '@qdip/c
 import { normalizeDipBaseUrl } from '@/lib/dip-url'
 import { DIP_USE_CASES } from '@/use-cases/registry'
 
-export type CorePluginPublication = PluginCatalogEntry
+export type CorePluginPublication = PluginCatalogEntry & { firstParty?: boolean }
 
 // These specific demos were already publicly listed before the admin controls.
 // New application routes are PRIVATE until explicitly published.
@@ -46,7 +46,7 @@ export async function readCorePublications(): Promise<CorePluginPublication[]> {
 export type AdminPluginSecurity = { state: string; reason: string | null; criticalBlock: boolean }
 
 /** Admin-only projection: the SDK catalog parser intentionally omits security review metadata. */
-export async function readAdminCorePublications(): Promise<
+export async function readAdminCorePublications(includePendingBranding = true): Promise<
   (CorePluginPublication & { security?: AdminPluginSecurity })[]
 > {
   const { base, key } = corePluginConnection()
@@ -60,7 +60,7 @@ export async function readAdminCorePublications(): Promise<
   const raw: unknown = await response.json()
   const entries = parsePluginCatalog(raw)
   if (!Array.isArray(raw)) throw new Error('Invalid Core catalog')
-  return entries.map((entry, index) => {
+  const projected: (CorePluginPublication & { security?: AdminPluginSecurity })[] = entries.map((entry, index) => {
     const security: unknown = raw[index]?.security
     if (entry.source !== 'remote') return entry
     if (!security || typeof security !== 'object' || !('state' in security) || typeof security.state !== 'string') {
@@ -68,17 +68,33 @@ export async function readAdminCorePublications(): Promise<
     }
     const reason = 'reason' in security && typeof security.reason === 'string' ? security.reason : null
     const criticalBlock = 'critical_block' in security && security.critical_block === true
-    return { ...entry, security: { state: security.state, reason, criticalBlock } }
+    const firstParty =
+      security.state === 'approved' &&
+      !criticalBlock &&
+      'approval_source' in security &&
+      security.approval_source === 'trusted_first_party_manual'
+    return { ...entry, firstParty, security: { state: security.state, reason, criticalBlock } }
   })
+  // Branding is presentation only, never a prerequisite for security approval or publication.
+  const organizationId = process.env.ZITADEL_QDIP_ORGANIZATION_ID?.trim()
+  const issuer = process.env.ZITADEL_ISSUER?.replace(/\/+$/, '')
+  if (!includePendingBranding || !organizationId || !issuer) return projected
+  const candidates = projected.filter(
+    (entry) => entry.source === 'remote' && entry.plugin_id === 'secretary' && entry.security?.state === 'pending_review'
+  )
+  if (!candidates.length) return projected
+  const inventory = await readReviewInventory().catch(() => null)
+  if (!inventory) return projected
+  return projected.map((entry) =>
+    candidates.includes(entry) &&
+    resolveReviewOrganization(inventory, entry.name, entry.version, entry.revision, issuer) === organizationId
+      ? { ...entry, firstParty: true }
+      : entry
+  )
 }
 
-/** Resolve the exact registered Worker tenant from Core, never from a product name or fixed catalog ID. */
-export async function readRemoteReviewOrganization(
-  name: string,
-  version: string,
-  revision: number,
-  issuer: string
-): Promise<string | null> {
+/** Read authoritative registration and organization inventory once per request. */
+async function readReviewInventory() {
   const { base, key } = corePluginConnection()
   const read = async (path: string): Promise<unknown> => {
     const response = await fetch(`${base}/api/v1/${path}`, {
@@ -102,11 +118,21 @@ export async function readRemoteReviewOrganization(
     !Array.isArray(organizations)
   )
     throw new Error('Invalid Core review inventory')
+  return { items: inventory.items, organizations }
+}
+
+function resolveReviewOrganization(
+  inventory: Awaited<ReturnType<typeof readReviewInventory>>,
+  name: string,
+  version: string,
+  revision: number,
+  issuer: string
+): string | null {
   const rows = inventory.items.filter(
     (item) => item && item.name === name && item.plugin_version === version && item.revision === revision
   )
   if (rows.length !== 1 || typeof rows[0].tenant_id !== 'string') return null
-  const owners = organizations.filter(
+  const owners = inventory.organizations.filter(
     (org) =>
       org &&
       org.id === rows[0].tenant_id &&
@@ -117,6 +143,16 @@ export async function readRemoteReviewOrganization(
       /^[0-9]{1,32}$/.test(org.zitadel_organization_id)
   )
   return owners.length === 1 ? owners[0].zitadel_organization_id : null
+}
+
+/** Resolve the exact registered Worker tenant from Core, never from a product name or fixed catalog ID. */
+export async function readRemoteReviewOrganization(
+  name: string,
+  version: string,
+  revision: number,
+  issuer: string
+): Promise<string | null> {
+  return resolveReviewOrganization(await readReviewInventory(), name, version, revision, issuer)
 }
 
 export function visibleUseCases(records: readonly CorePluginPublication[]): string[] {
@@ -161,7 +197,14 @@ export function publishedPluginEntries(records: readonly CorePluginPublication[]
 
 export async function publishedPlugins(): Promise<CorePluginPublication[]> {
   try {
-    return publishedPluginEntries(await readCorePublications())
+    const entries = await readAdminCorePublications(false)
+    return publishedPluginEntries(
+      entries.map((entry) => {
+        const publicEntry = { ...entry }
+        delete publicEntry.security
+        return publicEntry
+      })
+    )
   } catch {
     // No public fallbacks: unavailable Core or admin credential must fail closed.
     return []
