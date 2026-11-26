@@ -147,7 +147,21 @@ const LEGACY_IDENTITIES = new Set([
 const VERIFIED_REMOTE_IDENTITIES = new Map<string, string>([
   ['remote-04e7c87d7b72111c-secretary', 'secretary'],
   ['remote-3b25f5ae494aa7bf-secretary', 'secretary'],
+  ['remote-6d3611cf8065ac8e-secretary', 'secretary'],
 ])
+
+export function isYaraFirstParty(plugin: Pick<PluginCatalogEntry, 'name' | 'plugin_id' | 'source'>): boolean {
+  return (
+    plugin.source === 'remote' &&
+    VERIFIED_REMOTE_IDENTITIES.get(plugin.name) === 'secretary' &&
+    plugin.plugin_id === 'secretary'
+  )
+}
+
+// The current canonical organization and the previously reviewed identity only.
+export function isYaraReviewIdentity(name: string): boolean {
+  return name === 'remote-6d3611cf8065ac8e-secretary' || name === 'remote-3b25f5ae494aa7bf-secretary'
+}
 
 export function pluginPresentation(
   plugin: Pick<PluginCatalogEntry, 'name' | 'description' | 'ui' | 'plugin_id' | 'source'>,
@@ -157,15 +171,13 @@ export function pluginPresentation(
   const originalDescription = plugin.description || ''
   // The verified first-party assistant always uses the current product name,
   // including when Core still serves an earlier public catalog display label.
-  const yaraFirstParty =
-    plugin.source === 'remote' &&
-    VERIFIED_REMOTE_IDENTITIES.get(plugin.name) === 'secretary' &&
-    plugin.plugin_id === 'secretary'
-  if (yaraFirstParty) {
+  if (isYaraFirstParty(plugin)) {
     // Existing Core publication still contains older default labels. Preserve
     // administrator-authored copy; only normalize the known shipped defaults.
     const defaultTitles = [
       ...COPY.secretary.englishLabels,
+      COPY.secretary.uk.title,
+      COPY.secretary.pl.title,
       'VHV — Decision Assistant',
       'VHV — Task & Time Planning',
       'VHV — планування справ і часу',
@@ -173,6 +185,8 @@ export function pluginPresentation(
     ]
     const defaultDescriptions = [
       ...COPY.secretary.englishDescriptions,
+      COPY.secretary.uk.description,
+      COPY.secretary.pl.description,
       'Turns a task or scheduling request into a bounded plan; execution and calendar changes require confirmation in VHV.',
       'Допомагає складати плани справ і зобов’язань з урахуванням часу. Виконання дій та оновлення календаря потребують окремого підтвердження в VHV.',
       'Pomaga planować zadania i zobowiązania w czasie. Wykonywanie działań i zmiany w kalendarzu wymagają osobnego potwierdzenia w VHV.',
