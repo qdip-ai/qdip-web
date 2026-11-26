@@ -45,7 +45,7 @@ export async function readCorePublications(): Promise<CorePluginPublication[]> {
 
 export type AdminPluginSecurity = { state: string; reason: string | null; criticalBlock: boolean }
 
-/** Admin-only projection: the SDK catalog parser intentionally omits security review metadata. */
+/** Server-side projection of validated catalog records; private review data is removed for public pages. */
 export async function readAdminCorePublications(includePendingBranding = true): Promise<
   (CorePluginPublication & { security?: AdminPluginSecurity })[]
 > {
@@ -80,17 +80,17 @@ export async function readAdminCorePublications(includePendingBranding = true): 
   const issuer = process.env.ZITADEL_ISSUER?.replace(/\/+$/, '')
   if (!includePendingBranding || !organizationId || !issuer) return projected
   const candidates = projected.filter(
-    (entry) => entry.source === 'remote' && entry.plugin_id === 'secretary' && entry.security?.state === 'pending_review'
+    (entry) =>
+      entry.source === 'remote' && entry.plugin_id === 'secretary' && entry.security?.state === 'pending_review'
   )
   if (!candidates.length) return projected
   const inventory = await readReviewInventory().catch(() => null)
   if (!inventory) return projected
-  return projected.map((entry) =>
-    candidates.includes(entry) &&
-    resolveReviewOrganization(inventory, entry.name, entry.version, entry.revision, issuer) === organizationId
-      ? { ...entry, firstParty: true }
-      : entry
-  )
+  return projected.map((entry) => {
+    if (!candidates.includes(entry)) return entry
+    const owner = resolveReviewOrganization(inventory, entry.name, entry.version, entry.revision, issuer)
+    return owner === organizationId ? { ...entry, firstParty: true } : entry
+  })
 }
 
 /** Read authoritative registration and organization inventory once per request. */
