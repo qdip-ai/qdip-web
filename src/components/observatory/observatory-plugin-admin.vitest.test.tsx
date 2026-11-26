@@ -13,6 +13,7 @@ const one = {
   plugins: [
     {
       name: 'remote-3b25f5ae494aa7bf-secretary',
+      firstParty: true,
       plugin_id: 'secretary',
       source: 'remote',
       security: { state: 'pending_review', reason: null, criticalBlock: false },
