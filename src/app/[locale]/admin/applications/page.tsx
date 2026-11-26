@@ -5,10 +5,9 @@ import { isSupportedLocale, type Locale } from '@/lib/observatory-i18n'
 import { pageAccess } from '@/lib/qdip-page-access'
 import { loginUrl } from '@/lib/qdip-oidc'
 import { observatoryHref } from '@/lib/platform-urls'
-import { corePluginConnection, readCorePublications } from '@/lib/observatory-plugin-catalog'
+import { corePluginConnection } from '@/lib/observatory-plugin-catalog'
 import { readCoreApplications } from '@/lib/observatory-application-catalog'
 import { ApplicationPublicationControls } from '@/components/observatory/application-publication-controls'
-import { DIP_USE_CASES } from '@/use-cases/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,104 +26,84 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       />
     )
 
-  const [publications, applications] = await Promise.all([
-    readCorePublications().catch(() => null),
-    Promise.resolve()
-      .then(() => readCoreApplications(corePluginConnection()))
-      .catch(() => null),
-  ])
-  const byName = new Map(publications?.map((record) => [record.name, record]) ?? [])
+  const applications = await Promise.resolve()
+    .then(() => readCoreApplications(corePluginConnection()))
+    .catch(() => null)
   const labels = {
     uk: {
       title: 'Керування застосунками',
       description: 'Публікація застосунків незалежна від публікації SDK-плагінів.',
       unavailable: 'Стан Core недоступний',
-      missing: 'Плагін не зареєстровано',
-      disabled: 'Плагін вимкнений',
-      unpublished: 'Плагін не опубліковано',
-      mismatch: 'Capability не збігається з Core',
-      version: 'Версія плагіна не збігається',
       available: 'Доступний у каталозі',
-      pending: 'Публікація цього застосунку ще керується через плагін',
       independent: 'Незалежні застосунки (SDK runtime)',
       none: 'Core не оголошує незалежних застосунків',
       ready: 'Runtime готовий',
+      stale: 'Контракт змінився: зніміть застосунок з публікації та опублікуйте повторно.',
       blocked: 'Публікацію заблоковано',
     },
     en: {
       title: 'Manage applications',
       description: 'Application publication is independent of SDK plugin publication.',
       unavailable: 'Core status unavailable',
-      missing: 'Plugin not registered',
-      disabled: 'Plugin disabled',
-      unpublished: 'Plugin not published',
-      mismatch: 'Plugin capability mismatch',
-      version: 'Plugin version mismatch',
       available: 'Visible in catalog',
-      pending: 'This application still uses legacy plugin visibility',
       independent: 'Independent applications (SDK runtime)',
       none: 'Core declares no independent applications',
       ready: 'Runtime admitted',
+      stale: 'Contract changed: unpublish the application, then publish it again.',
       blocked: 'Publication blocked',
     },
     pl: {
       title: 'Zarządzaj aplikacjami',
       description: 'Publikacja aplikacji jest niezależna od publikacji wtyczek SDK.',
       unavailable: 'Stan Core niedostępny',
-      missing: 'Wtyczka niezarejestrowana',
-      disabled: 'Wtyczka wyłączona',
-      unpublished: 'Wtyczka nieopublikowana',
-      mismatch: 'Niezgodne capability',
-      version: 'Niezgodna wersja wtyczki',
       available: 'Widoczna w katalogu',
-      pending: 'Ta aplikacja korzysta nadal z publikacji wtyczek',
       independent: 'Niezależne aplikacje (runtime SDK)',
       none: 'Core nie deklaruje niezależnych aplikacji',
       ready: 'Środowisko gotowe',
+      stale: 'Kontrakt się zmienił: cofnij publikację aplikacji, a następnie opublikuj ponownie.',
       blocked: 'Publikacja zablokowana',
     },
   }[locale]
 
   return (
     <PrototypeShell locale={locale as Locale} activeRoute="/admin/applications">
-      <section style={{ padding: '1.5rem', maxWidth: 960 }}>
+      <section className="w-full min-w-0 max-w-[960px] p-6">
         <h1>{labels.title}</h1>
         <p>{labels.description}</p>
-        <ul>
-          {DIP_USE_CASES.map((app) => {
-            const plugin = byName.get(app.plugin.id)
-            let status = labels.available
-            if (!publications) status = labels.unavailable
-            else if (!plugin) status = labels.missing
-            else if (!plugin.enabled) status = labels.disabled
-            else if (
-              !plugin.capabilities.includes(app.plugin.capability) ||
-              plugin.capability_id !== app.plugin.capability
-            )
-              status = labels.mismatch
-            else if (plugin.published !== true) status = labels.unpublished
-            else if (plugin.published_version !== plugin.version) status = labels.version
-            return (
-              <li key={app.id}>
-                <strong>{app.id}</strong> — {status} ({labels.pending})
-              </li>
-            )
-          })}
-        </ul>
         <h2>{labels.independent}</h2>
         {!applications ? (
           <p>{labels.unavailable}</p>
         ) : applications.length === 0 ? (
           <p>{labels.none}</p>
         ) : (
-          <ul data-testid="independent-applications">
+          <ul className="grid gap-4" data-testid="independent-applications">
             {applications.map((application) => (
-              <li key={application.application_id}>
+              <li
+                key={application.application_id}
+                className="min-w-0 break-words rounded-lg border border-current/20 p-4"
+              >
                 <strong>{application.application_id}</strong> — {application.status}
                 {' · '}
                 {application.visible ? labels.available : application.admission.ready ? labels.ready : labels.blocked}
                 {' · '}
-                <code>{application.launch_url}</code>
+                <code className="break-all">{application.launch_url}</code>
+                {application.status === 'published' && !application.visible && application.admission.ready && (
+                  <p>{labels.stale}</p>
+                )}
+                {application.runtime_binding && (
+                  <p className="break-all text-sm">
+                    SDK: {application.runtime_binding.plugin_id} @ {application.runtime_binding.plugin_version}
+                  </p>
+                )}
+                {application.required_capabilities?.length > 0 && (
+                  <ul className="text-sm">
+                    {application.required_capabilities.map((capability) => (
+                      <li key={capability.capability_id} className="break-all">
+                        {capability.capability_id} @ {capability.capability_version}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div>
                   {application.admission.reasons.length > 0 && (
                     <span role="status">{application.admission.reasons.join(', ')}</span>

@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 
 vi.mock('server-only', () => ({}))
 const auth = vi.hoisted(() => ({ authenticated: true, admin: true }))
-const source = vi.hoisted(() => ({ read: vi.fn() }))
+const source = vi.hoisted(() => ({ read: vi.fn(), resolveOrg: vi.fn() }))
 const ownership = vi.hoisted(() => ({ check: vi.fn() }))
 vi.mock('@/lib/qdip-oidc', () => ({
   sessionFromRequest: () => (auth.authenticated ? { issuer: 'https://issuer.test', sub: 'verified-admin' } : null),
@@ -19,13 +19,14 @@ vi.mock('@/lib/zitadel-owner-organizations', () => ({
 }))
 vi.mock('@/lib/observatory-plugin-catalog', () => ({
   readCorePublications: source.read,
+  readRemoteReviewOrganization: source.resolveOrg,
   corePluginConnection: () => ({ base: 'https://core.qdip.test', key: 'server-only-test-admin-key' }),
 }))
 
 import { OwnerOrganizationError } from '@/lib/zitadel-owner-organizations'
 import { POST } from './route'
 
-const pluginName = 'remote-3b25f5ae494aa7bf-secretary'
+const pluginName = 'remote-6d3611cf8065ac8e-secretary'
 const context = { params: Promise.resolve({ name: pluginName }) }
 const record = { name: pluginName, version: '0.1.0', source: 'remote', revision: 1 }
 const review = {
@@ -47,7 +48,7 @@ beforeEach(() => {
   auth.authenticated = true
   auth.admin = true
   source.read.mockResolvedValue([record])
-  vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', '368555767923594379')
+  source.resolveOrg.mockResolvedValue('368555767923594379')
   ownership.check.mockResolvedValue({ id: '368555767923594379' })
   vi.stubGlobal(
     'fetch',
@@ -77,9 +78,9 @@ describe('remote Worker audited security approval', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('rejects non-Yara identities and requires live owner verification before Core admission', async () => {
+  it('rejects unknown identities and requires live owner verification before Core admission', async () => {
     const foreign = { params: Promise.resolve({ name: 'remote-third-party' }) }
-    expect((await POST(request(review), foreign)).status).toBe(403)
+    expect((await POST(request(review), foreign)).status).toBe(404)
     expect(ownership.check).not.toHaveBeenCalled()
     ownership.check.mockRejectedValueOnce(new OwnerOrganizationError(403, 'Ownership denied'))
     expect((await POST(request(review), context)).status).toBe(403)
@@ -87,8 +88,25 @@ describe('remote Worker audited security approval', () => {
     ownership.check.mockRejectedValueOnce(new Error('Zitadel unavailable'))
     expect((await POST(request(review), context)).status).toBe(503)
     expect(fetch).not.toHaveBeenCalled()
-    vi.stubEnv('ZITADEL_QDIP_ORGANIZATION_ID', '')
-    expect((await POST(request(review), context)).status).toBe(503)
+    source.resolveOrg.mockResolvedValueOnce(null)
+    expect((await POST(request(review), context)).status).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('reviews a new exact registered identity without a catalog-ID allowlist', async () => {
+    const migrated = 'remote-new-tenant-secretary'
+    source.read.mockResolvedValueOnce([{ ...record, name: migrated }])
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json({
+        name: migrated,
+        revision: 2,
+        security: { state: 'approved' },
+        published: false,
+      })
+    )
+    expect((await POST(request(review), { params: Promise.resolve({ name: migrated }) })).status).toBe(200)
+    expect(source.resolveOrg).toHaveBeenCalledWith(migrated, '0.1.0', 1, 'https://issuer.test')
+    expect(ownership.check).toHaveBeenCalled()
   })
 
   it('requires explicit reason, review reference, risk acceptance and CAS revision', async () => {

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { PluginCatalogEntry } from '@qdip/client'
+import type { CorePluginPublication } from './observatory-plugin-catalog'
 import { launchLinkForPlugin } from './observatory-plugin-launch'
 
-const vhv: PluginCatalogEntry = {
+const vhv: CorePluginPublication = {
   name: 'remote-04e7c87d7b72111c-secretary',
+  firstParty: true,
   plugin_id: 'secretary',
   source: 'remote',
   slug: 'vhv',
@@ -32,12 +33,12 @@ describe('trusted external application launch links', () => {
   })
 
   it('recognizes the canonical-tenant Yara catalog identity without trusting a lookalike plugin', () => {
-    const canonical = { ...vhv, name: 'remote-3b25f5ae494aa7bf-secretary', slug: 'yara' }
+    const canonical = { ...vhv, name: 'remote-any-new-catalog-identity', slug: 'yara' }
     expect(launchLinkForPlugin(canonical)).toEqual({
       href: 'https://yara.qdip.ai',
       application: 'Yara',
     })
-    expect(launchLinkForPlugin({ ...canonical, name: 'remote-attacker-secretary' })).toBeNull()
+    expect(launchLinkForPlugin({ ...canonical, name: 'remote-attacker-secretary', firstParty: false })).toBeNull()
     expect(launchLinkForPlugin({ ...canonical, plugin_id: 'different-plugin' })).toBeNull()
     expect(launchLinkForPlugin({ ...canonical, published: false })).toBeNull()
   })
@@ -50,13 +51,14 @@ describe('trusted external application launch links', () => {
   })
 
   it('does not give a fake Yara plugin the application URL', () => {
-    expect(launchLinkForPlugin({ ...vhv, name: 'remote-attacker-secretary' })).toBeNull()
+    expect(launchLinkForPlugin({ ...vhv, name: 'remote-attacker-secretary', firstParty: false })).toBeNull()
     expect(launchLinkForPlugin({ ...vhv, plugin_id: 'other-plugin' })).toBeNull()
     expect(launchLinkForPlugin({ ...vhv, source: 'embedded' })).toBeNull()
     expect(
       launchLinkForPlugin({
         ...vhv,
         name: 'remote-attacker-secretary',
+        firstParty: false,
         slug: 'vhv',
         ui: { label: 'Yara — Decision Assistant' },
       })
@@ -64,7 +66,7 @@ describe('trusted external application launch links', () => {
   })
 
   it('launches an independently hosted SDK plugin only with the audited HTTPS destination', () => {
-    const thirdParty: PluginCatalogEntry = {
+    const thirdParty: CorePluginPublication = {
       ...vhv,
       name: 'remote-different-tenant-routing',
       plugin_id: 'routing',

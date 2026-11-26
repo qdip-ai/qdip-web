@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PluginCatalogEntry } from '@qdip/client'
+import type { CorePluginPublication } from '@/lib/observatory-plugin-catalog'
 
 vi.mock('next/navigation', () => ({
   notFound: () => {
@@ -20,8 +20,9 @@ vi.mock('@/use-cases/registry', () => ({ DIP_USE_CASES: [] }))
 import PluginDetailsPage from './page'
 import { publishedPlugins } from '@/lib/observatory-plugin-catalog'
 
-const vhv: PluginCatalogEntry = {
+const vhv: CorePluginPublication = {
   name: 'remote-04e7c87d7b72111c-secretary',
+  firstParty: true,
   plugin_id: 'secretary',
   source: 'remote',
   slug: 'vhv',

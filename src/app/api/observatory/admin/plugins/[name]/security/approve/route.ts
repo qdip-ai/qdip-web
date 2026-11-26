@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
-import { corePluginConnection, readCorePublications } from '@/lib/observatory-plugin-catalog'
+import {
+  corePluginConnection,
+  readCorePublications,
+  readRemoteReviewOrganization,
+} from '@/lib/observatory-plugin-catalog'
 import { OwnerOrganizationError, verifyOwnedZitadelOrganization } from '@/lib/zitadel-owner-organizations'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// This review endpoint is intentionally limited to the verified first-party Yara identity.
-const YARA_CATALOG_ID = 'remote-3b25f5ae494aa7bf-secretary'
-
 const noStore = (status: number, body: Record<string, unknown>) =>
   NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } })
 
-/** An explicit first-party risk review, never an automatic admission or publication. */
+/** An explicit owner-authorized risk review, never automatic admission or publication. */
 export async function POST(request: NextRequest, context: { params: Promise<{ name: string }> }) {
   const { error, session } = adminRequest(request, true)
   if (error) return error
@@ -21,7 +22,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
 
   const { name } = await context.params
   if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(name)) return noStore(400, { error: 'Invalid plugin identity' })
-  if (name !== YARA_CATALOG_ID) return noStore(403, { error: 'Not the reviewed first-party Worker' })
   if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json')
     return noStore(415, { error: 'JSON required' })
 
@@ -66,15 +66,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
     if (record.version !== version || record.revision !== revision)
       return noStore(409, { error: 'Registration changed; reload before review' })
 
-    const organizationId = process.env.ZITADEL_QDIP_ORGANIZATION_ID
-    if (!organizationId || !/^[0-9]{1,32}$/.test(organizationId))
-      return noStore(503, { error: 'Yara organization ownership verification is not configured' })
+    const organizationId = await readRemoteReviewOrganization(name, version, revision as number, session.issuer)
+    if (!organizationId) return noStore(403, { error: 'Remote Worker has no matching active organization binding' })
     try {
       await verifyOwnedZitadelOrganization({ issuer: session.issuer, sub: session.sub }, organizationId)
     } catch (cause) {
       if (cause instanceof OwnerOrganizationError && cause.status === 403)
-        return noStore(403, { error: 'Yara organization ownership required' })
-      return noStore(503, { error: 'Yara organization ownership could not be verified' })
+        return noStore(403, { error: 'Worker organization ownership required' })
+      return noStore(503, { error: 'Worker organization ownership could not be verified' })
     }
 
     const { base, key } = corePluginConnection()
@@ -98,7 +97,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
       signal: AbortSignal.timeout(15_000),
     })
 
-    if (upstream.status === 409) return noStore(409, { error: 'Security state changed; reload before review' })
+    if (upstream.status === 409) {
+      const result: { detail?: unknown } = await upstream.json().catch(() => ({}))
+      const safeReasons = [
+        'Retired SDK plugin identity cannot be reviewed',
+        'Plugin revision changed; reload before reviewing',
+        'Plugin version changed; review the new version',
+        'Release quarantine before manual risk approval',
+        'Unresolved critical finding: verified remediation required',
+        'Reconnect Worker with scoped key before approving',
+      ]
+      const detail = typeof result.detail === 'string' && safeReasons.includes(result.detail) ? result.detail : null
+      return noStore(409, { error: detail || 'Security state changed; reload before review' })
+    }
     if (upstream.status === 403)
       return noStore(403, { error: 'Worker is not admitted by the trusted Core manifest allowlist' })
     if (upstream.status === 401) return noStore(502, { error: 'Core administrator credential rejected' })

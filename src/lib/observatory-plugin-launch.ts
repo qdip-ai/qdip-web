@@ -1,4 +1,5 @@
 import { safePluginLaunchUrl, type PluginCatalogEntry } from '@qdip/client'
+import { isYaraFirstParty } from '@/lib/observatory-plugin-editorial'
 
 export type PluginLaunchLink = Readonly<{ href: string; application: string }>
 
@@ -7,11 +8,9 @@ export type PluginLaunchLink = Readonly<{ href: string; application: string }>
  * SDK-registered plugins cannot inject arbitrary outbound URLs or impersonate
  * another application's call-to-action through a display name or public slug.
  */
-export function launchLinkForPlugin(plugin: PluginCatalogEntry): PluginLaunchLink | null {
+export function launchLinkForPlugin(plugin: PluginCatalogEntry & { firstParty?: boolean }): PluginLaunchLink | null {
   if (
-    (plugin.name === 'remote-04e7c87d7b72111c-secretary' || plugin.name === 'remote-3b25f5ae494aa7bf-secretary') &&
-    plugin.plugin_id === 'secretary' &&
-    plugin.source === 'remote' &&
+    isYaraFirstParty(plugin) &&
     plugin.capability_id === 'secretary.plan' &&
     plugin.capabilities.includes('secretary.plan') &&
     plugin.published === true &&
