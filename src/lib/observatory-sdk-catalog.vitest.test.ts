@@ -1,11 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import {
-  readAdminCorePublications,
-  readCorePublications,
-  readRemoteReviewOrganization,
-} from './observatory-plugin-catalog'
+import { readAdminCorePublications, readCorePublications, readRemoteReviewOrganization } from './observatory-plugin-catalog'
 
 afterEach(() => {
   vi.unstubAllGlobals()
