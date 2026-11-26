@@ -136,6 +136,23 @@ describe('Canonical Yara publication defaults', () => {
 })
 
 describe('Audited remote Worker approval', () => {
+  it('distinguishes connected registration from admission and prevents publication of a pending Worker', async () => {
+    const current = {
+      ...one.plugins[0],
+      name: 'remote-6d3611cf8065ac8e-secretary',
+      security: { state: 'pending_review', reason: 'Manifest changed', criticalBlock: false },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ plugins: [current] })))
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await tick()
+    expect(screen.getByText('Worker зареєстрований')).toBeInTheDocument()
+    expect(screen.getByText('Remote Worker підключений')).toBeInTheDocument()
+    expect(screen.getByText('Security approval: pending_review')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Редагувати' }))
+    expect(screen.getByText(/Manifest changed/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
+  })
+
   it('does not approve before explicit review reference, reason and risk acknowledgement', async () => {
     const fetchMock = vi.fn().mockResolvedValue(json(one))
     vi.stubGlobal('fetch', fetchMock)
@@ -169,7 +186,14 @@ describe('Audited remote Worker approval', () => {
       .mockResolvedValueOnce(json(approved))
       .mockResolvedValueOnce(
         json({
-          plugins: [{ ...one.plugins[0], revision: 1, published: false }],
+          plugins: [
+            {
+              ...one.plugins[0],
+              revision: 1,
+              published: false,
+              security: { state: 'approved', reason: null, criticalBlock: false },
+            },
+          ],
         })
       )
     vi.stubGlobal('fetch', fetchMock)
@@ -199,8 +223,8 @@ describe('Audited remote Worker approval', () => {
       risk_acknowledged: true,
     })
     expect(await screen.findByText(/Security approval підтверджено Core/)).toBeInTheDocument()
-    // Approval may be invalidated by a future REGISTER; never cache a trusted state in the browser.
-    expect(screen.getByRole('button', { name: 'Схвалити Worker' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Схвалити Worker' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Зберегти й опублікувати' })).toBeEnabled()
   })
 
   it('does not claim approval when Core rejects missing trusted manifest', async () => {
