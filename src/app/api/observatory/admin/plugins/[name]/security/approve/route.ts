@@ -98,7 +98,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
     })
 
     if (upstream.status === 409) {
-      const result: { detail?: unknown } = await upstream.json().catch(() => ({}))
+      const result: { error?: { code?: unknown; message?: unknown } } = await upstream.json().catch(() => ({}))
       const safeReasons = [
         'Retired SDK plugin identity cannot be reviewed',
         'Plugin revision changed; reload before reviewing',
@@ -107,7 +107,11 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
         'Unresolved critical finding: verified remediation required',
         'Reconnect Worker with scoped key before approving',
       ]
-      const detail = typeof result.detail === 'string' && safeReasons.includes(result.detail) ? result.detail : null
+      const message = result?.error?.message
+      const detail =
+        result?.error?.code === 'http_error' && typeof message === 'string' && safeReasons.includes(message)
+          ? message
+          : null
       return noStore(409, { error: detail || 'Security state changed; reload before review' })
     }
     if (upstream.status === 403)
