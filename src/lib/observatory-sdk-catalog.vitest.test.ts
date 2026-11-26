@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import { readAdminCorePublications, readCorePublications } from './observatory-plugin-catalog'
+import { readAdminCorePublications, readCorePublications, readRemoteReviewOrganization } from './observatory-plugin-catalog'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -60,6 +60,24 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
     })
     const [publicRecord] = await readCorePublications()
     expect(publicRecord).not.toHaveProperty('security')
+  })
+
+  it('derives review ownership from the exact current Core registration and active linked organization', async () => {
+    vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
+    vi.stubEnv('DIP_ADMIN_API_KEY', 'test-admin')
+    const name = 'remote-new-tenant-secretary'
+    const issuer = 'https://id.example'
+    const items = [{ name, plugin_version: '0.1.0', revision: 2, tenant_id: 'current' }]
+    const organizations = [
+      { id: 'legacy', status: 'active', identity_provider: 'zitadel', zitadel_issuer: issuer, zitadel_organization_id: '111' },
+      { id: 'current', status: 'active', identity_provider: 'zitadel', zitadel_issuer: issuer, zitadel_organization_id: '222' },
+    ]
+    vi.stubGlobal('fetch', vi.fn(async (url: string) =>
+      Response.json(url.endsWith('/organizations') ? organizations : { items })))
+    await expect(readRemoteReviewOrganization(name, '0.1.0', 2, issuer)).resolves.toBe('222')
+    await expect(readRemoteReviewOrganization(name, '0.1.0', 1, issuer)).resolves.toBeNull()
+    await expect(readRemoteReviewOrganization(name, '0.1.0', 2, 'https://foreign.example')).resolves.toBeNull()
+    await expect(readRemoteReviewOrganization('remote-unknown', '0.1.0', 2, issuer)).resolves.toBeNull()
   })
 
   it('rejects a missing platform key rather than running anonymous catalog access', async () => {
