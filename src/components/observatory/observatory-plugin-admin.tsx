@@ -18,6 +18,7 @@ type Row = {
   application_launch_url?: string | null
   launch_url_verified?: boolean
   source?: 'embedded' | 'remote'
+  firstParty?: boolean
   security?: AdminPluginSecurity
   description: string
   version: string
