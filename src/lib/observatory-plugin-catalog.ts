@@ -46,9 +46,9 @@ export async function readCorePublications(): Promise<CorePluginPublication[]> {
 export type AdminPluginSecurity = { state: string; reason: string | null; criticalBlock: boolean }
 
 /** Server-side projection of validated catalog records; private review data is removed for public pages. */
-export async function readAdminCorePublications(includePendingBranding = true): Promise<
-  (CorePluginPublication & { security?: AdminPluginSecurity })[]
-> {
+export async function readAdminCorePublications(
+  includePendingBranding = true
+): Promise<(CorePluginPublication & { security?: AdminPluginSecurity })[]> {
   const { base, key } = corePluginConnection()
   const response = await fetch(`${base}/api/v1/plugin-publications`, {
     headers: { 'x-api-key': key, accept: 'application/json' },
