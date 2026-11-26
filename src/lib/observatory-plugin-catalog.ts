@@ -43,10 +43,12 @@ export async function readCorePublications(): Promise<CorePluginPublication[]> {
   return coreCatalogClient().catalog.list()
 }
 
-export type AdminPluginSecurity = { state: string; reason: string | null }
+export type AdminPluginSecurity = { state: string; reason: string | null; criticalBlock: boolean }
 
 /** Admin-only projection: the SDK catalog parser intentionally omits security review metadata. */
-export async function readAdminCorePublications(): Promise<(CorePluginPublication & { security?: AdminPluginSecurity })[]> {
+export async function readAdminCorePublications(): Promise<
+  (CorePluginPublication & { security?: AdminPluginSecurity })[]
+> {
   const { base, key } = corePluginConnection()
   const response = await fetch(`${base}/api/v1/plugin-publications`, {
     headers: { 'x-api-key': key, accept: 'application/json' },
@@ -60,10 +62,13 @@ export async function readAdminCorePublications(): Promise<(CorePluginPublicatio
   if (!Array.isArray(raw)) throw new Error('Invalid Core catalog')
   return entries.map((entry, index) => {
     const security: unknown = raw[index]?.security
-    if (!security || typeof security !== 'object' || !('state' in security) || typeof security.state !== 'string')
-      return entry
+    if (entry.source !== 'remote') return entry
+    if (!security || typeof security !== 'object' || !('state' in security) || typeof security.state !== 'string') {
+      return { ...entry, security: { state: 'unknown', reason: null, criticalBlock: false } }
+    }
     const reason = 'reason' in security && typeof security.reason === 'string' ? security.reason : null
-    return { ...entry, security: { state: security.state, reason } }
+    const criticalBlock = 'critical_block' in security && security.critical_block === true
+    return { ...entry, security: { state: security.state, reason, criticalBlock } }
   })
 }
 
