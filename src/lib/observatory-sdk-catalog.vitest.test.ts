@@ -1,12 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import {
-  publishedPlugins,
-  readAdminCorePublications,
-  readCorePublications,
-  readRemoteReviewOrganization,
-} from './observatory-plugin-catalog'
+import * as catalog from './observatory-plugin-catalog'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -26,7 +21,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
         })
     )
     vi.stubGlobal('fetch', fetcher)
-    await expect(readCorePublications()).resolves.toEqual([])
+    await expect(catalog.readCorePublications()).resolves.toEqual([])
     expect(fetcher).toHaveBeenCalledWith(
       'https://core.example.test/api/v1/plugin-publications',
       expect.objectContaining({
@@ -55,7 +50,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
       security: { state: 'pending_review', reason: 'Manifest changed', critical_block: true },
     }
     vi.stubGlobal('fetch', vi.fn(async () => Response.json([worker])))
-    const [admin] = await readAdminCorePublications()
+    const [admin] = await catalog.readAdminCorePublications()
     expect(admin.enabled).toBe(true)
     expect(admin.published).toBe(false)
     expect(admin.security).toEqual({
@@ -63,7 +58,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
       reason: 'Manifest changed',
       criticalBlock: true,
     })
-    const [publicRecord] = await readCorePublications()
+    const [publicRecord] = await catalog.readCorePublications()
     expect(publicRecord).not.toHaveProperty('security')
   })
 
@@ -92,7 +87,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
       security: { state: 'approved', approval_source: 'external_review', critical_block: false },
     }
     vi.stubGlobal('fetch', vi.fn(async () => Response.json([trusted, lookalike])))
-    const records = await publishedPlugins()
+    const records = await catalog.publishedPlugins()
     expect(records.map((record) => record.firstParty)).toEqual([true, false])
     expect(records[0]).not.toHaveProperty('security')
   })
@@ -123,10 +118,12 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
       return Response.json(url.endsWith('/organizations') ? organizations : { items })
     })
     vi.stubGlobal('fetch', fetcher)
-    await expect(readRemoteReviewOrganization(name, '0.1.0', 2, issuer)).resolves.toBe('222')
-    await expect(readRemoteReviewOrganization(name, '0.1.0', 1, issuer)).resolves.toBeNull()
-    await expect(readRemoteReviewOrganization(name, '0.1.0', 2, 'https://foreign.example')).resolves.toBeNull()
-    await expect(readRemoteReviewOrganization('remote-unknown', '0.1.0', 2, issuer)).resolves.toBeNull()
+    await expect(catalog.readRemoteReviewOrganization(name, '0.1.0', 2, issuer)).resolves.toBe('222')
+    await expect(catalog.readRemoteReviewOrganization(name, '0.1.0', 1, issuer)).resolves.toBeNull()
+    const foreign = catalog.readRemoteReviewOrganization(name, '0.1.0', 2, 'https://foreign.example')
+    await expect(foreign).resolves.toBeNull()
+    const missing = catalog.readRemoteReviewOrganization('remote-unknown', '0.1.0', 2, issuer)
+    await expect(missing).resolves.toBeNull()
   })
 
   it('rejects a missing platform key rather than running anonymous catalog access', async () => {
@@ -135,7 +132,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
     vi.stubEnv('DIP_API_KEY', '')
     const fetcher = vi.fn()
     vi.stubGlobal('fetch', fetcher)
-    await expect(readCorePublications()).rejects.toThrow('QDIP Core admin connection is not configured')
+    await expect(catalog.readCorePublications()).rejects.toThrow('QDIP Core admin connection is not configured')
     expect(fetcher).not.toHaveBeenCalled()
   })
 
@@ -163,7 +160,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
       )
     })
     vi.stubGlobal('fetch', fetcher)
-    const result = await readCorePublications()
+    const result = await catalog.readCorePublications()
     expect(result[0].ui.label).toBe('Yara')
     expect(result[0].capabilities).toContain('secretary.plan')
     expect(fetcher).toHaveBeenCalledWith(
