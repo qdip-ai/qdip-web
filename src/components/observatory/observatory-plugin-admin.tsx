@@ -522,7 +522,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         const detail: { error?: string } = await response.json().catch(() => ({}))
         throw new Error(
           response.status === 409
-            ? t.conflict
+            ? detail.error || t.conflict
             : detail.error === 'Worker is not admitted by the trusted Core manifest allowlist'
               ? t.approvalMissingManifest
               : detail.error || t.approvalFailure
