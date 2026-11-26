@@ -66,7 +66,7 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
     expect(publicRecord).not.toHaveProperty('security')
   })
 
-  it('derives review ownership from the exact current Core registration and active linked organization', async () => {
+  it('resolves the exact registered Worker owner', async () => {
     vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
     vi.stubEnv('DIP_ADMIN_API_KEY', 'test-admin')
     const name = 'remote-new-tenant-secretary'
@@ -88,10 +88,10 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
         zitadel_organization_id: '222',
       },
     ]
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (url: string) => Response.json(url.endsWith('/organizations') ? organizations : { items }))
-    )
+    const fetcher = vi.fn(async (url: string) => {
+      return Response.json(url.endsWith('/organizations') ? organizations : { items })
+    })
+    vi.stubGlobal('fetch', fetcher)
     await expect(readRemoteReviewOrganization(name, '0.1.0', 2, issuer)).resolves.toBe('222')
     await expect(readRemoteReviewOrganization(name, '0.1.0', 1, issuer)).resolves.toBeNull()
     await expect(readRemoteReviewOrganization(name, '0.1.0', 2, 'https://foreign.example')).resolves.toBeNull()
