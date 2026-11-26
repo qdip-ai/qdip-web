@@ -7,7 +7,8 @@ import { safePluginLaunchUrl } from '@qdip/client'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import styles from './plugin-experience.module.css'
 import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
-import { pluginPresentation } from '@/lib/observatory-plugin-editorial'
+import { isYaraFirstParty, isYaraReviewIdentity, pluginPresentation } from '@/lib/observatory-plugin-editorial'
+import type { AdminPluginSecurity } from '@/lib/observatory-plugin-catalog'
 
 type Row = {
   name: string
@@ -17,6 +18,7 @@ type Row = {
   application_launch_url?: string | null
   launch_url_verified?: boolean
   source?: 'embedded' | 'remote'
+  security?: AdminPluginSecurity
   description: string
   version: string
   enabled: boolean
@@ -102,6 +104,11 @@ const copy = {
     unpublished: 'Не опубліковано',
     disabled: 'Вимкнено в Core',
     offline: 'Remote Worker не підключений',
+    connected: 'Remote Worker підключений',
+    registeredWorker: 'Worker зареєстрований',
+    securityState: 'Security approval',
+    unknown: 'Стан невідомий',
+    securityBlocked: 'Публікація потребує чинного Security approval від Core.',
     demo: 'Готова демосторінка',
     generic: 'Стандартна сторінка каталогу',
     details: 'Переглянути сторінку',
@@ -175,6 +182,11 @@ const copy = {
     unpublished: 'Unpublished',
     disabled: 'Disabled in Core',
     offline: 'Remote Worker is offline',
+    connected: 'Remote Worker connected',
+    registeredWorker: 'Worker registered',
+    securityState: 'Security approval',
+    unknown: 'State unknown',
+    securityBlocked: 'Publication requires current Core security approval.',
     demo: 'Existing demo workspace',
     generic: 'Standard catalog page',
     details: 'View page',
@@ -248,6 +260,11 @@ const copy = {
     unpublished: 'Nieopublikowano',
     disabled: 'Wyłączona w Core',
     offline: 'Zdalny Worker niedostępny',
+    connected: 'Zdalny Worker połączony',
+    registeredWorker: 'Worker zarejestrowany',
+    securityState: 'Zatwierdzenie bezpieczeństwa',
+    unknown: 'Stan nieznany',
+    securityBlocked: 'Publikacja wymaga aktualnego zatwierdzenia bezpieczeństwa w Core.',
     demo: 'Gotowa strona demo',
     generic: 'Standardowa strona katalogu',
     details: 'Zobacz stronę',
@@ -273,14 +290,11 @@ function isPublished(row: Row) {
   )
 }
 function initialFields(row: Row): FormFields {
-  const canonicalYara =
-    row.name === 'remote-3b25f5ae494aa7bf-secretary' && row.plugin_id === 'secretary' && row.source === 'remote'
+  const canonicalYara = isYaraFirstParty(row)
+  const presentation = canonicalYara ? pluginPresentation(row, 'en') : null
   return {
-    display_name:
-      canonicalYara && row.ui?.label === 'VHV — Decision Assistant'
-        ? 'Yara — Decision Assistant'
-        : row.ui?.label || row.name,
-    description: row.description || '',
+    display_name: presentation?.title ?? (row.ui?.label || row.name),
+    description: presentation?.description ?? (row.description || ''),
     category: row.ui?.category || 'Other',
     capability_id:
       (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) ||
@@ -502,10 +516,16 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           }),
         }
       )
-      if (!response.ok)
+      if (!response.ok) {
+        const detail: { error?: string } = await response.json().catch(() => ({}))
         throw new Error(
-          response.status === 409 ? t.conflict : response.status === 403 ? t.approvalMissingManifest : t.approvalFailure
+          response.status === 409
+            ? t.conflict
+            : detail.error === 'Worker is not admitted by the trusted Core manifest allowlist'
+              ? t.approvalMissingManifest
+              : detail.error || t.approvalFailure
         )
+      }
       const result: unknown = await response.json()
       if (
         !result ||
@@ -515,8 +535,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         (result as { security?: { state?: unknown } }).security?.state !== 'approved'
       )
         throw new Error(t.approvalUnverified)
+      if (!(await refresh())) throw new Error(t.approvalUnverified)
       setMutationSuccess({ name: row.name, message: t.approvalComplete })
-      await refresh()
     } catch (cause) {
       setMutationError({
         name: row.name,
@@ -596,11 +616,21 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     <span className={styles.pill} data-kind={published ? 'published' : 'unpublished'}>
                       {published ? t.published : t.unpublished}
                     </span>
-                    {offline && (
+                    {row.source === 'remote' ? (
+                      <>
+                        <span className={styles.pill}>{t.registeredWorker}</span>
+                        <span className={styles.pill} data-kind={offline ? 'offline' : undefined}>
+                          {refreshFailed ? t.unknown : offline ? t.offline : t.connected}
+                        </span>
+                        <span className={styles.pill}>
+                          {t.securityState}: {refreshFailed ? t.unknown : row.security?.state || t.unknown}
+                        </span>
+                      </>
+                    ) : offline ? (
                       <span className={styles.pill} data-kind="offline">
-                        {row.source === 'remote' ? t.offline : t.disabled}
+                        {t.disabled}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 <div className={styles.actionRow}>
@@ -655,9 +685,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       id={`editor-title-${row.name}`}
                       className={styles.formHeading}
                     >
-                      {t.editing}: {row.ui?.label || row.plugin_id || row.name}
+                      {t.editing}: {pluginPresentation(row, locale).title}
                     </h4>
-                    {row.name === 'remote-3b25f5ae494aa7bf-secretary' && row.source === 'remote' && !published && (
+                    {isYaraFirstParty(row) && isYaraReviewIdentity(row.name) && !published && row.security?.state !== 'approved' && (
                       <form
                         className={styles.form}
                         style={{ marginTop: '1.2rem', marginBottom: '1.2rem' }}
@@ -895,6 +925,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         </p>
                       </details>
                       {!row.enabled && <p className={styles.notice}>{t.offlinePublish}</p>}
+                      {row.source === 'remote' && row.security && row.security.state !== 'approved' && (
+                        <p className={styles.notice}>
+                          {t.securityBlocked} {row.security.reason}
+                        </p>
+                      )}
                       <div className={styles.actionRow} style={{ marginTop: '0.2rem' }}>
                         <Button
                           type="submit"
@@ -902,6 +937,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           disabled={
                             pending ||
                             !row.enabled ||
+                            (row.source === 'remote' && !!row.security && row.security.state !== 'approved') ||
                             !fields.display_name.trim() ||
                             !fields.capability_id ||
                             (fields.application_launch_url !== '' &&
