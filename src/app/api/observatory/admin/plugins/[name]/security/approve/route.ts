@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
-import { corePluginConnection, readCorePublications, readRemoteReviewOrganization } from '@/lib/observatory-plugin-catalog'
+import {
+  corePluginConnection,
+  readCorePublications,
+  readRemoteReviewOrganization,
+} from '@/lib/observatory-plugin-catalog'
 import { OwnerOrganizationError, verifyOwnedZitadelOrganization } from '@/lib/zitadel-owner-organizations'
 
 export const runtime = 'nodejs'
