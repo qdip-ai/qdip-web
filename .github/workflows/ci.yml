@@ -34,7 +34,12 @@ jobs:
         run: pnpm lint
 
       - name: Prettier
-        run: pnpm prettier
+        run: |
+          if ! pnpm prettier; then
+            pnpm exec prettier --write src/lib/observatory-plugin-catalog.ts src/lib/observatory-sdk-catalog.vitest.test.ts
+            git diff -- src/lib/observatory-plugin-catalog.ts src/lib/observatory-sdk-catalog.vitest.test.ts
+            exit 1
+          fi
 
       - name: Typecheck
         run: pnpm typecheck
