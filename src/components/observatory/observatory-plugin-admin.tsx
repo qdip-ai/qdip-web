@@ -608,7 +608,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
               row.source === 'remote' &&
               !published &&
               !refreshFailed &&
-              row.security?.state === 'pending_review' && !row.security.criticalBlock
+              row.security?.state === 'pending_review' &&
+              !row.security.criticalBlock
             return (
               <article key={row.name} className={`${styles.card} ${styles.adminCard}`}>
                 <div className={styles.adminTop}>
