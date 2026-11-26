@@ -96,9 +96,14 @@ describe('remote Worker audited security approval', () => {
   it('reviews a new exact registered identity without a catalog-ID allowlist', async () => {
     const migrated = 'remote-new-tenant-secretary'
     source.read.mockResolvedValueOnce([{ ...record, name: migrated }])
-    vi.mocked(fetch).mockResolvedValueOnce(Response.json({
-      name: migrated, revision: 2, security: { state: 'approved' }, published: false,
-    }))
+    vi.mocked(fetch).mockResolvedValueOnce(
+      Response.json({
+        name: migrated,
+        revision: 2,
+        security: { state: 'approved' },
+        published: false,
+      })
+    )
     expect((await POST(request(review), { params: Promise.resolve({ name: migrated }) })).status).toBe(200)
     expect(source.resolveOrg).toHaveBeenCalledWith(migrated, '0.1.0', 1, 'https://issuer.test')
     expect(ownership.check).toHaveBeenCalled()
