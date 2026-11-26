@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { QdipClient, type PluginCatalogEntry } from '@qdip/client'
+import { parsePluginCatalog, QdipClient, type PluginCatalogEntry } from '@qdip/client'
 
 import { normalizeDipBaseUrl } from '@/lib/dip-url'
 import { DIP_USE_CASES } from '@/use-cases/registry'
@@ -41,6 +41,30 @@ export function coreCatalogClient(): QdipClient {
 
 export async function readCorePublications(): Promise<CorePluginPublication[]> {
   return coreCatalogClient().catalog.list()
+}
+
+export type AdminPluginSecurity = { state: string; reason: string | null }
+
+/** Admin-only projection: the SDK catalog parser intentionally omits security review metadata. */
+export async function readAdminCorePublications(): Promise<(CorePluginPublication & { security?: AdminPluginSecurity })[]> {
+  const { base, key } = corePluginConnection()
+  const response = await fetch(`${base}/api/v1/plugin-publications`, {
+    headers: { 'x-api-key': key, accept: 'application/json' },
+    cache: 'no-store',
+    redirect: 'error',
+    signal: AbortSignal.timeout(12_000),
+  })
+  if (!response.ok) throw new Error('Core publication registry unavailable')
+  const raw: unknown = await response.json()
+  const entries = parsePluginCatalog(raw)
+  if (!Array.isArray(raw)) throw new Error('Invalid Core catalog')
+  return entries.map((entry, index) => {
+    const security: unknown = raw[index]?.security
+    if (!security || typeof security !== 'object' || !('state' in security) || typeof security.state !== 'string')
+      return entry
+    const reason = 'reason' in security && typeof security.reason === 'string' ? security.reason : null
+    return { ...entry, security: { state: security.state, reason } }
+  })
 }
 
 export function visibleUseCases(records: readonly CorePluginPublication[]): string[] {
