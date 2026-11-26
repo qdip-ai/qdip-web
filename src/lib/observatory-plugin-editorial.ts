@@ -158,11 +158,6 @@ export function isYaraFirstParty(plugin: Pick<PluginCatalogEntry, 'name' | 'plug
   )
 }
 
-// The current canonical organization and the previously reviewed identity only.
-export function isYaraReviewIdentity(name: string): boolean {
-  return name === 'remote-6d3611cf8065ac8e-secretary' || name === 'remote-3b25f5ae494aa7bf-secretary'
-}
-
 export function pluginPresentation(
   plugin: Pick<PluginCatalogEntry, 'name' | 'description' | 'ui' | 'plugin_id' | 'source'>,
   locale: Locale
