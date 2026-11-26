@@ -477,7 +477,8 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       if (presentation) setSelected('')
       setMutationSuccess({ name: row.name, message: t.verifying })
       const refreshed = await refresh()
-      if (!refreshed) {
+      const current = rowsRef.current?.find((item) => item.name === row.name)
+      if (!refreshed || !current || (published ? !isPublished(current) : current.published === true)) {
         setMutationSuccess(null)
         setMutationError({ name: row.name, message: t.unverified })
         return
@@ -536,6 +537,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
       )
         throw new Error(t.approvalUnverified)
       if (!(await refresh())) throw new Error(t.approvalUnverified)
+      const current = rowsRef.current?.find((item) => item.name === row.name)
+      if (current?.security?.state !== 'approved' || current.revision < row.revision + 1)
+        throw new Error(t.approvalUnverified)
       setMutationSuccess({ name: row.name, message: t.approvalComplete })
     } catch (cause) {
       setMutationError({
@@ -600,6 +604,12 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           {sorted.map((row) => {
             const published = isPublished(row)
             const offline = !row.enabled
+            const canApprove =
+              isYaraFirstParty(row) &&
+              isYaraReviewIdentity(row.name) &&
+              !published &&
+              !refreshFailed &&
+              (!row.security || (row.security.state === 'pending_review' && !row.security.criticalBlock))
             return (
               <article key={row.name} className={`${styles.card} ${styles.adminCard}`}>
                 <div className={styles.adminTop}>
@@ -687,7 +697,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     >
                       {t.editing}: {pluginPresentation(row, locale).title}
                     </h4>
-                    {isYaraFirstParty(row) && isYaraReviewIdentity(row.name) && !published && row.security?.state !== 'approved' && (
+                    {canApprove && (
                       <form
                         className={styles.form}
                         style={{ marginTop: '1.2rem', marginBottom: '1.2rem' }}
@@ -925,19 +935,24 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                         </p>
                       </details>
                       {!row.enabled && <p className={styles.notice}>{t.offlinePublish}</p>}
-                      {row.source === 'remote' && row.security && row.security.state !== 'approved' && (
-                        <p className={styles.notice}>
-                          {t.securityBlocked} {row.security.reason}
-                        </p>
-                      )}
+                      {row.source === 'remote' &&
+                        row.security &&
+                        (row.security.state !== 'approved' || row.security.criticalBlock) && (
+                          <p className={styles.notice}>
+                            {t.securityBlocked} {row.security.reason}
+                          </p>
+                        )}
                       <div className={styles.actionRow} style={{ marginTop: '0.2rem' }}>
                         <Button
                           type="submit"
                           className={styles.control}
                           disabled={
                             pending ||
+                            refreshFailed ||
                             !row.enabled ||
-                            (row.source === 'remote' && !!row.security && row.security.state !== 'approved') ||
+                            (row.source === 'remote' &&
+                              !!row.security &&
+                              (row.security.state !== 'approved' || row.security.criticalBlock)) ||
                             !fields.display_name.trim() ||
                             !fields.capability_id ||
                             (fields.application_launch_url !== '' &&
