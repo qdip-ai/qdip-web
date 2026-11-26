@@ -1,4 +1,5 @@
 import { safePluginLaunchUrl, type PluginCatalogEntry } from '@qdip/client'
+import { isYaraFirstParty } from '@/lib/observatory-plugin-editorial'
 
 export type PluginLaunchLink = Readonly<{ href: string; application: string }>
 
@@ -9,9 +10,7 @@ export type PluginLaunchLink = Readonly<{ href: string; application: string }>
  */
 export function launchLinkForPlugin(plugin: PluginCatalogEntry): PluginLaunchLink | null {
   if (
-    (plugin.name === 'remote-04e7c87d7b72111c-secretary' || plugin.name === 'remote-3b25f5ae494aa7bf-secretary') &&
-    plugin.plugin_id === 'secretary' &&
-    plugin.source === 'remote' &&
+    isYaraFirstParty(plugin) &&
     plugin.capability_id === 'secretary.plan' &&
     plugin.capabilities.includes('secretary.plan') &&
     plugin.published === true &&
