@@ -49,7 +49,10 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
       published_version: null,
       security: { state: 'pending_review', reason: 'Manifest changed', critical_block: true },
     }
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json([worker])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json([worker]))
+    )
     const [admin] = await catalog.readAdminCorePublications()
     expect(admin.enabled).toBe(true)
     expect(admin.published).toBe(false)
@@ -86,7 +89,10 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
       name: 'remote-lookalike',
       security: { state: 'approved', approval_source: 'external_review', critical_block: false },
     }
-    vi.stubGlobal('fetch', vi.fn(async () => Response.json([trusted, lookalike])))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json([trusted, lookalike]))
+    )
     const records = await catalog.publishedPlugins()
     expect(records.map((record) => record.firstParty)).toEqual([true, false])
     expect(records[0]).not.toHaveProperty('security')
