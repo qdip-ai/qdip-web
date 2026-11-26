@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 const noStore = (status: number, body: Record<string, unknown>) =>
   NextResponse.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } })
 
-/** An explicit first-party risk review, never an automatic admission or publication. */
+/** An explicit owner-authorized risk review, never automatic admission or publication. */
 export async function POST(request: NextRequest, context: { params: Promise<{ name: string }> }) {
   const { error, session } = adminRequest(request, true)
   if (error) return error
@@ -97,7 +97,19 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
       signal: AbortSignal.timeout(15_000),
     })
 
-    if (upstream.status === 409) return noStore(409, { error: 'Security state changed; reload before review' })
+    if (upstream.status === 409) {
+      const result: { detail?: unknown } = await upstream.json().catch(() => ({}))
+      const safeReasons = [
+        'Retired SDK plugin identity cannot be reviewed',
+        'Plugin revision changed; reload before reviewing',
+        'Plugin version changed; review the new version',
+        'Release quarantine before manual risk approval',
+        'Unresolved critical finding: verified remediation required',
+        'Reconnect Worker with scoped key before approving',
+      ]
+      const detail = typeof result.detail === 'string' && safeReasons.includes(result.detail) ? result.detail : null
+      return noStore(409, { error: detail || 'Security state changed; reload before review' })
+    }
     if (upstream.status === 403)
       return noStore(403, { error: 'Worker is not admitted by the trusted Core manifest allowlist' })
     if (upstream.status === 401) return noStore(502, { error: 'Core administrator credential rejected' })
