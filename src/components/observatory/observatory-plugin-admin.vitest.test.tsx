@@ -129,6 +129,7 @@ describe('Canonical Yara publication defaults', () => {
     render(<ObservatoryPluginAdmin locale="uk" />)
     await tick()
     fireEvent.click(screen.getByRole('button', { name: 'Редагувати' }))
+    expect(screen.getAllByRole('heading', { name: /Yara — планування справ і часу/ })).toHaveLength(2)
     expect(screen.getByRole('textbox', { name: 'Назва' })).toHaveValue('Yara — Decision Assistant')
     expect(screen.getByRole('textbox', { name: 'Коротка адреса (URL)' })).toHaveValue('yara')
   })
@@ -206,7 +207,7 @@ describe('Audited remote Worker approval', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(json(one))
-      .mockResolvedValueOnce(json({ error: 'not allowed' }, 403))
+      .mockResolvedValueOnce(json({ error: 'Worker is not admitted by the trusted Core manifest allowlist' }, 403))
     vi.stubGlobal('fetch', fetchMock)
     render(<ObservatoryPluginAdmin locale="uk" />)
     await tick()
