@@ -15,6 +15,7 @@ const one = {
       name: 'remote-3b25f5ae494aa7bf-secretary',
       plugin_id: 'secretary',
       source: 'remote',
+      security: { state: 'pending_review', reason: null, criticalBlock: false },
       description: 'Planning via QDIP',
       version: '0.1.0',
       enabled: true,
