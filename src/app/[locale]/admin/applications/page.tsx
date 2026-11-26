@@ -38,6 +38,7 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       independent: 'Незалежні застосунки (SDK runtime)',
       none: 'Core не оголошує незалежних застосунків',
       ready: 'Runtime готовий',
+      stale: 'Контракт змінився: зніміть застосунок з публікації та опублікуйте повторно.',
       blocked: 'Публікацію заблоковано',
     },
     en: {
@@ -48,6 +49,7 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       independent: 'Independent applications (SDK runtime)',
       none: 'Core declares no independent applications',
       ready: 'Runtime admitted',
+      stale: 'Contract changed: unpublish the application, then publish it again.',
       blocked: 'Publication blocked',
     },
     pl: {
@@ -58,6 +60,7 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
       independent: 'Niezależne aplikacje (runtime SDK)',
       none: 'Core nie deklaruje niezależnych aplikacji',
       ready: 'Środowisko gotowe',
+      stale: 'Kontrakt się zmienił: cofnij publikację aplikacji, a następnie opublikuj ponownie.',
       blocked: 'Publikacja zablokowana',
     },
   }[locale]
@@ -75,12 +78,18 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
         ) : (
           <ul className="grid gap-4" data-testid="independent-applications">
             {applications.map((application) => (
-              <li key={application.application_id} className="min-w-0 break-words rounded-lg border border-current/20 p-4">
+              <li
+                key={application.application_id}
+                className="min-w-0 break-words rounded-lg border border-current/20 p-4"
+              >
                 <strong>{application.application_id}</strong> — {application.status}
                 {' · '}
                 {application.visible ? labels.available : application.admission.ready ? labels.ready : labels.blocked}
                 {' · '}
                 <code className="break-all">{application.launch_url}</code>
+                {application.status === 'published' && !application.visible && application.admission.ready && (
+                  <p>{labels.stale}</p>
+                )}
                 <div>
                   {application.admission.reasons.length > 0 && (
                     <span role="status">{application.admission.reasons.join(', ')}</span>
