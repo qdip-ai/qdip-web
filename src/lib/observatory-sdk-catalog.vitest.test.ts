@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
-import { readAdminCorePublications, readCorePublications, readRemoteReviewOrganization } from './observatory-plugin-catalog'
+import {
+  publishedPlugins,
+  readAdminCorePublications,
+  readCorePublications,
+  readRemoteReviewOrganization,
+} from './observatory-plugin-catalog'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -60,6 +65,36 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
     })
     const [publicRecord] = await readCorePublications()
     expect(publicRecord).not.toHaveProperty('security')
+  })
+
+  it('derives branding from Core approval rather than the opaque catalog ID', async () => {
+    vi.stubEnv('DIP_API_BASE_URL', 'https://core.example.test')
+    vi.stubEnv('DIP_ADMIN_API_KEY', 'test-admin')
+    const trusted = {
+      name: 'remote-arbitrary-new-identity',
+      plugin_id: 'secretary',
+      source: 'remote',
+      version: '1',
+      description: 'Planner',
+      enabled: false,
+      capabilities: ['secretary.plan'],
+      capability_versions: { 'secretary.plan': '1' },
+      ui: { label: 'VHV — Decision Assistant' },
+      published: true,
+      revision: 1,
+      capability_id: 'secretary.plan',
+      published_version: '1',
+      security: { state: 'approved', approval_source: 'trusted_first_party_manual', critical_block: false },
+    }
+    const lookalike = {
+      ...trusted,
+      name: 'remote-lookalike',
+      security: { state: 'approved', approval_source: 'external_review', critical_block: false },
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json([trusted, lookalike])))
+    const records = await publishedPlugins()
+    expect(records.map((record) => record.firstParty)).toEqual([true, false])
+    expect(records[0]).not.toHaveProperty('security')
   })
 
   it('resolves the exact registered Worker owner', async () => {
