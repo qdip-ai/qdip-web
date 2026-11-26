@@ -69,11 +69,25 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
     const issuer = 'https://id.example'
     const items = [{ name, plugin_version: '0.1.0', revision: 2, tenant_id: 'current' }]
     const organizations = [
-      { id: 'legacy', status: 'active', identity_provider: 'zitadel', zitadel_issuer: issuer, zitadel_organization_id: '111' },
-      { id: 'current', status: 'active', identity_provider: 'zitadel', zitadel_issuer: issuer, zitadel_organization_id: '222' },
+      {
+        id: 'legacy',
+        status: 'active',
+        identity_provider: 'zitadel',
+        zitadel_issuer: issuer,
+        zitadel_organization_id: '111',
+      },
+      {
+        id: 'current',
+        status: 'active',
+        identity_provider: 'zitadel',
+        zitadel_issuer: issuer,
+        zitadel_organization_id: '222',
+      },
     ]
-    vi.stubGlobal('fetch', vi.fn(async (url: string) =>
-      Response.json(url.endsWith('/organizations') ? organizations : { items })))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => Response.json(url.endsWith('/organizations') ? organizations : { items }))
+    )
     await expect(readRemoteReviewOrganization(name, '0.1.0', 2, issuer)).resolves.toBe('222')
     await expect(readRemoteReviewOrganization(name, '0.1.0', 1, issuer)).resolves.toBeNull()
     await expect(readRemoteReviewOrganization(name, '0.1.0', 2, 'https://foreign.example')).resolves.toBeNull()
