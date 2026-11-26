@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
-import { corePluginConnection, readCorePublications } from '@/lib/observatory-plugin-catalog'
+import { corePluginConnection, readCorePublications, readRemoteReviewOrganization } from '@/lib/observatory-plugin-catalog'
 import { OwnerOrganizationError, verifyOwnedZitadelOrganization } from '@/lib/zitadel-owner-organizations'
-import { isYaraReviewIdentity } from '@/lib/observatory-plugin-editorial'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,7 +18,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
 
   const { name } = await context.params
   if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/.test(name)) return noStore(400, { error: 'Invalid plugin identity' })
-  if (!isYaraReviewIdentity(name)) return noStore(403, { error: 'Not the reviewed first-party Worker' })
   if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json')
     return noStore(415, { error: 'JSON required' })
 
@@ -64,15 +62,14 @@ export async function POST(request: NextRequest, context: { params: Promise<{ na
     if (record.version !== version || record.revision !== revision)
       return noStore(409, { error: 'Registration changed; reload before review' })
 
-    const organizationId = process.env.ZITADEL_QDIP_ORGANIZATION_ID
-    if (!organizationId || !/^[0-9]{1,32}$/.test(organizationId))
-      return noStore(503, { error: 'Yara organization ownership verification is not configured' })
+    const organizationId = await readRemoteReviewOrganization(name, version, revision as number, session.issuer)
+    if (!organizationId) return noStore(403, { error: 'Remote Worker has no matching active organization binding' })
     try {
       await verifyOwnedZitadelOrganization({ issuer: session.issuer, sub: session.sub }, organizationId)
     } catch (cause) {
       if (cause instanceof OwnerOrganizationError && cause.status === 403)
-        return noStore(403, { error: 'Yara organization ownership required' })
-      return noStore(503, { error: 'Yara organization ownership could not be verified' })
+        return noStore(403, { error: 'Worker organization ownership required' })
+      return noStore(503, { error: 'Worker organization ownership could not be verified' })
     }
 
     const { base, key } = corePluginConnection()
