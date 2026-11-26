@@ -34,12 +34,7 @@ jobs:
         run: pnpm lint
 
       - name: Prettier
-        run: |
-          if ! pnpm prettier; then
-            pnpm exec prettier --write 'src/app/api/observatory/admin/applications/[id]/[action]/route.ts' 'src/app/api/observatory/admin/plugins/[name]/security/approve/route.vitest.test.ts'
-            git diff -- src/app/api/observatory/admin
-            exit 1
-          fi
+        run: pnpm prettier
 
       - name: Typecheck
         run: pnpm typecheck

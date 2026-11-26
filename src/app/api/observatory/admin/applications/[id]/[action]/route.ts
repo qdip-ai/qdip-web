@@ -67,7 +67,8 @@ export async function POST(request: NextRequest, context: Context) {
           ? detail.reasons
               .filter(
                 (r: unknown) =>
-                  typeof r === 'string' && /^(RUNTIME_UNAVAILABLE|CAPABILITY_NOT_ADMITTED:[a-zA-Z0-9_.:-]{1,128})$/.test(r)
+                  typeof r === 'string' &&
+                  /^(RUNTIME_UNAVAILABLE|CAPABILITY_NOT_ADMITTED:[a-zA-Z0-9_.:-]{1,128})$/.test(r)
               )
               .slice(0, 8)
           : []
