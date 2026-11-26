@@ -7,7 +7,7 @@ import { safePluginLaunchUrl } from '@qdip/client'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import styles from './plugin-experience.module.css'
 import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
-import { isYaraFirstParty, isYaraReviewIdentity, pluginPresentation } from '@/lib/observatory-plugin-editorial'
+import { isYaraFirstParty, pluginPresentation } from '@/lib/observatory-plugin-editorial'
 import type { AdminPluginSecurity } from '@/lib/observatory-plugin-catalog'
 
 type Row = {
@@ -605,11 +605,10 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
             const published = isPublished(row)
             const offline = !row.enabled
             const canApprove =
-              isYaraFirstParty(row) &&
-              isYaraReviewIdentity(row.name) &&
+              row.source === 'remote' &&
               !published &&
               !refreshFailed &&
-              (!row.security || (row.security.state === 'pending_review' && !row.security.criticalBlock))
+              row.security?.state === 'pending_review' && !row.security.criticalBlock
             return (
               <article key={row.name} className={`${styles.card} ${styles.adminCard}`}>
                 <div className={styles.adminTop}>
