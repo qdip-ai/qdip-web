@@ -51,11 +51,7 @@ export function ApplicationPublicationControls({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2" aria-busy={pending}>
-      <Button
-        type="button"
-        disabled={!canPublish || pending}
-        onClick={() => void change('publish')}
-      >
+      <Button type="button" disabled={!canPublish || pending} onClick={() => void change('publish')}>
         {pending ? label.busy : label.publish}
       </Button>
       <Button
