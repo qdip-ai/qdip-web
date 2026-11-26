@@ -90,6 +90,20 @@ export default async function ManageApplicationsPage({ params }: { params: Promi
                 {application.status === 'published' && !application.visible && application.admission.ready && (
                   <p>{labels.stale}</p>
                 )}
+                {application.runtime_binding && (
+                  <p className="break-all text-sm">
+                    SDK: {application.runtime_binding.plugin_id} @ {application.runtime_binding.plugin_version}
+                  </p>
+                )}
+                {application.required_capabilities?.length > 0 && (
+                  <ul className="text-sm">
+                    {application.required_capabilities.map((capability) => (
+                      <li key={capability.capability_id} className="break-all">
+                        {capability.capability_id} @ {capability.capability_version}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div>
                   {application.admission.reasons.length > 0 && (
                     <span role="status">{application.admission.reasons.join(', ')}</span>
