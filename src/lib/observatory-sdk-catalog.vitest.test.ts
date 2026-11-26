@@ -53,7 +53,11 @@ describe('Observatory delegates catalog reads through @qdip/client', () => {
     const [admin] = await readAdminCorePublications()
     expect(admin.enabled).toBe(true)
     expect(admin.published).toBe(false)
-    expect(admin.security).toEqual({ state: 'pending_review', reason: 'Manifest changed', criticalBlock: true })
+    expect(admin.security).toEqual({
+      state: 'pending_review',
+      reason: 'Manifest changed',
+      criticalBlock: true,
+    })
     const [publicRecord] = await readCorePublications()
     expect(publicRecord).not.toHaveProperty('security')
   })
