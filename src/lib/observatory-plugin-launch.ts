@@ -8,7 +8,7 @@ export type PluginLaunchLink = Readonly<{ href: string; application: string }>
  * SDK-registered plugins cannot inject arbitrary outbound URLs or impersonate
  * another application's call-to-action through a display name or public slug.
  */
-export function launchLinkForPlugin(plugin: PluginCatalogEntry): PluginLaunchLink | null {
+export function launchLinkForPlugin(plugin: PluginCatalogEntry & { firstParty?: boolean }): PluginLaunchLink | null {
   if (
     isYaraFirstParty(plugin) &&
     plugin.capability_id === 'secretary.plan' &&
