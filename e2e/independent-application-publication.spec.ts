@@ -26,6 +26,8 @@ test.describe('independent application publication', () => {
     await page.goto('http://observatory.localhost:3000/en/admin/applications')
     const list = page.getByTestId('independent-applications')
     await expect(list).toBeVisible()
+    await expect(page.getByText('Plugin capability mismatch')).toHaveCount(0)
+    await expect(page.getByText('Plugin not registered')).toHaveCount(0)
     const rr = list.locator('li', { hasText: 'readiness-recovery' })
     await expect(rr.getByText('Visible in catalog')).toBeVisible()
     await expect(rr.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled()

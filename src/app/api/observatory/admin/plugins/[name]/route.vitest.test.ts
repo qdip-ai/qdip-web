@@ -23,6 +23,7 @@ const plugin = {
   name: 'remote-third-party-route',
   version: '1.0.0',
   enabled: true,
+  revision: 3,
   capabilities: ['routes.optimize'],
   capability_id: 'routes.optimize',
 }
@@ -34,7 +35,7 @@ const update = {
   launch_url_verified: true,
 }
 const context = { params: Promise.resolve({ name: plugin.name }) }
-const request = (data: object, origin = 'https://observatory.qdip.ai') =>
+const request = (data: unknown, origin = 'https://observatory.qdip.ai') =>
   new NextRequest('https://observatory.qdip.ai/api/observatory/admin/plugins/' + plugin.name, {
     method: 'PUT',
     headers: { host: 'observatory.qdip.ai', origin, 'content-type': 'application/json' },
@@ -135,7 +136,19 @@ describe('verified plugin launch URL admin API security', () => {
     expect(source.publish).toHaveBeenCalledOnce()
   })
 
+  it('delegates approved offline remote publication to Core while rejecting disabled embedded plugins', async () => {
+    source.read.mockResolvedValueOnce([{ ...plugin, source: 'remote', enabled: false }])
+    expect((await PUT(request(update), context)).status).toBe(200)
+    expect(source.publish).toHaveBeenCalledOnce()
+    source.publish.mockClear()
+    source.read.mockResolvedValueOnce([{ ...plugin, source: 'embedded', enabled: false }])
+    expect((await PUT(request(update), context)).status).toBe(409)
+    expect(source.publish).not.toHaveBeenCalled()
+  })
+
   it('rejects stale CAS revision and forged capability without executing a plugin', async () => {
+    expect((await PUT(request(null), context)).status).toBe(422)
+    expect((await PUT(request({ ...update, expected_revision: 2 }), context)).status).toBe(409)
     expect((await PUT(request({ ...update, capability_id: 'other.execute' }), context)).status).toBe(409)
     expect(source.publish).not.toHaveBeenCalled()
     source.publish.mockRejectedValueOnce(new QdipError('INVALID_REQUEST', { httpStatus: 409 }))

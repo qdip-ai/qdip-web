@@ -86,14 +86,18 @@ describe('independent admin application lifecycle proxy', () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       Response.json(
         {
-          detail: { code: 'runtime_admission_denied', reasons: ['RR_SCHEDULING_WORKER_UNAVAILABLE'] },
+          error: {
+            code: 'runtime_admission_denied',
+            message: 'Application runtime not admitted',
+            reasons: ['CAPABILITY_NOT_ADMITTED:rr.schedule', 'unexpected private value'],
+          },
         },
         { status: 409 }
       )
     )
     const denied = await POST(request({ expected_revision: 1 }), context())
     expect(denied.status).toBe(409)
-    expect((await denied.json()).reasons).toEqual(['RR_SCHEDULING_WORKER_UNAVAILABLE'])
+    expect((await denied.json()).reasons).toEqual(['CAPABILITY_NOT_ADMITTED:rr.schedule'])
 
     vi.mocked(fetch).mockResolvedValueOnce(
       Response.json({

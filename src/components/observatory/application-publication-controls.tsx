@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Button } from '@/design-system'
 import type { CoreApplicationPublication } from '@/lib/observatory-application-catalog'
 
 export function ApplicationPublicationControls({
@@ -50,22 +51,17 @@ export function ApplicationPublicationControls({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2" aria-busy={pending}>
-      <button
-        type="button"
-        disabled={!canPublish || pending}
-        className="rounded border border-current px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-        onClick={() => void change('publish')}
-      >
+      <Button type="button" disabled={!canPublish || pending} onClick={() => void change('publish')}>
         {pending ? label.busy : label.publish}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="secondary"
         disabled={!canUnpublish || pending}
-        className="rounded border border-current px-2 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         onClick={() => void change('unpublish')}
       >
         {label.unpublish}
-      </button>
+      </Button>
       {error && (
         <span role="alert" className="text-sm text-red-400">
           {error}

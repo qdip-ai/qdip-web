@@ -129,6 +129,7 @@ for (const [viewport, width, height] of [
           plugins: [
             {
               name: 'remote-04e7c87d7b72111c-secretary',
+              firstParty: true,
               plugin_id: 'secretary',
               source: 'remote',
               version: '0.1.0',
@@ -175,9 +176,11 @@ for (const [viewport, width, height] of [
     await page.context().clearCookies()
     await page.context().addCookies(oidcTestCookies(['observatory_admin']))
     const worker = {
-      name: 'remote-3b25f5ae494aa7bf-secretary',
+      name: 'remote-6d3611cf8065ac8e-secretary',
+      firstParty: true,
       plugin_id: 'secretary',
       source: 'remote',
+      security: { state: 'pending_review', reason: null, criticalBlock: false },
       version: '0.1.0',
       description: 'Decision-aware planning of commitments',
       enabled: true,
@@ -194,10 +197,11 @@ for (const [viewport, width, height] of [
     })
     let reviewed: Record<string, unknown> | null = null
     await page.route(
-      '**/api/observatory/admin/plugins/remote-3b25f5ae494aa7bf-secretary/security/approve',
+      '**/api/observatory/admin/plugins/remote-6d3611cf8065ac8e-secretary/security/approve',
       async (route) => {
         reviewed = route.request().postDataJSON() as Record<string, unknown>
         worker.revision = 2
+        worker.security.state = 'approved'
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -263,6 +267,7 @@ for (const [viewport, width, height] of [
     await page.context().addCookies(oidcTestCookies(['observatory_admin']))
     const yara = {
       name: 'remote-3b25f5ae494aa7bf-secretary',
+      firstParty: true,
       plugin_id: 'secretary',
       source: 'remote',
       version: '0.1.0',

@@ -19,6 +19,7 @@ for (const [viewport, width, height] of [
           plugins: [
             {
               name: 'remote-3b25f5ae494aa7bf-secretary',
+              firstParty: true,
               plugin_id: 'secretary',
               source: 'remote',
               version: '0.1.0',
@@ -60,6 +61,7 @@ test('verified Yara is renamed in English and Polish; unrelated publisher remain
         plugins: [
           {
             name: 'remote-04e7c87d7b72111c-secretary',
+            firstParty: true,
             plugin_id: 'secretary',
             source: 'remote',
             version: '0.1.0',

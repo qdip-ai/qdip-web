@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { adminRequest } from '@/lib/observatory-plugin-admin'
-import { readCorePublications } from '@/lib/observatory-plugin-catalog'
+import { readAdminCorePublications } from '@/lib/observatory-plugin-catalog'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (error) return error
   try {
     return NextResponse.json(
-      { plugins: await readCorePublications() },
+      { plugins: await readAdminCorePublications() },
       {
         headers: { 'Cache-Control': 'no-store' },
       }

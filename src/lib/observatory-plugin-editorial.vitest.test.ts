@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import type { PluginCatalogEntry } from '@qdip/client'
+import type { CorePluginPublication } from './observatory-plugin-catalog'
 import { pluginPresentation } from './observatory-plugin-editorial'
 
-const entry = (patch: Partial<PluginCatalogEntry>): PluginCatalogEntry => ({
+const entry = (patch: Partial<CorePluginPublication>): CorePluginPublication => ({
   name: 'gtm-lab',
   source: 'embedded',
   version: '0.1.0',
@@ -60,11 +60,11 @@ describe('first-party catalog editorial translations', () => {
       name: 'remote-other-secretary',
       plugin_id: 'secretary',
       source: 'remote',
-      ui: { label: 'Another publisher assistant' },
+      ui: { label: 'VHV — Decision Assistant' },
       description: 'Private developer-provided description.',
     })
     expect(pluginPresentation(spoof, 'uk')).toEqual({
-      title: 'Another publisher assistant',
+      title: 'VHV — Decision Assistant',
       description: 'Private developer-provided description.',
     })
   })
@@ -73,6 +73,7 @@ describe('first-party catalog editorial translations', () => {
     const vhv = entry({
       source: 'remote',
       name: 'remote-04e7c87d7b72111c-secretary',
+      firstParty: true,
       plugin_id: 'secretary',
       ui: { label: 'Yara — Decision Assistant' },
       description: 'Decision-aware planning of commitments, tasks and calendar slots using QDIP.',
@@ -95,6 +96,7 @@ describe('first-party catalog editorial translations', () => {
     const oldCatalog = entry({
       source: 'remote',
       name: 'remote-04e7c87d7b72111c-secretary',
+      firstParty: true,
       plugin_id: 'secretary',
       ui: { label: 'VHV — Decision Assistant' },
       description:
@@ -118,10 +120,16 @@ describe('first-party catalog editorial translations', () => {
   })
 
   it('rebrands exact Ukrainian legacy copy only for verified Yara identities', () => {
-    for (const name of ['remote-04e7c87d7b72111c-secretary', 'remote-3b25f5ae494aa7bf-secretary']) {
+    for (const name of [
+      'remote-04e7c87d7b72111c-secretary',
+      'remote-3b25f5ae494aa7bf-secretary',
+      'remote-6d3611cf8065ac8e-secretary',
+      'remote-another-migrated-identity',
+    ]) {
       const plugin = entry({
         source: 'remote',
         name,
+        firstParty: true,
         plugin_id: 'secretary',
         ui: { label: 'VHV — планування справ і часу' },
         description:

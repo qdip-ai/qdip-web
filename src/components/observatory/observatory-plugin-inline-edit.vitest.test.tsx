@@ -239,13 +239,38 @@ describe('Observatory inline plugin editing', () => {
     expect(card('Yara — Decision Assistant').getByRole('textbox', { name: 'Назва' })).toBeInTheDocument()
   })
 
-  it('explains why an offline worker cannot publish instead of offering an inert button', async () => {
+  it('keeps publication unavailable when an offline Worker has no confirmed security approval', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(reply({ plugins: [{ ...secretary, enabled: false }] })))
     render(<ObservatoryPluginAdmin locale="uk" />)
     await loaded()
     fireEvent.click(card('Yara — Decision Assistant').getByRole('button', { name: 'Редагувати' }))
-    expect(card('Yara — Decision Assistant').getByText(/поки Remote Worker не підключений/)).toBeInTheDocument()
+    expect(card('Yara — Decision Assistant').getByText(/Виконання тимчасово недоступне/)).toBeInTheDocument()
     expect(card('Yara — Decision Assistant').getByRole('button', { name: 'Зберегти й опублікувати' })).toBeDisabled()
+  })
+
+  it('allows catalog publication of an approved offline Worker without implying execution readiness', async () => {
+    const offline = {
+      ...secretary,
+      enabled: false,
+      security: { state: 'approved', reason: null, criticalBlock: false },
+    }
+    const published = { ...offline, published: true, published_version: '0.1.0', revision: 2 }
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(reply({ plugins: [offline] }))
+      .mockResolvedValueOnce(reply({ updated: true }))
+      .mockResolvedValueOnce(reply({ plugins: [published] }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<ObservatoryPluginAdmin locale="uk" />)
+    await loaded()
+    const entry = card('Yara — Decision Assistant')
+    fireEvent.click(entry.getByRole('button', { name: 'Редагувати' }))
+    expect(entry.getByText(/Виконання тимчасово недоступне/)).toBeInTheDocument()
+    const publish = entry.getByRole('button', { name: 'Зберегти й опублікувати' })
+    expect(publish).toBeEnabled()
+    fireEvent.click(publish)
+    await waitFor(() => expect(entry.getByRole('status')).toHaveTextContent('Плагін опубліковано'))
+    expect(entry.getByText('Remote Worker не підключений')).toBeInTheDocument()
   })
 
   it('renders a registered singleton capability as technical information, never an empty-choice dropdown', async () => {

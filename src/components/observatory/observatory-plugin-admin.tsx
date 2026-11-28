@@ -7,7 +7,8 @@ import { safePluginLaunchUrl } from '@qdip/client'
 import { buildLocalePath, type Locale } from '@/lib/observatory-i18n'
 import styles from './plugin-experience.module.css'
 import { pluginCategoryLabel } from '@/lib/observatory-plugin-categories'
-import { pluginPresentation } from '@/lib/observatory-plugin-editorial'
+import { isYaraFirstParty, pluginPresentation } from '@/lib/observatory-plugin-editorial'
+import type { AdminPluginSecurity } from '@/lib/observatory-plugin-catalog'
 
 type Row = {
   name: string
@@ -17,6 +18,8 @@ type Row = {
   application_launch_url?: string | null
   launch_url_verified?: boolean
   source?: 'embedded' | 'remote'
+  firstParty?: boolean
+  security?: AdminPluginSecurity
   description: string
   version: string
   enabled: boolean
@@ -97,11 +100,16 @@ const copy = {
     verifying: 'Збережено. Перевіряю статус публікації…',
     unverified: 'Збережено, але не вдалося підтвердити новий статус. Оновіть список.',
     hidden: 'Плагін приховано з каталогу.',
-    offlinePublish: 'Публікація недоступна, поки Remote Worker не підключений.',
+    offlinePublish: 'Виконання тимчасово недоступне; публікація залежить від Security approval.',
     published: 'Опубліковано',
     unpublished: 'Не опубліковано',
     disabled: 'Вимкнено в Core',
     offline: 'Remote Worker не підключений',
+    connected: 'Remote Worker підключений',
+    registeredWorker: 'Worker зареєстрований',
+    securityState: 'Security approval',
+    unknown: 'Стан невідомий',
+    securityBlocked: 'Публікація потребує чинного Security approval від Core.',
     demo: 'Готова демосторінка',
     generic: 'Стандартна сторінка каталогу',
     details: 'Переглянути сторінку',
@@ -170,11 +178,16 @@ const copy = {
     verifying: 'Saved. Checking publication status…',
     unverified: 'Saved, but the new status could not be verified. Refresh the list.',
     hidden: 'Plugin unpublished from catalog.',
-    offlinePublish: 'Publication is unavailable while the Remote Worker is offline.',
+    offlinePublish: 'Execution is unavailable; publication depends on security approval.',
     published: 'Published',
     unpublished: 'Unpublished',
     disabled: 'Disabled in Core',
     offline: 'Remote Worker is offline',
+    connected: 'Remote Worker connected',
+    registeredWorker: 'Worker registered',
+    securityState: 'Security approval',
+    unknown: 'State unknown',
+    securityBlocked: 'Publication requires current Core security approval.',
     demo: 'Existing demo workspace',
     generic: 'Standard catalog page',
     details: 'View page',
@@ -243,11 +256,16 @@ const copy = {
     verifying: 'Zapisano. Sprawdzanie stanu publikacji…',
     unverified: 'Zapisano, ale nie udało się potwierdzić nowego stanu. Odśwież listę.',
     hidden: 'Wtyczka ukryta w katalogu.',
-    offlinePublish: 'Publikacja jest niedostępna, gdy zdalny Worker jest rozłączony.',
+    offlinePublish: 'Wykonanie niedostępne; publikacja zależy od zatwierdzenia bezpieczeństwa.',
     published: 'Opublikowano',
     unpublished: 'Nieopublikowano',
     disabled: 'Wyłączona w Core',
     offline: 'Zdalny Worker niedostępny',
+    connected: 'Zdalny Worker połączony',
+    registeredWorker: 'Worker zarejestrowany',
+    securityState: 'Zatwierdzenie bezpieczeństwa',
+    unknown: 'Stan nieznany',
+    securityBlocked: 'Publikacja wymaga aktualnego zatwierdzenia bezpieczeństwa w Core.',
     demo: 'Gotowa strona demo',
     generic: 'Standardowa strona katalogu',
     details: 'Zobacz stronę',
@@ -273,14 +291,11 @@ function isPublished(row: Row) {
   )
 }
 function initialFields(row: Row): FormFields {
-  const canonicalYara =
-    row.name === 'remote-3b25f5ae494aa7bf-secretary' && row.plugin_id === 'secretary' && row.source === 'remote'
+  const canonicalYara = isYaraFirstParty(row)
+  const presentation = canonicalYara ? pluginPresentation(row, 'en') : null
   return {
-    display_name:
-      canonicalYara && row.ui?.label === 'VHV — Decision Assistant'
-        ? 'Yara — Decision Assistant'
-        : row.ui?.label || row.name,
-    description: row.description || '',
+    display_name: presentation?.title ?? (row.ui?.label || row.name),
+    description: presentation?.description ?? (row.description || ''),
     category: row.ui?.category || 'Other',
     capability_id:
       (row.capability_id && row.capabilities.includes(row.capability_id) ? row.capability_id : row.capabilities[0]) ||
@@ -454,16 +469,17 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         }),
       })
       if (!response.ok) {
-        if (response.status === 403) throw new Error(t.approvalRequired)
-        if (response.status === 409) throw new Error(t.conflict)
-        throw new Error(t.error)
+        const detail: { error?: string } = await response.json().catch(() => ({}))
+        const fallback = response.status === 403 ? t.approvalRequired : response.status === 409 ? t.conflict : t.error
+        throw new Error(detail.error ? `${fallback} ${detail.error}` : fallback)
       }
       // PUT has succeeded: close the editor immediately, independent of the
       // follow-up GET. Keep feedback in this very card while verifying status.
       if (presentation) setSelected('')
       setMutationSuccess({ name: row.name, message: t.verifying })
       const refreshed = await refresh()
-      if (!refreshed) {
+      const current = rowsRef.current?.find((item) => item.name === row.name)
+      if (!refreshed || !current || (published ? !isPublished(current) : current.published === true)) {
         setMutationSuccess(null)
         setMutationError({ name: row.name, message: t.unverified })
         return
@@ -502,10 +518,16 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           }),
         }
       )
-      if (!response.ok)
+      if (!response.ok) {
+        const detail: { error?: string } = await response.json().catch(() => ({}))
         throw new Error(
-          response.status === 409 ? t.conflict : response.status === 403 ? t.approvalMissingManifest : t.approvalFailure
+          response.status === 409
+            ? detail.error || t.conflict
+            : detail.error === 'Worker is not admitted by the trusted Core manifest allowlist'
+              ? t.approvalMissingManifest
+              : detail.error || t.approvalFailure
         )
+      }
       const result: unknown = await response.json()
       if (
         !result ||
@@ -515,8 +537,11 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
         (result as { security?: { state?: unknown } }).security?.state !== 'approved'
       )
         throw new Error(t.approvalUnverified)
+      if (!(await refresh())) throw new Error(t.approvalUnverified)
+      const current = rowsRef.current?.find((item) => item.name === row.name)
+      if (current?.security?.state !== 'approved' || current.revision < row.revision + 1)
+        throw new Error(t.approvalUnverified)
       setMutationSuccess({ name: row.name, message: t.approvalComplete })
-      await refresh()
     } catch (cause) {
       setMutationError({
         name: row.name,
@@ -580,6 +605,15 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
           {sorted.map((row) => {
             const published = isPublished(row)
             const offline = !row.enabled
+            const publicationAvailable =
+              row.enabled ||
+              (row.source === 'remote' && row.security?.state === 'approved' && !row.security.criticalBlock)
+            const canApprove =
+              row.source === 'remote' &&
+              !published &&
+              !refreshFailed &&
+              row.security?.state === 'pending_review' &&
+              !row.security.criticalBlock
             return (
               <article key={row.name} className={`${styles.card} ${styles.adminCard}`}>
                 <div className={styles.adminTop}>
@@ -596,11 +630,21 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                     <span className={styles.pill} data-kind={published ? 'published' : 'unpublished'}>
                       {published ? t.published : t.unpublished}
                     </span>
-                    {offline && (
+                    {row.source === 'remote' ? (
+                      <>
+                        <span className={styles.pill}>{t.registeredWorker}</span>
+                        <span className={styles.pill} data-kind={offline ? 'offline' : undefined}>
+                          {refreshFailed ? t.unknown : offline ? t.offline : t.connected}
+                        </span>
+                        <span className={styles.pill}>
+                          {t.securityState}: {refreshFailed ? t.unknown : row.security?.state || t.unknown}
+                        </span>
+                      </>
+                    ) : offline ? (
                       <span className={styles.pill} data-kind="offline">
-                        {row.source === 'remote' ? t.offline : t.disabled}
+                        {t.disabled}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 <div className={styles.actionRow}>
@@ -655,9 +699,9 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       id={`editor-title-${row.name}`}
                       className={styles.formHeading}
                     >
-                      {t.editing}: {row.ui?.label || row.plugin_id || row.name}
+                      {t.editing}: {pluginPresentation(row, locale).title}
                     </h4>
-                    {row.name === 'remote-3b25f5ae494aa7bf-secretary' && row.source === 'remote' && !published && (
+                    {canApprove && (
                       <form
                         className={styles.form}
                         style={{ marginTop: '1.2rem', marginBottom: '1.2rem' }}
@@ -725,7 +769,7 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                       style={{ marginTop: '1.2rem' }}
                       onSubmit={(event) => {
                         event.preventDefault()
-                        if (row.enabled && fields.capability_id) void update(row, true, fields)
+                        if (publicationAvailable && fields.capability_id) void update(row, true, fields)
                       }}
                     >
                       <label className={styles.field}>
@@ -894,14 +938,25 @@ export function ObservatoryPluginAdmin({ locale }: { locale: Locale }) {
                           {t.capabilityHint}
                         </p>
                       </details>
-                      {!row.enabled && <p className={styles.notice}>{t.offlinePublish}</p>}
+                      {offline && row.source === 'remote' && <p className={styles.notice}>{t.offlinePublish}</p>}
+                      {row.source === 'remote' &&
+                        row.security &&
+                        (row.security.state !== 'approved' || row.security.criticalBlock) && (
+                          <p className={styles.notice}>
+                            {t.securityBlocked} {row.security.reason}
+                          </p>
+                        )}
                       <div className={styles.actionRow} style={{ marginTop: '0.2rem' }}>
                         <Button
                           type="submit"
                           className={styles.control}
                           disabled={
                             pending ||
-                            !row.enabled ||
+                            refreshFailed ||
+                            !publicationAvailable ||
+                            (row.source === 'remote' &&
+                              !!row.security &&
+                              (row.security.state !== 'approved' || row.security.criticalBlock)) ||
                             !fields.display_name.trim() ||
                             !fields.capability_id ||
                             (fields.application_launch_url !== '' &&

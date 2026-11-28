@@ -30,7 +30,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
   try {
     const raw = await request.text()
     if (raw.length > 4096) return NextResponse.json({ error: 'Request too large' }, { status: 413 })
-    update = JSON.parse(raw) as typeof update
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+      return NextResponse.json({ error: 'Invalid publication request' }, { status: 422 })
+    update = parsed as typeof update
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -46,6 +49,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
     const catalog = await readCorePublications()
     const installed = catalog.find((item) => item.name === name)
     if (!installed) return NextResponse.json({ error: 'Plugin not installed' }, { status: 404 })
+    if (installed.revision !== update.expected_revision)
+      return NextResponse.json({ error: 'Plugin revision changed. Reload and retry.' }, { status: 409 })
     // Runtime registration belongs to QDIP Core. Observatory registers only
     // a catalog entry for a plugin/capability already installed and verified.
     const capability =
@@ -54,7 +59,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
         : (installed.capability_id ?? installed.capabilities[0])
     if (!capability || !installed.capabilities.includes(capability))
       return NextResponse.json({ error: 'Capability is not installed' }, { status: 409 })
-    if (update.published && !installed.enabled)
+    if (update.published && !installed.enabled && installed.source !== 'remote')
       return NextResponse.json({ error: 'Disabled plugin cannot be published' }, { status: 409 })
     const displayName = update.display_name
     const description = update.description
@@ -114,7 +119,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ nam
   } catch (cause) {
     if (cause instanceof QdipError) {
       if (cause.httpStatus === 409)
-        return NextResponse.json({ error: 'Registry changed. Reload and retry.' }, { status: 409 })
+        return NextResponse.json(
+          { error: 'Core rejected the current registration, revision or public URL reservation. Reload and check.' },
+          { status: 409 }
+        )
       if (cause.httpStatus === 401)
         return NextResponse.json({ error: 'QDIP Core administrative credential rejected' }, { status: 502 })
       if (cause.httpStatus === 403)
