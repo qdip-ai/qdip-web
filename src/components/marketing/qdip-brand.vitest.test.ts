@@ -62,8 +62,9 @@ describe('QDIP ecosystem showcase', () => {
     expect(brandRule).not.toMatch(/display:\s*inline-flex|background:|border-radius:|overflow:/)
     expect(homepage).toContain('<h3 className={styles.ecosystemBrand}>')
     expect(homepage).toContain('<span className={styles.ecosystemCategory}>')
-    expect(homepage).toMatch(/alt="Dzvin\.co"\s+width={144}\s+height={34}/)
-    expect(homepage).toMatch(/alt="ServiceOps"\s+width={197}\s+height={34}/)
+    const normalizedHomepage = homepage.replace(/\s+/g, ' ')
+    expect(normalizedHomepage).toContain('alt="Dzvin.co" width={144} height={34}')
+    expect(normalizedHomepage).toContain('alt="ServiceOps" width={197} height={34}')
     const dzvinRule = marketingStyles.match(/\.dzvinWordmark\s*\{([^}]*)\}/)?.[1]
     const serviceOpsRule = marketingStyles.match(/\.serviceOpsWordmark\s*\{([^}]*)\}/)?.[1]
     expect(dzvinRule).toContain("content: url('/brands/dzvin-wordmark-dark.svg')")
