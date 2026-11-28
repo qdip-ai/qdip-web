@@ -18,15 +18,17 @@ describe('QDIP ecosystem showcase', () => {
 
   it('shows ServiceOps and exactly one Dzvin card between demos and the final CTA', () => {
     const demo = homepage.indexOf('<DecisionPatterns locale={locale} cases={c.cases} />')
-    const serviceCard = homepage.indexOf('<h3>ServiceOps</h3>')
-    const dzvinCard = homepage.indexOf('<h3 className={styles.ecosystemBrand}>')
+    const serviceCard = homepage.indexOf('src="/brands/serviceops-wordmark-light.svg"')
+    const dzvinCard = homepage.indexOf('src="/brands/dzvin-wordmark.svg"')
     const cta = homepage.indexOf('<section className={styles.finalCta}>')
     expect(demo).toBeGreaterThan(-1)
     expect(serviceCard).toBeGreaterThan(demo)
     expect(dzvinCard).toBeGreaterThan(serviceCard)
     expect(dzvinCard).toBeLessThan(cta)
     expect(homepage.match(/<article className={styles.ecosystemCard}>/g)).toHaveLength(2)
-    expect(homepage.match(/<h3 className={styles.ecosystemBrand}>/g)).toHaveLength(1)
+    expect(homepage.match(/<h3 className={styles.ecosystemBrand}>/g)).toHaveLength(2)
+    expect(homepage.match(/alt="ServiceOps"/g)).toHaveLength(1)
+    expect(homepage.match(/alt="Dzvin.co"/g)).toHaveLength(1)
     expect(homepage).toContain('href="https://dzvin.co"')
     expect(homepage).toContain('{c.ecosystem.heading}')
     expect(homepage).toContain('{c.ecosystem.description}')
@@ -60,9 +62,13 @@ describe('QDIP ecosystem showcase', () => {
     expect(brandRule).not.toMatch(/display:\s*inline-flex|background:|border-radius:|overflow:/)
     expect(homepage).toContain('<h3 className={styles.ecosystemBrand}>')
     expect(homepage).toContain('<span className={styles.ecosystemCategory}>')
-    expect(homepage).toContain('width={144} height={34}')
+    expect(homepage).toMatch(/alt="Dzvin\.co"\s+width={144}\s+height={34}/)
+    expect(homepage).toMatch(/alt="ServiceOps"\s+width={197}\s+height={34}/)
     expect(marketingStyles).toMatch(
-      /\.ecosystemBrand img\s*\{[^}]*content:\s*url\('\/brands\/dzvin-wordmark-dark\.svg'\)/
+      /\.dzvinWordmark\s*\{[^}]*content:\s*url\('\/brands\/dzvin-wordmark-dark\.svg'\)/
+    )
+    expect(marketingStyles).toMatch(
+      /\.serviceOpsWordmark\s*\{[^}]*content:\s*url\('\/brands\/serviceops-wordmark-dark\.svg'\)/
     )
     expect(marketingStyles).toMatch(/data-marketing-appearance='light'[^}]*content:\s*normal/)
   })
