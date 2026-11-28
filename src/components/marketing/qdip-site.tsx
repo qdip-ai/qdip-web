@@ -109,7 +109,13 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
           </div>
           <article className={styles.ecosystemCard}>
             <h3 className={styles.ecosystemBrand}>
-              <Image className={styles.serviceOpsWordmark} src="/brands/serviceops-wordmark-light.svg" alt="ServiceOps" width={197} height={34} />
+              <Image
+                className={styles.serviceOpsWordmark}
+                src="/brands/serviceops-wordmark-light.svg"
+                alt="ServiceOps"
+                width={197}
+                height={34}
+              />
             </h3>
             <span className={styles.ecosystemCategory}>{service.eyebrow}</span>
             <p>{service.summary}</p>
@@ -135,7 +141,13 @@ export function QdipSite({ locale = 'en' }: { locale?: MarketingLocale }) {
           </article>
           <article className={styles.ecosystemCard}>
             <h3 className={styles.ecosystemBrand}>
-              <Image className={styles.dzvinWordmark} src="/brands/dzvin-wordmark.svg" alt="Dzvin.co" width={144} height={34} />
+              <Image
+                className={styles.dzvinWordmark}
+                src="/brands/dzvin-wordmark.svg"
+                alt="Dzvin.co"
+                width={144}
+                height={34}
+              />
             </h3>
             <span className={styles.ecosystemCategory}>{c.ecosystem.category}</span>
             <p>{c.ecosystem.description}</p>
