@@ -64,12 +64,10 @@ describe('QDIP ecosystem showcase', () => {
     expect(homepage).toContain('<span className={styles.ecosystemCategory}>')
     expect(homepage).toMatch(/alt="Dzvin\.co"\s+width={144}\s+height={34}/)
     expect(homepage).toMatch(/alt="ServiceOps"\s+width={197}\s+height={34}/)
-    expect(marketingStyles).toMatch(
-      /\.dzvinWordmark\s*\{[^}]*content:\s*url\('\/brands\/dzvin-wordmark-dark\.svg'\)/
-    )
-    expect(marketingStyles).toMatch(
-      /\.serviceOpsWordmark\s*\{[^}]*content:\s*url\('\/brands\/serviceops-wordmark-dark\.svg'\)/
-    )
+    const dzvinRule = marketingStyles.match(/\.dzvinWordmark\s*\{([^}]*)\}/)?.[1]
+    const serviceOpsRule = marketingStyles.match(/\.serviceOpsWordmark\s*\{([^}]*)\}/)?.[1]
+    expect(dzvinRule).toContain("content: url('/brands/dzvin-wordmark-dark.svg')")
+    expect(serviceOpsRule).toContain("content: url('/brands/serviceops-wordmark-dark.svg')")
     expect(marketingStyles).toMatch(/data-marketing-appearance='light'[^}]*content:\s*normal/)
   })
 })
